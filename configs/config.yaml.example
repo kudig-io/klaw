@@ -1,0 +1,26 @@
+# Klaw 配置文件
+
+kubernetes:
+  clusters:
+    - name: default
+      kubeconfig: ~/.kube/config
+      context: minikube
+
+messaging:
+  dingtalk:
+    enabled: false
+    app_key: your_app_key
+    app_secret: your_app_secret
+    webhook: your_webhook_url
+    secret: your_secret
+  feishu:
+    enabled: false
+    app_id: your_app_id
+    app_secret: your_app_secret
+
+openclaw:
+  enabled: true
+  skills: ./skills
+
+server:
+  port: 8080
