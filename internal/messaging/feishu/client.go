@@ -66,7 +66,7 @@ func (c *Client) refreshAccessToken() error {
 	}
 
 	// 发送请求
-	resp, err := http.Post(url, "application/json", nil)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to refresh access token: %v", err)
 	}
@@ -145,7 +145,7 @@ func (c *Client) SendMessage(message string) error {
 	}
 
 	// 创建请求
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %v", err)
 	}

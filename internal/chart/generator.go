@@ -186,7 +186,7 @@ func (g *Generator) generateChart(data ChartData) ([]byte, error) {
 	buf.WriteString(fmt.Sprintf("%s\n", data.YLabel))
 	buf.WriteString(g.generateSeparator(20))
 
-	for i, dataset := range data.Datasets {
+	for _, dataset := range data.Datasets {
 		buf.WriteString(fmt.Sprintf("\n%s:\n", dataset.Label))
 		buf.WriteString(g.generateBarChart(dataset.Data, dataset.Color))
 	}

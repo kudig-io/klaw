@@ -103,7 +103,7 @@ func (s *Service) collectMetrics() {
 	clusters := s.k8sManager.GetClusters()
 
 	for _, cluster := range clusters {
-		metrics, err := s.metricsCollector.CollectClusterMetrics(cluster.Name)
+		clusterMetrics, err := s.metricsCollector.CollectClusterMetrics(cluster.Name)
 		if err != nil {
 			fmt.Printf("Failed to collect metrics for cluster %s: %v\n", cluster.Name, err)
 			continue
@@ -114,14 +114,14 @@ func (s *Service) collectMetrics() {
 		if _, ok := s.metricsHistory[cluster.Name]; !ok {
 			s.metricsHistory[cluster.Name] = make([]*metrics.ClusterMetrics, 0, 100)
 		}
-		s.metricsHistory[cluster.Name] = append(s.metricsHistory[cluster.Name], metrics)
+		s.metricsHistory[cluster.Name] = append(s.metricsHistory[cluster.Name], clusterMetrics)
 		if len(s.metricsHistory[cluster.Name]) > 100 {
 			s.metricsHistory[cluster.Name] = s.metricsHistory[cluster.Name][1:]
 		}
 		s.historyMutex.Unlock()
 
 		fmt.Printf("Collected metrics for cluster %s: %d nodes, %d pods\n",
-			cluster.Name, metrics.Nodes.Total, metrics.Pods.Total)
+			cluster.Name, clusterMetrics.Nodes.Total, clusterMetrics.Pods.Total)
 	}
 }
 

@@ -13,6 +13,7 @@ type Config struct {
 	Messaging  MessagingConfig  `yaml:"messaging"`
 	OpenClaw   OpenClawConfig   `yaml:"openclaw"`
 	Server     ServerConfig     `yaml:"server"`
+	Events     EventConfig      `yaml:"events"`
 }
 
 // KubernetesConfig Kubernetes配置
@@ -22,9 +23,9 @@ type KubernetesConfig struct {
 
 // ClusterConfig 集群配置
 type ClusterConfig struct {
-	Name      string `yaml:"name"`
-	Kubeconfig string `yaml:"kubeconfig"`
-	Context    string `yaml:"context"`
+	Name       string `yaml:"name" json:"name"`
+	Kubeconfig string `yaml:"kubeconfig" json:"kubeconfig"`
+	Context    string `yaml:"context" json:"context"`
 }
 
 // MessagingConfig 消息平台配置
@@ -35,11 +36,12 @@ type MessagingConfig struct {
 
 // DingTalkConfig 钉钉配置
 type DingTalkConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	AppKey  string `yaml:"app_key"`
-	AppSecret string `yaml:"app_secret"`
-	Webhook   string `yaml:"webhook"`
-	Secret    string `yaml:"secret"`
+	Enabled      bool   `yaml:"enabled"`
+	AppKey       string `yaml:"app_key"`
+	AppSecret    string `yaml:"app_secret"`
+	Webhook      string `yaml:"webhook"`
+	Secret       string `yaml:"secret"`
+	WebhookPort  int    `yaml:"webhook_port"`
 }
 
 // FeishuConfig 飞书配置
@@ -58,6 +60,21 @@ type OpenClawConfig struct {
 // ServerConfig 服务器配置
 type ServerConfig struct {
 	Port int `yaml:"port"`
+}
+
+// EventConfig 事件监听配置
+type EventConfig struct {
+	Enabled        bool          `yaml:"enabled"`
+	WatchTypes     []string      `yaml:"watch_types"`     // 监听的资源类型: pod, deployment, service
+	Namespaces     []string      `yaml:"namespaces"`      // 监听的命名空间，为空表示所有
+	EventTypes     []string      `yaml:"event_types"`     // 监听的事件类型: Normal, Warning, Error
+	Reasons        []string      `yaml:"reasons"`         // 关注的原因
+	ExcludeReasons []string      `yaml:"exclude_reasons"` // 排除的原因
+	MinSeverity    string        `yaml:"min_severity"`    // 最小严重级别: info, warning, critical
+	RateLimit      int           `yaml:"rate_limit"`      // 每秒最大事件数
+	DedupWindow    int           `yaml:"dedup_window"`    // 去重窗口（秒）
+	MuteDuration   int           `yaml:"mute_duration"`   // 相同事件静音时长（分钟）
+	Channels       []string      `yaml:"channels"`        // 推送的频道列表
 }
 
 // Load 加载配置文件

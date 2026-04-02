@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klaw Mock Data Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .toggle-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .toggle-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .toggle-btn:hover {
+            background: #d97706;
+        }
+        .toggle-btn.active {
+            background: #10b981;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status.mock {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status.real {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        .data-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .data-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        tr:hover {
+            background: #f9fafb;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-green {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge-yellow {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .badge-blue {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .actions {
+            margin-top: 20px;
+        }
+        .back-link {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Klaw Mock Data Demo</h1>
+        <p class="subtitle">使用 Mock 数据测试 Deployments 和其他功能</p>
+
+        <div class="toggle-section">
+            <h3>Mock 模式控制</h3>
+            <p style="margin: 10px 0;">
+                当前状态: <span id="mockStatus" class="status real">真实 API</span>
+            </p>
+            <button id="toggleBtn" class="toggle-btn" onclick="toggleMock()">
+                启用 Mock 模式
+            </button>
+            <button class="toggle-btn" onclick="goToApp()" style="background: #3b82f6;">
+                返回主应用
+            </button>
+        </div>
+
+        <div class="data-section">
+            <h2>📦 Deployments (Mock 数据)</h2>
+            <table id="deploymentsTable">
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>命名空间</th>
+                        <th>副本数</th>
+                        <th>可用</th>
+                        <th>镜像</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="data-section">
+            <h2>🎛️ Clusters (Mock 数据)</h2>
+            <table id="clustersTable">
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>Context</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="data-section">
+            <h2>📋 Namespaces (Mock 数据)</h2>
+            <table id="namespacesTable">
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>创建时间</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="actions">
+            <a href="/" class="back-link">← 返回 Klaw 主应用</a>
+        </div>
+    </div>
+
+    <script>
+        // Mock 数据
+        const mockData = {
+            clusters: [
+                { name: 'kind-test', context: 'kind-test' },
+                { name: 'production', context: 'prod-cluster' },
+            ],
+            namespaces: [
+                { name: 'default', creationTimestamp: '2026-01-01T00:00:00Z' },
+                { name: 'klaw-test', creationTimestamp: '2026-03-01T00:00:00Z' },
+                { name: 'kube-system', creationTimestamp: '2026-01-01T00:00:00Z' },
+                { name: 'ingress-nginx', creationTimestamp: '2026-02-01T00:00:00Z' },
+            ],
+            deployments: [
+                {
+                    name: 'nginx',
+                    namespace: 'klaw-test',
+                    replicas: 2,
+                    available: '2/2',
+                    image: 'nginx:alpine',
+                    status: 'Available'
+                },
+                {
+                    name: 'frontend',
+                    namespace: 'klaw-test',
+                    replicas: 3,
+                    available: '2/3',
+                    image: 'httpd:alpine',
+                    status: 'Progressing'
+                },
+                {
+                    name: 'httpbin',
+                    namespace: 'klaw-test',
+                    replicas: 1,
+                    available: '1/1',
+                    image: 'kennethreitz/httpbin',
+                    status: 'Available'
+                },
+            ],
+            pods: [
+                { name: 'nginx-6b66fbbd46-abc12', status: 'Running', ip: '10.244.1.5' },
+                { name: 'nginx-6b66fbbd46-def34', status: 'Running', ip: '10.244.2.3' },
+                { name: 'frontend-58cb7f74c8-xyz78', status: 'Pending', ip: '-' },
+                { name: 'httpbin-7556469ddd-ghi90', status: 'Running', ip: '10.244.0.8' },
+            ],
+        };
+
+        // 检查当前 Mock 状态
+        function updateMockStatus() {
+            const isMock = localStorage.getItem('USE_MOCK') === 'true';
+            const statusEl = document.getElementById('mockStatus');
+            const btnEl = document.getElementById('toggleBtn');
+            
+            if (isMock) {
+                statusEl.textContent = 'Mock 数据';
+                statusEl.className = 'status mock';
+                btnEl.textContent = '关闭 Mock 模式';
+                btnEl.classList.add('active');
+            } else {
+                statusEl.textContent = '真实 API';
+                statusEl.className = 'status real';
+                btnEl.textContent = '启用 Mock 模式';
+                btnEl.classList.remove('active');
+            }
+        }
+
+        // 切换 Mock 模式
+        function toggleMock() {
+            const isMock = localStorage.getItem('USE_MOCK') === 'true';
+            localStorage.setItem('USE_MOCK', isMock ? 'false' : 'true');
+            updateMockStatus();
+            loadData();
+        }
+
+        // 加载数据
+        function loadData() {
+            // 渲染 Deployments
+            const depTbody = document.querySelector('#deploymentsTable tbody');
+            depTbody.innerHTML = mockData.deployments.map(d => `
+                <tr>
+                    <td><strong>${d.name}</strong></td>
+                    <td>${d.namespace}</td>
+                    <td>${d.replicas}</td>
+                    <td>${d.available}</td>
+                    <td><code>${d.image}</code></td>
+                    <td><span class="badge ${d.status === 'Available' ? 'badge-green' : 'badge-yellow'}">${d.status}</span></td>
+                </tr>
+            `).join('');
+
+            // 渲染 Clusters
+            const clusterTbody = document.querySelector('#clustersTable tbody');
+            clusterTbody.innerHTML = mockData.clusters.map(c => `
+                <tr>
+                    <td><strong>${c.name}</strong></td>
+                    <td>${c.context}</td>
+                </tr>
+            `).join('');
+
+            // 渲染 Namespaces
+            const nsTbody = document.querySelector('#namespacesTable tbody');
+            nsTbody.innerHTML = mockData.namespaces.map(n => `
+                <tr>
+                    <td><span class="badge badge-blue">${n.name}</span></td>
+                    <td>${new Date(n.creationTimestamp).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 返回主应用
+        function goToApp() {
+            window.location.href = '/';
+        }
+
+        // 初始化
+        updateMockStatus();
+        loadData();
+    </script>
+</body>
+</html>

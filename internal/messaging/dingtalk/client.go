@@ -69,7 +69,7 @@ func (c *Client) SendMessage(message string) error {
 	}
 
 	// 发送请求
-	resp, err := http.Post(requestURL, "application/json", nil)
+	resp, err := http.Post(requestURL, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return fmt.Errorf("failed to send message: %v", err)
 	}

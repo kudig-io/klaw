@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9"/>
+      <stop offset="100%" style="stop-color:#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22d3ee"/>
+      <stop offset="100%" style="stop-color:#0ea5e9"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="100" height="100" rx="22" fill="url(#bg)"/>
+  
+  <!-- K Letter stylized as Kubernetes tool -->
+  <g fill="white">
+    <!-- Main K shape -->
+    <path d="M25 25 L35 25 L35 45 L55 25 L68 25 L45 48 L70 75 L56 75 L35 52 L35 75 L25 75 Z"/>
+    
+    <!-- Tool accent -->
+    <circle cx="70" cy="30" r="6" fill="url(#accent)"/>
+    <circle cx="30" cy="70" r="4" fill="url(#accent)"/>
+  </g>
+</svg>

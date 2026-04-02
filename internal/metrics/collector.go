@@ -134,7 +134,7 @@ func (c *Collector) CollectClusterMetrics(clusterName string) (*ClusterMetrics, 
 
 // collectNodeMetrics 收集节点指标
 func (c *Collector) collectNodeMetrics(client interface{}) (*NodeMetricsSummary, error) {
-	k8sClient, ok := client.(interface{ CoreV1() interface{ Nodes() interface{} })
+	k8sClient, ok := client.(interface{ CoreV1() interface{ Nodes() interface{ List(ctx context.Context, opts metav1.ListOptions) (*corev1.NodeList, error) } } })
 	if !ok {
 		return nil, fmt.Errorf("invalid client type")
 	}
@@ -180,7 +180,7 @@ func (c *Collector) collectNodeMetrics(client interface{}) (*NodeMetricsSummary,
 
 // collectPodMetrics 收集Pod指标
 func (c *Collector) collectPodMetrics(client interface{}) (*PodMetricsSummary, error) {
-	k8sClient, ok := client.(interface{ CoreV1() interface{ Pods(string) interface{} })
+	k8sClient, ok := client.(interface{ CoreV1() interface{ Pods(namespace string) interface{ List(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error) } } })
 	if !ok {
 		return nil, fmt.Errorf("invalid client type")
 	}
@@ -228,7 +228,7 @@ func (c *Collector) collectPodMetrics(client interface{}) (*PodMetricsSummary, e
 
 // collectResourceMetrics 收集资源指标
 func (c *Collector) collectResourceMetrics(client interface{}) (*ResourceMetrics, error) {
-	k8sClient, ok := client.(interface{ CoreV1() interface{ Nodes() interface{} })
+	k8sClient, ok := client.(interface{ CoreV1() interface{ Nodes() interface{ List(ctx context.Context, opts metav1.ListOptions) (*corev1.NodeList, error) } } })
 	if !ok {
 		return nil, fmt.Errorf("invalid client type")
 	}
@@ -258,7 +258,7 @@ func (c *Collector) collectResourceMetrics(client interface{}) (*ResourceMetrics
 
 // collectEventMetrics 收集事件指标
 func (c *Collector) collectEventMetrics(client interface{}) ([]EventMetric, error) {
-	k8sClient, ok := client.(interface{ CoreV1() interface{ Events(string) interface{} })
+	k8sClient, ok := client.(interface{ CoreV1() interface{ Events(namespace string) interface{ List(ctx context.Context, opts metav1.ListOptions) (*corev1.EventList, error) } } })
 	if !ok {
 		return nil, fmt.Errorf("invalid client type")
 	}

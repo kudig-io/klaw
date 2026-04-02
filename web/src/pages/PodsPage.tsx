@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { clusterApi, podApi } from '../lib/api'
-import { getStatusColor, formatDate } from '../lib/utils'
-import { Search, RefreshCw, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { cn, getStatusColor, formatDate } from '../lib/utils'
+import { Search, RefreshCw, Loader2, ChevronDown, ChevronUp, Trash2, AlertTriangle } from 'lucide-react'
 
 const PodsPage: React.FC = () => {
   const [clusters, setClusters] = useState<any[]>([])
@@ -43,7 +43,8 @@ const PodsPage: React.FC = () => {
     try {
       const response = await clusterApi.getNamespaces(selectedCluster)
       setNamespaces(response.data)
-      setSelectedNamespace('default')
+      // 默认选择 "All Namespaces" (空字符串)
+      setSelectedNamespace('')
     } catch (err) {
       setError('Failed to fetch namespaces')
       console.error('Error fetching namespaces:', err)
@@ -51,7 +52,7 @@ const PodsPage: React.FC = () => {
   }
 
   useEffect(() => {
-    if (selectedCluster && selectedNamespace) {
+    if (selectedCluster) {
       fetchPods()
     }
   }, [selectedCluster, selectedNamespace])
@@ -137,7 +138,7 @@ const PodsPage: React.FC = () => {
               className="input"
               disabled={!selectedCluster}
             >
-              <option value="">Select Namespace</option>
+              <option value="">All Namespaces</option>
               {namespaces.map((ns) => (
                 <option key={ns.metadata.name} value={ns.metadata.name}>
                   {ns.metadata.name}

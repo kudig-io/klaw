@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // Resources Kubernetes资源管理
@@ -17,6 +19,8 @@ type Resources struct {
 func NewResources(manager *Manager) *Resources {
 	return &Resources{manager: manager}
 }
+
+// ========== Pod 管理 ==========
 
 // ListPods 列出Pod
 func (r *Resources) ListPods(clusterName, namespace string) ([]corev1.Pod, error) {
@@ -63,6 +67,8 @@ func (r *Resources) DeletePod(clusterName, namespace, podName string) error {
 	return nil
 }
 
+// ========== Node 管理 ==========
+
 // ListNodes 列出节点
 func (r *Resources) ListNodes(clusterName string) ([]corev1.Node, error) {
 	client, err := r.manager.GetClient(clusterName)
@@ -93,6 +99,8 @@ func (r *Resources) GetNode(clusterName, nodeName string) (*corev1.Node, error) 
 	return node, nil
 }
 
+// ========== Namespace 管理 ==========
+
 // ListNamespaces 列出命名空间
 func (r *Resources) ListNamespaces(clusterName string) ([]corev1.Namespace, error) {
 	client, err := r.manager.GetClient(clusterName)
@@ -108,6 +116,8 @@ func (r *Resources) ListNamespaces(clusterName string) ([]corev1.Namespace, erro
 	return namespaces.Items, nil
 }
 
+// ========== Event 管理 ==========
+
 // ListEvents 列出事件
 func (r *Resources) ListEvents(clusterName, namespace string) ([]corev1.Event, error) {
 	client, err := r.manager.GetClient(clusterName)
@@ -122,6 +132,8 @@ func (r *Resources) ListEvents(clusterName, namespace string) ([]corev1.Event, e
 
 	return events.Items, nil
 }
+
+// ========== Pod 日志 ==========
 
 // GetPodLogs 获取Pod日志
 func (r *Resources) GetPodLogs(clusterName, namespace, podName string, tailLines int64) (string, error) {
@@ -152,6 +164,8 @@ func (r *Resources) GetPodLogs(clusterName, namespace, podName string, tailLines
 
 	return result, nil
 }
+
+// ========== Node 指标 ==========
 
 // GetNodeMetrics 获取节点指标
 func (r *Resources) GetNodeMetrics(clusterName string) (map[string]NodeMetrics, error) {
@@ -184,4 +198,194 @@ type NodeMetrics struct {
 	CPU        string
 	Memory     string
 	Conditions []corev1.NodeCondition
+}
+
+// ========== Deployment 管理 ==========
+
+// ListDeployments 列出指定命名空间的所有 Deployment
+func (r *Resources) ListDeployments(clusterName, namespace string) ([]appsv1.Deployment, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments, err := client.AppsV1().Deployments(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list deployments: %v", err)
+	}
+
+	return deployments.Items, nil
+}
+
+// GetDeployment 获取指定 Deployment 详情
+func (r *Resources) GetDeployment(clusterName, namespace, deploymentName string) (*appsv1.Deployment, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	deployment, err := client.AppsV1().Deployments(namespace).Get(context.Background(), deploymentName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment: %v", err)
+	}
+
+	return deployment, nil
+}
+
+// ScaleDeployment 扩缩容 Deployment
+func (r *Resources) ScaleDeployment(clusterName, namespace, deploymentName string, replicas int32) error {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return err
+	}
+
+	// 使用 Patch 方式更新 replicas
+	patchData := fmt.Sprintf(`{"spec":{"replicas":%d}}`, replicas)
+	_, err = client.AppsV1().Deployments(namespace).Patch(
+		context.Background(),
+		deploymentName,
+		types.StrategicMergePatchType,
+		[]byte(patchData),
+		metav1.PatchOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to scale deployment: %v", err)
+	}
+
+	return nil
+}
+
+// RestartDeployment 重启 Deployment（通过添加注解触发滚动更新）
+func (r *Resources) RestartDeployment(clusterName, namespace, deploymentName string) error {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return err
+	}
+
+	// 通过更新注解触发滚动更新
+	deployment, err := r.GetDeployment(clusterName, namespace, deploymentName)
+	if err != nil {
+		return err
+	}
+
+	// 如果注解不存在，创建一个
+	if deployment.Spec.Template.Annotations == nil {
+		deployment.Spec.Template.Annotations = make(map[string]string)
+	}
+	deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"] = metav1.Now().Format("20060102-150405")
+
+	_, err = client.AppsV1().Deployments(namespace).Update(context.Background(), deployment, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to restart deployment: %v", err)
+	}
+
+	return nil
+}
+
+// GetDeploymentPods 获取 Deployment 关联的 Pods
+func (r *Resources) GetDeploymentPods(clusterName, namespace, deploymentName string) ([]corev1.Pod, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取 Deployment
+	deployment, err := r.GetDeployment(clusterName, namespace, deploymentName)
+	if err != nil {
+		return nil, err
+	}
+
+	// 使用 Deployment 的 selector 查找 Pod
+	selector := deployment.Spec.Selector
+	if selector == nil {
+		return nil, fmt.Errorf("deployment has no selector")
+	}
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: metav1.FormatLabelSelector(selector),
+	}
+
+	pods, err := client.CoreV1().Pods(namespace).List(context.Background(), listOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list deployment pods: %v", err)
+	}
+
+	return pods.Items, nil
+}
+
+// DeploymentStatus 表示 Deployment 的状态摘要
+type DeploymentStatus struct {
+	Name              string
+	Namespace         string
+	Replicas          int32
+	AvailableReplicas int32
+	ReadyReplicas     int32
+	UpdatedReplicas   int32
+	Conditions        []appsv1.DeploymentCondition
+}
+
+// GetDeploymentStatus 获取 Deployment 状态摘要
+func (r *Resources) GetDeploymentStatus(clusterName, namespace, deploymentName string) (*DeploymentStatus, error) {
+	deployment, err := r.GetDeployment(clusterName, namespace, deploymentName)
+	if err != nil {
+		return nil, err
+	}
+
+	status := deployment.Status
+	return &DeploymentStatus{
+		Name:              deployment.Name,
+		Namespace:         deployment.Namespace,
+		Replicas:          status.Replicas,
+		AvailableReplicas: status.AvailableReplicas,
+		ReadyReplicas:     status.ReadyReplicas,
+		UpdatedReplicas:   status.UpdatedReplicas,
+		Conditions:        status.Conditions,
+	}, nil
+}
+
+// ========== Service 管理 ==========
+
+// ListServices 列出指定命名空间的所有 Service
+func (r *Resources) ListServices(clusterName, namespace string) ([]corev1.Service, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	services, err := client.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list services: %v", err)
+	}
+
+	return services.Items, nil
+}
+
+// GetService 获取指定 Service 详情
+func (r *Resources) GetService(clusterName, namespace, serviceName string) (*corev1.Service, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	service, err := client.CoreV1().Services(namespace).Get(context.Background(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get service: %v", err)
+	}
+
+	return service, nil
+}
+
+// GetServiceEndpoints 获取 Service 的 Endpoints
+func (r *Resources) GetServiceEndpoints(clusterName, namespace, serviceName string) (*corev1.Endpoints, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	endpoints, err := client.CoreV1().Endpoints(namespace).Get(context.Background(), serviceName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get endpoints: %v", err)
+	}
+
+	return endpoints, nil
 }

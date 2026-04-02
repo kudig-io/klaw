@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { clusterApi } from '../lib/api'
-import { cn, formatDate } from '../lib/utils'
+import { cn, getStatusColor, formatDate } from '../lib/utils'
 import { RefreshCw, Loader2 } from 'lucide-react'
 
 const ClusterDashboard: React.FC = () => {
@@ -24,12 +24,13 @@ const ClusterDashboard: React.FC = () => {
 
       const statusResults = await Promise.all(statusPromises)
       const statusMap: Record<string, any> = {}
-      statusResults.forEach(result => {
+      statusResults.forEach((result: Record<string, any>) => {
         Object.assign(statusMap, result)
       })
       setStatuses(statusMap)
-    } catch (err) {
-      setError('Failed to fetch cluster data')
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || err.message || String(err)
+      setError(`Failed to fetch cluster data: ${errorMsg}`)
       console.error('Error fetching cluster data:', err)
     } finally {
       setLoading(false)
@@ -43,6 +44,12 @@ const ClusterDashboard: React.FC = () => {
   const getNodeStatusIcon = (ready: number, total: number) => {
     if (ready === total) return '✅'
     if (ready > 0) return '⚠️'
+    return '❌'
+  }
+
+  const getPodStatusIcon = (running: number, total: number) => {
+    if (running === total) return '✅'
+    if (running > 0) return '⚠️'
     return '❌'
   }
 

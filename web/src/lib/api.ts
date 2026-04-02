@@ -85,6 +85,56 @@ export interface Event {
   lastTimestamp: string
 }
 
+export interface Deployment {
+  metadata: {
+    name: string
+    namespace: string
+    creationTimestamp: string
+    labels?: Record<string, string>
+  }
+  spec: {
+    replicas: number
+    selector: {
+      matchLabels: Record<string, string>
+    }
+    template: {
+      spec: {
+        containers: Array<{
+          name: string
+          image: string
+        }>
+      }
+    }
+  }
+  status: {
+    replicas: number
+    availableReplicas: number
+    readyReplicas: number
+    updatedReplicas: number
+    conditions: Array<{
+      type: string
+      status: string
+      reason: string
+      message: string
+    }>
+  }
+}
+
+export interface DeploymentStatus {
+  name: string
+  namespace: string
+  replicas: number
+  availableReplicas: number
+  readyReplicas: number
+  updatedReplicas: number
+  conditions: Array<{
+    type: string
+    status: string
+    reason: string
+    message: string
+  }>
+}
+
 export const clusterApi = {
   getClusters: () => api.get<Cluster[]>('/clusters'),
   getCluster: (name: string) => api.get<Cluster>(`/clusters/${name}`),
@@ -94,8 +144,13 @@ export const clusterApi = {
 }
 
 export const podApi = {
-  listPods: (cluster: string, namespace: string) =>
-    api.get<Pod[]>(`/clusters/${cluster}/namespaces/${namespace}/pods`),
+  listPods: (cluster: string, namespace: string) => {
+    // 如果 namespace 为空，获取所有命名空间的 pods
+    if (!namespace) {
+      return api.get<Pod[]>(`/clusters/${cluster}/pods`)
+    }
+    return api.get<Pod[]>(`/clusters/${cluster}/namespaces/${namespace}/pods`)
+  },
   getPod: (cluster: string, namespace: string, name: string) =>
     api.get<Pod>(`/clusters/${cluster}/namespaces/${namespace}/pods/${name}`),
   getPodLogs: (cluster: string, namespace: string, name: string, tailLines?: number) =>
@@ -118,9 +173,108 @@ export const eventApi = {
 }
 
 export const monitoringApi = {
-  getStatus: (cluster: string) => api.get(`/monitoring/${cluster}/status`),
-  getAlerts: (cluster: string) => api.get(`/monitoring/${cluster}/alerts`),
-  getHistory: (cluster: string) => api.get(`/monitoring/${cluster}/history`),
+  getStatus: (cluster: string) => api.get<any>(`/monitoring/${cluster}/status`),
+  getAlerts: (cluster: string) => api.get<any[]>(`/monitoring/${cluster}/alerts`),
+  getHistory: (cluster: string) => api.get<any[]>(`/monitoring/${cluster}/history`),
+}
+
+export const deploymentApi = {
+  listDeployments: (cluster: string, namespace: string) => {
+    // 如果 namespace 为空，获取所有命名空间的 deployments
+    if (!namespace) {
+      return api.get<Deployment[]>(`/clusters/${cluster}/deployments`)
+    }
+    return api.get<Deployment[]>(`/clusters/${cluster}/namespaces/${namespace}/deployments`)
+  },
+  getDeployment: (cluster: string, namespace: string, name: string) =>
+    api.get<Deployment>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}`),
+  scaleDeployment: (cluster: string, namespace: string, name: string, replicas: number) =>
+    api.post(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/scale`, { replicas }),
+  restartDeployment: (cluster: string, namespace: string, name: string) =>
+    api.post(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/restart`),
+  getDeploymentPods: (cluster: string, namespace: string, name: string) =>
+    api.get<Pod[]>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/pods`),
+  getDeploymentStatus: (cluster: string, namespace: string, name: string) =>
+    api.get<DeploymentStatus>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/status`),
+}
+
+export interface Service {
+  metadata: {
+    name: string
+    namespace: string
+    creationTimestamp: string
+    labels?: Record<string, string>
+    annotations?: Record<string, string>
+  }
+  spec: {
+    type: string
+    clusterIP: string
+    externalIPs?: string[]
+    ports: Array<{
+      name?: string
+      port: number
+      targetPort: number
+      protocol: string
+      nodePort?: number
+    }>
+    selector?: Record<string, string>
+  }
+  status: {
+    loadBalancer?: {
+      ingress?: Array<{
+        ip?: string
+        hostname?: string
+      }>
+    }
+  }
+}
+
+export interface ServiceEndpoints {
+  serviceName: string
+  namespace: string
+  endpoints: Array<{
+    addresses?: Array<{
+      ip: string
+      hostname?: string
+      nodeName?: string
+      targetRef?: {
+        kind: string
+        name: string
+        namespace: string
+      }
+    }>
+    notReadyAddresses?: Array<{
+      ip: string
+      hostname?: string
+      nodeName?: string
+      targetRef?: {
+        kind: string
+        name: string
+        namespace: string
+      }
+    }>
+    ports?: Array<{
+      name?: string
+      port: number
+      protocol: string
+    }>
+  }>
+}
+
+export const serviceApi = {
+  listServices: (cluster: string, namespace: string) => {
+    // 如果 namespace 为空，获取所有命名空间的 services
+    if (!namespace) {
+      return api.get<Service[]>(`/clusters/${cluster}/services`)
+    }
+    return api.get<Service[]>(`/clusters/${cluster}/namespaces/${namespace}/services`)
+  },
+  getService: (cluster: string, namespace: string, name: string) =>
+    api.get<Service>(`/clusters/${cluster}/namespaces/${namespace}/services/${name}`),
+  getServiceEndpoints: (cluster: string, namespace: string, name: string) =>
+    api.get<ServiceEndpoints>(`/clusters/${cluster}/namespaces/${namespace}/services/${name}/endpoints`),
+  deleteService: (cluster: string, namespace: string, name: string) =>
+    api.delete(`/clusters/${cluster}/namespaces/${namespace}/services/${name}`),
 }
 
 export default api

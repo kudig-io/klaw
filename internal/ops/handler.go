@@ -2,6 +2,7 @@ package ops
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/kudig-io/klaw/internal/kubernetes"
@@ -49,6 +50,8 @@ func (h *Handler) HandleCommand(command string) (string, error) {
 	switch parts[0] {
 	case "cluster":
 		return h.handleClusterCommand(parts[1:])
+	case "deployment":
+		return h.handleDeploymentCommand(parts[1:])
 	case "pod":
 		return h.handlePodCommand(parts[1:])
 	case "node":
@@ -175,6 +178,47 @@ func (h *Handler) handleMonitorCommand(parts []string) (string, error) {
 	}
 }
 
+// handleDeploymentCommand 处理 Deployment 命令
+func (h *Handler) handleDeploymentCommand(parts []string) (string, error) {
+	if len(parts) == 0 {
+		return "", fmt.Errorf("deployment command requires subcommand")
+	}
+
+	switch parts[0] {
+	case "list":
+		if len(parts) < 3 {
+			return "", fmt.Errorf("deployment list command requires cluster name and namespace")
+		}
+		return h.listDeployments(parts[1], parts[2])
+	case "status":
+		if len(parts) < 4 {
+			return "", fmt.Errorf("deployment status command requires cluster name, namespace and deployment name")
+		}
+		return h.getDeploymentStatus(parts[1], parts[2], parts[3])
+	case "scale":
+		if len(parts) < 5 {
+			return "", fmt.Errorf("deployment scale command requires cluster name, namespace, deployment name and replicas")
+		}
+		replicas, err := strconv.Atoi(parts[4])
+		if err != nil {
+			return "", fmt.Errorf("invalid replicas value: %s", parts[4])
+		}
+		return h.scaleDeployment(parts[1], parts[2], parts[3], int32(replicas))
+	case "restart":
+		if len(parts) < 4 {
+			return "", fmt.Errorf("deployment restart command requires cluster name, namespace and deployment name")
+		}
+		return h.restartDeployment(parts[1], parts[2], parts[3])
+	case "pods":
+		if len(parts) < 4 {
+			return "", fmt.Errorf("deployment pods command requires cluster name, namespace and deployment name")
+		}
+		return h.getDeploymentPods(parts[1], parts[2], parts[3])
+	default:
+		return "", fmt.Errorf("unknown deployment subcommand: %s", parts[0])
+	}
+}
+
 // getClusterStatus 获取集群状态
 func (h *Handler) getClusterStatus(clusterName string) (string, error) {
 	nodes, err := h.resources.ListNodes(clusterName)
@@ -224,8 +268,6 @@ func (h *Handler) sendClusterChart(clusterName string) (string, error) {
 	if len(history) == 0 {
 		return "", fmt.Errorf("no metrics history available for cluster %s", clusterName)
 	}
-
-	latestMetrics := history[len(history)-1]
 
 	// 发送图表到钉钉
 	if h.dingtalkClient != nil {
@@ -380,6 +422,83 @@ func (h *Handler) sendMonitorChart(clusterName string) (string, error) {
 	return h.sendClusterChart(clusterName)
 }
 
+// listDeployments 列出 Deployment
+func (h *Handler) listDeployments(clusterName, namespace string) (string, error) {
+	deployments, err := h.resources.ListDeployments(clusterName, namespace)
+	if err != nil {
+		return "", err
+	}
+
+	result := fmt.Sprintf("Deployments in namespace %s:\n", namespace)
+	for _, deployment := range deployments {
+		available := deployment.Status.AvailableReplicas
+		desired := *deployment.Spec.Replicas
+		result += fmt.Sprintf("- %s (%d/%d available)\n", deployment.Name, available, desired)
+	}
+
+	return result, nil
+}
+
+// getDeploymentStatus 获取 Deployment 状态
+func (h *Handler) getDeploymentStatus(clusterName, namespace, deploymentName string) (string, error) {
+	status, err := h.resources.GetDeploymentStatus(clusterName, namespace, deploymentName)
+	if err != nil {
+		return "", err
+	}
+
+	result := fmt.Sprintf("Deployment: %s\n", status.Name)
+	result += fmt.Sprintf("Namespace: %s\n", status.Namespace)
+	result += fmt.Sprintf("Replicas: %d (available: %d, ready: %d, updated: %d)\n",
+		status.Replicas, status.AvailableReplicas, status.ReadyReplicas, status.UpdatedReplicas)
+
+	if len(status.Conditions) > 0 {
+		result += "Conditions:\n"
+		for _, condition := range status.Conditions {
+			result += fmt.Sprintf("  - %s: %s\n", condition.Type, condition.Status)
+			if condition.Reason != "" {
+				result += fmt.Sprintf("    Reason: %s\n", condition.Reason)
+			}
+		}
+	}
+
+	return result, nil
+}
+
+// scaleDeployment 扩缩容 Deployment
+func (h *Handler) scaleDeployment(clusterName, namespace, deploymentName string, replicas int32) (string, error) {
+	err := h.resources.ScaleDeployment(clusterName, namespace, deploymentName, replicas)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("Scaled deployment %s in namespace %s to %d replicas", deploymentName, namespace, replicas), nil
+}
+
+// restartDeployment 重启 Deployment
+func (h *Handler) restartDeployment(clusterName, namespace, deploymentName string) (string, error) {
+	err := h.resources.RestartDeployment(clusterName, namespace, deploymentName)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("Restarted deployment %s in namespace %s", deploymentName, namespace), nil
+}
+
+// getDeploymentPods 获取 Deployment 关联的 Pods
+func (h *Handler) getDeploymentPods(clusterName, namespace, deploymentName string) (string, error) {
+	pods, err := h.resources.GetDeploymentPods(clusterName, namespace, deploymentName)
+	if err != nil {
+		return "", err
+	}
+
+	result := fmt.Sprintf("Pods for deployment %s:\n", deploymentName)
+	for _, pod := range pods {
+		result += fmt.Sprintf("- %s (%s)\n", pod.Name, pod.Status.Phase)
+	}
+
+	return result, nil
+}
+
 // showHelp 显示帮助信息
 func (h *Handler) showHelp() string {
 	return `Available commands:
@@ -388,6 +507,13 @@ Cluster commands:
   cluster status <cluster-name>    - Get cluster status
   cluster metrics <cluster-name>    - Get cluster metrics
   cluster chart <cluster-name>       - Send monitoring chart
+
+Deployment commands:
+  deployment list <cluster-name> <namespace>          - List deployments
+  deployment status <cluster-name> <namespace> <deployment-name> - Get deployment status
+  deployment scale <cluster-name> <namespace> <deployment-name> <replicas> - Scale deployment
+  deployment restart <cluster-name> <namespace> <deployment-name> - Restart deployment
+  deployment pods <cluster-name> <namespace> <deployment-name> - Get deployment pods
 
 Pod commands:
   pod list <cluster-name> <namespace>         - List pods
