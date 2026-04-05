@@ -1,0 +1,60 @@
+# Kind 集群配置
+# 用于 Klaw 本地开发和测试
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: klaw-test
+
+# 节点配置
+nodes:
+  # 控制平面节点
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    # 端口映射（可选，用于本地访问）
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8081
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 8443
+        protocol: TCP
+    # 挂载本地目录用于持久化数据
+    extraMounts:
+      - hostPath: /Users/allengaller/Documents/GitHub/kudig-io/klaw/deployment/kind/data
+        containerPath: /data
+
+  # 工作节点 1
+  - role: worker
+    extraMounts:
+      - hostPath: /Users/allengaller/Documents/GitHub/kudig-io/klaw/deployment/kind/data
+        containerPath: /data
+
+  # 工作节点 2（可选，用于测试多节点场景）
+  - role: worker
+    extraMounts:
+      - hostPath: /Users/allengaller/Documents/GitHub/kudig-io/klaw/deployment/kind/data
+        containerPath: /data
+
+# 网络配置
+networking:
+  # 禁用默认 CNI，使用 Calico 或其他（可选）
+  # disableDefaultCNI: true
+  
+  # 使用固定子网
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+
+# 特性开关
+featureGates:
+  # 启用某些实验性功能（根据需要）
+  
+# 容器运行时配置
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5000"]
+      endpoint = ["http://kind-registry:5000"]
