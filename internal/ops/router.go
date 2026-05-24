@@ -43,6 +43,8 @@ func (r *CommandRouter) HandleMessage(ctx context.Context, msg *messaging.Messag
 		return nil, nil
 	}
 
+	command = r.ExpandCommand(command)
+
 	// 执行命令
 	result, err := r.handler.HandleCommand(command)
 	if err != nil {
@@ -133,6 +135,12 @@ func (r *CommandRouter) ShowHelp() string {
 • %s pod describe <cluster> <namespace> <pod> - 查看 Pod 详情
 • %s pod logs <cluster> <namespace> <pod> - 查看 Pod 日志
 • %s pod delete <cluster> <namespace> <pod> - 删除 Pod
+• %s pod analyze <cluster> <namespace> <pod> - 分析 Pod 日志
+
+🔌 **Service 管理**
+• %s service list <cluster> <namespace> - 列出 Service
+• %s service describe <cluster> <namespace> <service> - 查看 Service 详情
+• %s service endpoints <cluster> <namespace> <service> - 查看 Endpoints
 
 🖥️ **节点管理**
 • %s node list <cluster> - 列出节点
@@ -143,10 +151,20 @@ func (r *CommandRouter) ShowHelp() string {
 • %s monitor status <cluster> - 查看监控状态
 • %s monitor alerts <cluster> - 查看告警列表
 
+🔐 **RBAC 分析**
+• %s rbac analyze <cluster> - 分析 RBAC 权限关系
+
 💡 **提示：**
 • 所有命令支持缩写，如 "p" = "pod", "c" = "cluster"
 • 命名空间可用 "all" 表示所有命名空间
-`, r.mentionName, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix, r.prefix)
+`, r.mentionName,
+		r.prefix, r.prefix,
+		r.prefix, r.prefix,
+		r.prefix, r.prefix, r.prefix, r.prefix, r.prefix,
+		r.prefix, r.prefix, r.prefix,
+		r.prefix, r.prefix, r.prefix,
+		r.prefix,
+		r.prefix)
 }
 
 // RegisterShortcuts 注册命令缩写
@@ -156,6 +174,9 @@ func (r *CommandRouter) RegisterShortcuts() map[string]string {
 		"p":  "pod",
 		"n":  "node",
 		"d":  "deployment",
+		"s":  "service",
+		"svc": "service",
+		"r":  "rbac",
 		"m":  "monitor",
 		"h":  "help",
 		"ls": "list",

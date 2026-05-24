@@ -1,15 +1,18 @@
 package ops
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/kudig-io/klaw/internal/kubernetes"
+	"github.com/kudig-io/klaw/internal/loganalysis"
 	"github.com/kudig-io/klaw/internal/metrics"
 	"github.com/kudig-io/klaw/internal/monitoring"
 	"github.com/kudig-io/klaw/internal/messaging/dingtalk"
 	"github.com/kudig-io/klaw/internal/messaging/feishu"
+	"github.com/kudig-io/klaw/internal/rbacanalysis"
 )
 
 // Handler 运维命令处理器
@@ -19,6 +22,14 @@ type Handler struct {
 	dingtalkClient   *dingtalk.Client
 	feishuClient     *feishu.Client
 	resources        *kubernetes.Resources
+}
+
+func (h *Handler) requireKubernetes() error {
+	if h.k8sManager == nil || h.resources == nil {
+		return fmt.Errorf("kubernetes manager not initialized")
+	}
+
+	return nil
 }
 
 // NewHandler 创建运维命令处理器
@@ -52,6 +63,10 @@ func (h *Handler) HandleCommand(command string) (string, error) {
 		return h.handleClusterCommand(parts[1:])
 	case "deployment":
 		return h.handleDeploymentCommand(parts[1:])
+	case "service":
+		return h.handleServiceCommand(parts[1:])
+	case "rbac":
+		return h.handleRBACCommand(parts[1:])
 	case "pod":
 		return h.handlePodCommand(parts[1:])
 	case "node":
@@ -62,6 +77,50 @@ func (h *Handler) HandleCommand(command string) (string, error) {
 		return h.showHelp(), nil
 	default:
 		return "", fmt.Errorf("unknown command: %s", parts[0])
+	}
+}
+
+// handleServiceCommand 处理 Service 命令
+func (h *Handler) handleServiceCommand(parts []string) (string, error) {
+	if len(parts) == 0 {
+		return "", fmt.Errorf("service command requires subcommand")
+	}
+
+	switch parts[0] {
+	case "list":
+		if len(parts) < 3 {
+			return "", fmt.Errorf("service list command requires cluster name and namespace")
+		}
+		return h.listServices(parts[1], parts[2])
+	case "describe":
+		if len(parts) < 4 {
+			return "", fmt.Errorf("service describe command requires cluster name, namespace and service name")
+		}
+		return h.describeService(parts[1], parts[2], parts[3])
+	case "endpoints":
+		if len(parts) < 4 {
+			return "", fmt.Errorf("service endpoints command requires cluster name, namespace and service name")
+		}
+		return h.getServiceEndpoints(parts[1], parts[2], parts[3])
+	default:
+		return "", fmt.Errorf("unknown service subcommand: %s", parts[0])
+	}
+}
+
+// handleRBACCommand 处理 RBAC 命令
+func (h *Handler) handleRBACCommand(parts []string) (string, error) {
+	if len(parts) == 0 {
+		return "", fmt.Errorf("rbac command requires subcommand")
+	}
+
+	switch parts[0] {
+	case "analyze":
+		if len(parts) < 2 {
+			return "", fmt.Errorf("rbac analyze command requires cluster name")
+		}
+		return h.analyzeRBAC(parts[1])
+	default:
+		return "", fmt.Errorf("unknown rbac subcommand: %s", parts[0])
 	}
 }
 
@@ -119,6 +178,11 @@ func (h *Handler) handlePodCommand(parts []string) (string, error) {
 			return "", fmt.Errorf("pod delete command requires cluster name, namespace and pod name")
 		}
 		return h.deletePod(parts[1], parts[2], parts[3])
+	case "analyze":
+		if len(parts) < 4 {
+			return "", fmt.Errorf("pod analyze command requires cluster name, namespace and pod name")
+		}
+		return h.analyzePodLogs(parts[1], parts[2], parts[3])
 	default:
 		return "", fmt.Errorf("unknown pod subcommand: %s", parts[0])
 	}
@@ -221,6 +285,10 @@ func (h *Handler) handleDeploymentCommand(parts []string) (string, error) {
 
 // getClusterStatus 获取集群状态
 func (h *Handler) getClusterStatus(clusterName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	nodes, err := h.resources.ListNodes(clusterName)
 	if err != nil {
 		return "", err
@@ -240,6 +308,10 @@ func (h *Handler) getClusterStatus(clusterName string) (string, error) {
 
 // getClusterMetrics 获取集群指标
 func (h *Handler) getClusterMetrics(clusterName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	collector := metrics.NewCollector(h.k8sManager)
 	clusterMetrics, err := collector.CollectClusterMetrics(clusterName)
 	if err != nil {
@@ -288,6 +360,10 @@ func (h *Handler) sendClusterChart(clusterName string) (string, error) {
 
 // listPods 列出Pod
 func (h *Handler) listPods(clusterName, namespace string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	pods, err := h.resources.ListPods(clusterName, namespace)
 	if err != nil {
 		return "", err
@@ -303,6 +379,10 @@ func (h *Handler) listPods(clusterName, namespace string) (string, error) {
 
 // describePod 描述Pod
 func (h *Handler) describePod(clusterName, namespace, podName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	pod, err := h.resources.GetPod(clusterName, namespace, podName)
 	if err != nil {
 		return "", err
@@ -319,6 +399,10 @@ func (h *Handler) describePod(clusterName, namespace, podName string) (string, e
 
 // getPodLogs 获取Pod日志
 func (h *Handler) getPodLogs(clusterName, namespace, podName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	logs, err := h.resources.GetPodLogs(clusterName, namespace, podName, 100)
 	if err != nil {
 		return "", err
@@ -327,8 +411,33 @@ func (h *Handler) getPodLogs(clusterName, namespace, podName string) (string, er
 	return fmt.Sprintf("Logs from pod %s:\n%s", podName, logs), nil
 }
 
+// analyzePodLogs 分析 Pod 日志
+func (h *Handler) analyzePodLogs(clusterName, namespace, podName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
+	logs, err := h.resources.GetPodLogs(clusterName, namespace, podName, 200)
+	if err != nil {
+		return "", err
+	}
+
+	analysis := loganalysis.NewAnalyzer().AnalyzeLogs(logs)
+	result := fmt.Sprintf("Log analysis for pod %s:\n", podName)
+	result += fmt.Sprintf("- Total lines: %d\n", analysis.TotalLines)
+	result += fmt.Sprintf("- Errors: %d\n", analysis.ErrorCount)
+	result += fmt.Sprintf("- Warnings: %d\n", analysis.WarningCount)
+	result += fmt.Sprintf("- Security events: %d\n", len(analysis.SecurityEvents))
+	result += fmt.Sprintf("- Slow requests: %d\n", len(analysis.PerformanceMetrics.SlowRequests))
+	return result, nil
+}
+
 // deletePod 删除Pod
 func (h *Handler) deletePod(clusterName, namespace, podName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	err := h.resources.DeletePod(clusterName, namespace, podName)
 	if err != nil {
 		return "", err
@@ -339,6 +448,10 @@ func (h *Handler) deletePod(clusterName, namespace, podName string) (string, err
 
 // listNodes 列出节点
 func (h *Handler) listNodes(clusterName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	nodes, err := h.resources.ListNodes(clusterName)
 	if err != nil {
 		return "", err
@@ -354,6 +467,10 @@ func (h *Handler) listNodes(clusterName string) (string, error) {
 
 // describeNode 描述节点
 func (h *Handler) describeNode(clusterName, nodeName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	node, err := h.resources.GetNode(clusterName, nodeName)
 	if err != nil {
 		return "", err
@@ -369,6 +486,10 @@ func (h *Handler) describeNode(clusterName, nodeName string) (string, error) {
 
 // getNodeMetrics 获取节点指标
 func (h *Handler) getNodeMetrics(clusterName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	metrics, err := h.resources.GetNodeMetrics(clusterName)
 	if err != nil {
 		return "", err
@@ -424,6 +545,10 @@ func (h *Handler) sendMonitorChart(clusterName string) (string, error) {
 
 // listDeployments 列出 Deployment
 func (h *Handler) listDeployments(clusterName, namespace string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	deployments, err := h.resources.ListDeployments(clusterName, namespace)
 	if err != nil {
 		return "", err
@@ -441,6 +566,10 @@ func (h *Handler) listDeployments(clusterName, namespace string) (string, error)
 
 // getDeploymentStatus 获取 Deployment 状态
 func (h *Handler) getDeploymentStatus(clusterName, namespace, deploymentName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	status, err := h.resources.GetDeploymentStatus(clusterName, namespace, deploymentName)
 	if err != nil {
 		return "", err
@@ -466,6 +595,10 @@ func (h *Handler) getDeploymentStatus(clusterName, namespace, deploymentName str
 
 // scaleDeployment 扩缩容 Deployment
 func (h *Handler) scaleDeployment(clusterName, namespace, deploymentName string, replicas int32) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	err := h.resources.ScaleDeployment(clusterName, namespace, deploymentName, replicas)
 	if err != nil {
 		return "", err
@@ -476,6 +609,10 @@ func (h *Handler) scaleDeployment(clusterName, namespace, deploymentName string,
 
 // restartDeployment 重启 Deployment
 func (h *Handler) restartDeployment(clusterName, namespace, deploymentName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	err := h.resources.RestartDeployment(clusterName, namespace, deploymentName)
 	if err != nil {
 		return "", err
@@ -486,6 +623,10 @@ func (h *Handler) restartDeployment(clusterName, namespace, deploymentName strin
 
 // getDeploymentPods 获取 Deployment 关联的 Pods
 func (h *Handler) getDeploymentPods(clusterName, namespace, deploymentName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
 	pods, err := h.resources.GetDeploymentPods(clusterName, namespace, deploymentName)
 	if err != nil {
 		return "", err
@@ -496,6 +637,94 @@ func (h *Handler) getDeploymentPods(clusterName, namespace, deploymentName strin
 		result += fmt.Sprintf("- %s (%s)\n", pod.Name, pod.Status.Phase)
 	}
 
+	return result, nil
+}
+
+// listServices 列出 Service
+func (h *Handler) listServices(clusterName, namespace string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
+	services, err := h.resources.ListServices(clusterName, namespace)
+	if err != nil {
+		return "", err
+	}
+
+	result := fmt.Sprintf("Services in namespace %s:\n", namespace)
+	for _, service := range services {
+		result += fmt.Sprintf("- %s (%s)\n", service.Name, service.Spec.Type)
+	}
+
+	return result, nil
+}
+
+// describeService 描述 Service
+func (h *Handler) describeService(clusterName, namespace, serviceName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
+	service, err := h.resources.GetService(clusterName, namespace, serviceName)
+	if err != nil {
+		return "", err
+	}
+
+	result := fmt.Sprintf("Service: %s\n", service.Name)
+	result += fmt.Sprintf("Namespace: %s\n", service.Namespace)
+	result += fmt.Sprintf("Type: %s\n", service.Spec.Type)
+	result += fmt.Sprintf("ClusterIP: %s\n", service.Spec.ClusterIP)
+	result += fmt.Sprintf("Ports: %d\n", len(service.Spec.Ports))
+
+	return result, nil
+}
+
+// getServiceEndpoints 获取 Service Endpoints
+func (h *Handler) getServiceEndpoints(clusterName, namespace, serviceName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
+	endpoints, err := h.resources.GetServiceEndpoints(clusterName, namespace, serviceName)
+	if err != nil {
+		return "", err
+	}
+
+	result := fmt.Sprintf("Endpoints for service %s:\n", serviceName)
+	for _, subset := range endpoints.Subsets {
+		for _, address := range subset.Addresses {
+			result += fmt.Sprintf("- %s\n", address.IP)
+		}
+	}
+
+	if result == fmt.Sprintf("Endpoints for service %s:\n", serviceName) {
+		result += "- <none>\n"
+	}
+
+	return result, nil
+}
+
+// analyzeRBAC 分析集群 RBAC
+func (h *Handler) analyzeRBAC(clusterName string) (string, error) {
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
+	}
+
+	client, err := h.k8sManager.GetClient(clusterName)
+	if err != nil {
+		return "", err
+	}
+
+	analysis, err := rbacanalysis.NewAnalyzer(client).AnalyzeRBAC(context.Background())
+	if err != nil {
+		return "", err
+	}
+
+	result := fmt.Sprintf("RBAC analysis for cluster %s:\n", clusterName)
+	result += fmt.Sprintf("- Roles: %d\n", analysis.TotalRoles)
+	result += fmt.Sprintf("- ClusterRoles: %d\n", analysis.TotalClusterRoles)
+	result += fmt.Sprintf("- RoleBindings: %d\n", analysis.TotalBindings)
+	result += fmt.Sprintf("- ClusterRoleBindings: %d\n", analysis.TotalClusterBindings)
 	return result, nil
 }
 
@@ -515,11 +744,20 @@ Deployment commands:
   deployment restart <cluster-name> <namespace> <deployment-name> - Restart deployment
   deployment pods <cluster-name> <namespace> <deployment-name> - Get deployment pods
 
+Service commands:
+  service list <cluster-name> <namespace> - List services
+  service describe <cluster-name> <namespace> <service-name> - Describe service
+  service endpoints <cluster-name> <namespace> <service-name> - Get service endpoints
+
+RBAC commands:
+  rbac analyze <cluster-name> - Analyze RBAC roles and bindings
+
 Pod commands:
   pod list <cluster-name> <namespace>         - List pods
   pod describe <cluster-name> <namespace> <pod-name> - Describe pod
   pod logs <cluster-name> <namespace> <pod-name>     - Get pod logs
   pod delete <cluster-name> <namespace> <pod-name>    - Delete pod
+  pod analyze <cluster-name> <namespace> <pod-name>   - Analyze pod logs
 
 Node commands:
   node list <cluster-name>          - List nodes

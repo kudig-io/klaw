@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { clusterApi, podApi } from '../lib/api'
-import { cn, getStatusColor, formatDate } from '../lib/utils'
-import { Search, RefreshCw, Loader2, ChevronDown, ChevronUp, Trash2, AlertTriangle } from 'lucide-react'
+import { clusterApi, podApi, type LogAnalysis } from '../lib/api'
+import { getStatusColor, formatDate } from '../lib/utils'
+import { Search, RefreshCw, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 
 const PodsPage: React.FC = () => {
   const [clusters, setClusters] = useState<any[]>([])
@@ -13,7 +13,9 @@ const PodsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [expandedPod, setExpandedPod] = useState<string | null>(null)
   const [podLogs, setPodLogs] = useState<Record<string, string>>({})
+  const [podAnalysis, setPodAnalysis] = useState<Record<string, LogAnalysis>>({})
   const [logsLoading, setLogsLoading] = useState<Record<string, boolean>>({})
+  const [analysisLoading, setAnalysisLoading] = useState<Record<string, boolean>>({})
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -71,25 +73,45 @@ const PodsPage: React.FC = () => {
     }
   }
 
-  const fetchPodLogs = async (podName: string) => {
+  const getPodNamespace = (pod: any) => selectedNamespace || pod.metadata.namespace
+
+  const fetchPodLogs = async (pod: any) => {
+    const podName = pod.metadata.name
+    const namespace = getPodNamespace(pod)
     try {
-      setLogsLoading({ ...logsLoading, [podName]: true })
-      const response = await podApi.getPodLogs(selectedCluster, selectedNamespace, podName, 100)
-      setPodLogs({ ...podLogs, [podName]: response.data.logs })
+      setLogsLoading((prev) => ({ ...prev, [podName]: true }))
+      const response = await podApi.getPodLogs(selectedCluster, namespace, podName, 100)
+      setPodLogs((prev) => ({ ...prev, [podName]: response.data.logs }))
     } catch (err) {
       console.error('Error fetching pod logs:', err)
     } finally {
-      setLogsLoading({ ...logsLoading, [podName]: false })
+      setLogsLoading((prev) => ({ ...prev, [podName]: false }))
     }
   }
 
-  const deletePod = async (podName: string) => {
+  const fetchPodAnalysis = async (pod: any) => {
+    const podName = pod.metadata.name
+    const namespace = getPodNamespace(pod)
+    try {
+      setAnalysisLoading((prev) => ({ ...prev, [podName]: true }))
+      const response = await podApi.analyzePodLogs(selectedCluster, namespace, podName, 200)
+      setPodAnalysis((prev) => ({ ...prev, [podName]: response.data }))
+    } catch (err) {
+      console.error('Error analyzing pod logs:', err)
+    } finally {
+      setAnalysisLoading((prev) => ({ ...prev, [podName]: false }))
+    }
+  }
+
+  const deletePod = async (pod: any) => {
+    const podName = pod.metadata.name
+    const namespace = getPodNamespace(pod)
     if (!confirm(`Are you sure you want to delete pod ${podName}?`)) {
       return
     }
 
     try {
-      await podApi.deletePod(selectedCluster, selectedNamespace, podName)
+      await podApi.deletePod(selectedCluster, namespace, podName)
       fetchPods()
     } catch (err) {
       setError('Failed to delete pod')
@@ -97,13 +119,17 @@ const PodsPage: React.FC = () => {
     }
   }
 
-  const togglePodDetails = (podName: string) => {
+  const togglePodDetails = (pod: any) => {
+    const podName = pod.metadata.name
     if (expandedPod === podName) {
       setExpandedPod(null)
     } else {
       setExpandedPod(podName)
       if (!podLogs[podName]) {
-        fetchPodLogs(podName)
+        fetchPodLogs(pod)
+      }
+      if (!podAnalysis[podName]) {
+        fetchPodAnalysis(pod)
       }
     }
   }
@@ -232,7 +258,7 @@ const PodsPage: React.FC = () => {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => togglePodDetails(pod.metadata.name)}
+                          onClick={() => togglePodDetails(pod)}
                           className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
                         >
                           {expandedPod === pod.metadata.name ? (
@@ -242,7 +268,7 @@ const PodsPage: React.FC = () => {
                           )}
                         </button>
                         <button
-                          onClick={() => deletePod(pod.metadata.name)}
+                          onClick={() => deletePod(pod)}
                           className="text-danger-600 hover:text-danger-800 dark:text-danger-400 dark:hover:text-danger-300"
                           title="Delete Pod"
                         >
@@ -256,6 +282,33 @@ const PodsPage: React.FC = () => {
                       <td colSpan={6} className="px-6 py-4">
                         <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
                           <h3 className="text-sm font-semibold mb-2">Logs for {pod.metadata.name}</h3>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                            Namespace: {getPodNamespace(pod)}
+                          </div>
+                          {analysisLoading[pod.metadata.name] ? (
+                            <div className="flex items-center justify-center py-3">
+                              <Loader2 className="h-4 w-4 animate-spin text-primary-600" />
+                            </div>
+                          ) : podAnalysis[pod.metadata.name] && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                              <div className="bg-white dark:bg-gray-800 rounded p-3">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Errors</div>
+                                <div className="text-lg font-semibold text-red-600">{podAnalysis[pod.metadata.name].errorCount}</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-3">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Warnings</div>
+                                <div className="text-lg font-semibold text-yellow-600">{podAnalysis[pod.metadata.name].warningCount}</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-3">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Security Events</div>
+                                <div className="text-lg font-semibold text-orange-600">{podAnalysis[pod.metadata.name].securityEvents?.length || 0}</div>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-3">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Slow Requests</div>
+                                <div className="text-lg font-semibold text-blue-600">{podAnalysis[pod.metadata.name].performanceMetrics.slowRequests?.length || 0}</div>
+                              </div>
+                            </div>
+                          )}
                           {logsLoading[pod.metadata.name] ? (
                             <div className="flex items-center justify-center py-8">
                               <Loader2 className="h-5 w-5 animate-spin text-primary-600" />

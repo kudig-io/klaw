@@ -6,6 +6,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -114,6 +115,111 @@ func (r *Resources) ListNamespaces(clusterName string) ([]corev1.Namespace, erro
 	}
 
 	return namespaces.Items, nil
+}
+
+// GetNamespace 获取命名空间详情
+func (r *Resources) GetNamespace(clusterName, namespace string) (*corev1.Namespace, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	ns, err := client.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get namespace: %v", err)
+	}
+
+	return ns, nil
+}
+
+// ========== ConfigMap 管理 ==========
+
+func (r *Resources) ListConfigMaps(clusterName, namespace string) ([]corev1.ConfigMap, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	configMaps, err := client.CoreV1().ConfigMaps(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list configmaps: %v", err)
+	}
+
+	return configMaps.Items, nil
+}
+
+func (r *Resources) GetConfigMap(clusterName, namespace, name string) (*corev1.ConfigMap, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	configMap, err := client.CoreV1().ConfigMaps(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configmap: %v", err)
+	}
+
+	return configMap, nil
+}
+
+// ========== StatefulSet 管理 ==========
+
+func (r *Resources) ListStatefulSets(clusterName, namespace string) ([]appsv1.StatefulSet, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	statefulSets, err := client.AppsV1().StatefulSets(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list statefulsets: %v", err)
+	}
+
+	return statefulSets.Items, nil
+}
+
+func (r *Resources) GetStatefulSet(clusterName, namespace, name string) (*appsv1.StatefulSet, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	statefulSet, err := client.AppsV1().StatefulSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get statefulset: %v", err)
+	}
+
+	return statefulSet, nil
+}
+
+// ========== Ingress 管理 ==========
+
+func (r *Resources) ListIngresses(clusterName, namespace string) ([]networkingv1.Ingress, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	ingresses, err := client.NetworkingV1().Ingresses(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list ingresses: %v", err)
+	}
+
+	return ingresses.Items, nil
+}
+
+func (r *Resources) GetIngress(clusterName, namespace, name string) (*networkingv1.Ingress, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	ingress, err := client.NetworkingV1().Ingresses(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get ingress: %v", err)
+	}
+
+	return ingress, nil
 }
 
 // ========== Event 管理 ==========

@@ -7,6 +7,13 @@ const api = axios.create({
   },
 })
 
+const v1Api = axios.create({
+  baseURL: '/api/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
 export interface Cluster {
   name: string
   kubeconfig: string
@@ -136,66 +143,70 @@ export interface DeploymentStatus {
 }
 
 export const clusterApi = {
-  getClusters: () => api.get<Cluster[]>('/clusters'),
-  getCluster: (name: string) => api.get<Cluster>(`/clusters/${name}`),
-  getClusterStatus: (name: string) => api.get<ClusterStatus>(`/clusters/${name}/status`),
-  getClusterMetrics: (name: string) => api.get(`/clusters/${name}/metrics`),
-  getNamespaces: (name: string) => api.get<Namespace[]>(`/clusters/${name}/namespaces`),
+  getClusters: () => v1Api.get<Cluster[]>('/clusters'),
+  getCluster: (name: string) => v1Api.get<Cluster>(`/clusters/${name}`),
+  getClusterStatus: (name: string) => v1Api.get<ClusterStatus>(`/clusters/${name}/status`),
+  getClusterMetrics: (name: string) => v1Api.get(`/clusters/${name}/metrics`),
+  getNamespaces: (name: string) => v1Api.get<Namespace[]>(`/clusters/${name}/namespaces`),
 }
 
 export const podApi = {
   listPods: (cluster: string, namespace: string) => {
     // 如果 namespace 为空，获取所有命名空间的 pods
     if (!namespace) {
-      return api.get<Pod[]>(`/clusters/${cluster}/pods`)
+      return v1Api.get<Pod[]>(`/clusters/${cluster}/pods`)
     }
-    return api.get<Pod[]>(`/clusters/${cluster}/namespaces/${namespace}/pods`)
+    return v1Api.get<Pod[]>(`/clusters/${cluster}/namespaces/${namespace}/pods`)
   },
   getPod: (cluster: string, namespace: string, name: string) =>
-    api.get<Pod>(`/clusters/${cluster}/namespaces/${namespace}/pods/${name}`),
+    v1Api.get<Pod>(`/clusters/${cluster}/namespaces/${namespace}/pods/${name}`),
   getPodLogs: (cluster: string, namespace: string, name: string, tailLines?: number) =>
-    api.get<{ logs: string }>(`/clusters/${cluster}/namespaces/${namespace}/pods/${name}/logs`, {
+    v1Api.get<{ logs: string }>(`/clusters/${cluster}/namespaces/${namespace}/pods/${name}/logs`, {
+      params: { tailLines },
+    }),
+  analyzePodLogs: (cluster: string, namespace: string, name: string, tailLines?: number) =>
+    v1Api.get<LogAnalysis>(`/clusters/${cluster}/namespaces/${namespace}/pods/${name}/logs/analysis`, {
       params: { tailLines },
     }),
   deletePod: (cluster: string, namespace: string, name: string) =>
-    api.delete(`/clusters/${cluster}/namespaces/${namespace}/pods/${name}`),
+    v1Api.delete(`/clusters/${cluster}/namespaces/${namespace}/pods/${name}`),
 }
 
 export const nodeApi = {
-  listNodes: (cluster: string) => api.get<Node[]>(`/clusters/${cluster}/nodes`),
-  getNode: (cluster: string, name: string) => api.get<Node>(`/clusters/${cluster}/nodes/${name}`),
-  getNodeMetrics: (cluster: string) => api.get<Record<string, NodeMetrics>>(`/clusters/${cluster}/nodes/metrics`),
+  listNodes: (cluster: string) => v1Api.get<Node[]>(`/clusters/${cluster}/nodes`),
+  getNode: (cluster: string, name: string) => v1Api.get<Node>(`/clusters/${cluster}/nodes/${name}`),
+  getNodeMetrics: (cluster: string) => v1Api.get<Record<string, NodeMetrics>>(`/clusters/${cluster}/nodes/metrics`),
 }
 
 export const eventApi = {
   getEvents: (cluster: string, namespace?: string) =>
-    api.get<Event[]>(namespace ? `/clusters/${cluster}/namespaces/${namespace}/events` : `/clusters/${cluster}/events`),
+    v1Api.get<Event[]>(namespace ? `/clusters/${cluster}/namespaces/${namespace}/events` : `/clusters/${cluster}/events`),
 }
 
 export const monitoringApi = {
-  getStatus: (cluster: string) => api.get<any>(`/monitoring/${cluster}/status`),
-  getAlerts: (cluster: string) => api.get<any[]>(`/monitoring/${cluster}/alerts`),
-  getHistory: (cluster: string) => api.get<any[]>(`/monitoring/${cluster}/history`),
+  getStatus: (cluster: string) => v1Api.get<any>(`/clusters/${cluster}/monitor/status`),
+  getAlerts: (cluster: string) => v1Api.get<any[]>(`/clusters/${cluster}/monitor/alerts`),
+  getHistory: (cluster: string) => v1Api.get<any[]>(`/clusters/${cluster}/monitor/history`),
 }
 
 export const deploymentApi = {
   listDeployments: (cluster: string, namespace: string) => {
     // 如果 namespace 为空，获取所有命名空间的 deployments
     if (!namespace) {
-      return api.get<Deployment[]>(`/clusters/${cluster}/deployments`)
+      return v1Api.get<Deployment[]>(`/clusters/${cluster}/deployments`)
     }
-    return api.get<Deployment[]>(`/clusters/${cluster}/namespaces/${namespace}/deployments`)
+    return v1Api.get<Deployment[]>(`/clusters/${cluster}/namespaces/${namespace}/deployments`)
   },
   getDeployment: (cluster: string, namespace: string, name: string) =>
-    api.get<Deployment>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}`),
+    v1Api.get<Deployment>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}`),
   scaleDeployment: (cluster: string, namespace: string, name: string, replicas: number) =>
-    api.post(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/scale`, { replicas }),
+    v1Api.post(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/scale`, { replicas }),
   restartDeployment: (cluster: string, namespace: string, name: string) =>
-    api.post(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/restart`),
+    v1Api.post(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/restart`),
   getDeploymentPods: (cluster: string, namespace: string, name: string) =>
-    api.get<Pod[]>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/pods`),
+    v1Api.get<Pod[]>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/pods`),
   getDeploymentStatus: (cluster: string, namespace: string, name: string) =>
-    api.get<DeploymentStatus>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/status`),
+    v1Api.get<DeploymentStatus>(`/clusters/${cluster}/namespaces/${namespace}/deployments/${name}/status`),
 }
 
 export interface Service {
@@ -261,20 +272,339 @@ export interface ServiceEndpoints {
   }>
 }
 
+export interface UnifiedResourceInfo {
+  name: string
+  namespace?: string
+  kind: string
+  creationTimestamp: string
+  labels?: Record<string, string>
+  annotations?: Record<string, string>
+  status?: string
+  raw?: unknown
+}
+
+export interface UnifiedResourceList {
+  items: UnifiedResourceInfo[]
+  total: number
+  resourceKind: string
+}
+
+export const unifiedClusterApi = {
+  getClusters: () => v1Api.get<Cluster[]>('/clusters'),
+  getCluster: (name: string) => v1Api.get<Cluster>(`/clusters/${name}`),
+  getClusterStatus: (name: string) => v1Api.get<ClusterStatus>(`/clusters/${name}/status`),
+  getClusterMetrics: (name: string) => v1Api.get(`/clusters/${name}/metrics`),
+  getNamespaces: (name: string) => v1Api.get<Namespace[]>(`/clusters/${name}/namespaces`),
+}
+
+export const unifiedResourceApi = {
+  listResources: (cluster: string, kind: string, namespace?: string) => {
+    if (namespace) {
+      return v1Api.get<UnifiedResourceList>(`/clusters/${cluster}/namespaces/${namespace}/resources/${kind}`)
+    }
+    return v1Api.get<UnifiedResourceList>(`/clusters/${cluster}/resources/${kind}`)
+  },
+  getResource: (cluster: string, kind: string, name: string, namespace?: string) => {
+    if (namespace) {
+      return v1Api.get<UnifiedResourceInfo>(`/clusters/${cluster}/namespaces/${namespace}/resources/${kind}/${name}`)
+    }
+    return v1Api.get<UnifiedResourceInfo>(`/clusters/${cluster}/resources/${kind}/${name}`)
+  },
+  getMonitorStatus: (cluster: string) => v1Api.get(`/clusters/${cluster}/monitor/status`),
+  getMonitorAlerts: (cluster: string) => v1Api.get(`/clusters/${cluster}/monitor/alerts`),
+  getMonitorHistory: (cluster: string) => v1Api.get(`/clusters/${cluster}/monitor/history`),
+}
+
 export const serviceApi = {
   listServices: (cluster: string, namespace: string) => {
     // 如果 namespace 为空，获取所有命名空间的 services
     if (!namespace) {
-      return api.get<Service[]>(`/clusters/${cluster}/services`)
+      return v1Api.get<Service[]>(`/clusters/${cluster}/services`)
     }
-    return api.get<Service[]>(`/clusters/${cluster}/namespaces/${namespace}/services`)
+    return v1Api.get<Service[]>(`/clusters/${cluster}/namespaces/${namespace}/services`)
   },
   getService: (cluster: string, namespace: string, name: string) =>
-    api.get<Service>(`/clusters/${cluster}/namespaces/${namespace}/services/${name}`),
+    v1Api.get<Service>(`/clusters/${cluster}/namespaces/${namespace}/services/${name}`),
   getServiceEndpoints: (cluster: string, namespace: string, name: string) =>
-    api.get<ServiceEndpoints>(`/clusters/${cluster}/namespaces/${namespace}/services/${name}/endpoints`),
+    v1Api.get<ServiceEndpoints>(`/clusters/${cluster}/namespaces/${namespace}/services/${name}/endpoints`),
   deleteService: (cluster: string, namespace: string, name: string) =>
-    api.delete(`/clusters/${cluster}/namespaces/${namespace}/services/${name}`),
+    v1Api.delete(`/clusters/${cluster}/namespaces/${namespace}/services/${name}`),
+}
+
+export interface LogAnalysisEntry {
+  line: number
+  content: string
+  timestamp?: string
+  level: string
+}
+
+export interface SecurityEvent {
+  type: string
+  message: string
+  severity: string
+}
+
+export interface SlowRequest {
+  url: string
+  responseTime: string
+}
+
+export interface LogAnalysis {
+  totalLines: number
+  errorCount: number
+  warningCount: number
+  infoCount: number
+  debugCount: number
+  errors?: LogAnalysisEntry[]
+  warnings?: LogAnalysisEntry[]
+  stackTraces?: string[]
+  performanceMetrics: {
+    slowRequests?: SlowRequest[]
+  }
+  securityEvents?: SecurityEvent[]
+  logLevels: Record<string, number>
+  patternStats: Record<string, number>
+}
+
+export interface RBACAnalysis {
+  totalRoles: number
+  totalClusterRoles: number
+  totalBindings: number
+  totalClusterBindings: number
+  rolesByNamespace: Record<string, string[]>
+  bindingsBySubject: Record<string, Array<{
+    type: string
+    name: string
+    namespace: string
+    role: string
+    roleKind: string
+  }>>
+  bindingsByRole: Record<string, Array<{
+    type: string
+    name: string
+    namespace: string
+    subjects: string[]
+  }>>
+  timestamp: string
+}
+
+export const analysisApi = {
+  analyzeLogs: (logs: string) => v1Api.post<LogAnalysis>('/analysis/logs', { logs }),
+  analyzeRBAC: (cluster: string) => v1Api.get<RBACAnalysis>(`/clusters/${cluster}/rbac/analysis`),
+}
+
+export interface AlertRuleCondition {
+  type: string
+  field: string
+  operator: string
+  threshold: string | number | boolean
+  timeWindow?: string
+}
+
+export interface AlertRule {
+  id: string
+  cluster?: string
+  name: string
+  description?: string
+  enabled: boolean
+  severity: 'info' | 'warning' | 'error' | 'critical'
+  condition: AlertRuleCondition
+  actions?: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AlertRecord {
+  id: string
+  cluster: string
+  ruleId: string
+  ruleName: string
+  ruleType: string
+  resourceKind: string
+  resourceName: string
+  namespace?: string
+  severity: 'info' | 'warning' | 'error' | 'critical'
+  value: string | number | boolean
+  threshold: string | number | boolean
+  operator: string
+  message: string
+  acknowledged: boolean
+  resolved: boolean
+  createdAt: string
+  acknowledgedAt?: string
+  resolvedAt?: string
+}
+
+export interface AlertStats {
+  total: number
+  active: number
+  bySeverity: Record<string, number>
+  byStatus: Record<string, number>
+  recent24h: number
+}
+
+export const alertingApi = {
+  getRules: (cluster: string) => v1Api.get<AlertRule[]>(`/clusters/${cluster}/alerts/rules`),
+  createRule: (cluster: string, rule: Partial<AlertRule>) => v1Api.post<AlertRule>(`/clusters/${cluster}/alerts/rules`, rule),
+  updateRule: (cluster: string, id: string, rule: Partial<AlertRule>) => v1Api.put<AlertRule>(`/clusters/${cluster}/alerts/rules/${id}`, rule),
+  deleteRule: (cluster: string, id: string) => v1Api.delete(`/clusters/${cluster}/alerts/rules/${id}`),
+  evaluate: (cluster: string) => v1Api.post<AlertRecord[]>(`/clusters/${cluster}/alerts/evaluate`),
+  getHistory: (cluster: string, limit = 50) => v1Api.get<AlertRecord[]>(`/clusters/${cluster}/alerts/history`, { params: { limit } }),
+  getStats: (cluster: string) => v1Api.get<AlertStats>(`/clusters/${cluster}/alerts/stats`),
+  acknowledge: (cluster: string, id: string) => v1Api.post<AlertRecord>(`/clusters/${cluster}/alerts/${id}/acknowledge`),
+  resolve: (cluster: string, id: string) => v1Api.post<AlertRecord>(`/clusters/${cluster}/alerts/${id}/resolve`),
+}
+
+export type BackupMode = 'Full' | 'Incremental'
+export type StorageProvider = 'S3' | 'OSS' | 'GCS' | 'Azure'
+
+export interface BackupStorageLocation {
+  provider: StorageProvider
+  bucket: string
+  prefix?: string
+  region: string
+  endpoint?: string
+  credentialsSecret: string
+}
+
+export interface BackupValidationConfig {
+  enabled: boolean
+  consistencyCheck: boolean
+}
+
+export interface BackupItem {
+  name: string
+  cluster: string
+  phase: string
+  spec: {
+    backupMode: BackupMode
+    etcdEndpoints?: string[]
+    storageLocation: BackupStorageLocation
+    validation: BackupValidationConfig
+  }
+  snapshotSize: number
+  snapshotLocation: string
+  etcdRevision: number
+  validationResult?: {
+    valid: boolean
+    hash?: string
+    message?: string
+  }
+  startTime: string
+  completionTime?: string
+  message?: string
+  createdAt: string
+}
+
+export interface BackupSummary {
+  total: number
+  byPhase: Record<string, number>
+  byMode: Record<string, number>
+  recent24h: number
+}
+
+export interface CreateBackupRequest {
+  name: string
+  backupMode: BackupMode
+  etcdEndpoints?: string[]
+  storageLocation: BackupStorageLocation
+  validation: BackupValidationConfig
+}
+
+export const backupApi = {
+  list: (cluster: string) => v1Api.get<BackupItem[]>(`/clusters/${cluster}/backups`),
+  get: (cluster: string, name: string) => v1Api.get<BackupItem>(`/clusters/${cluster}/backups/${name}`),
+  create: (cluster: string, request: CreateBackupRequest) => v1Api.post<BackupItem>(`/clusters/${cluster}/backups`, request),
+  delete: (cluster: string, name: string) => v1Api.delete(`/clusters/${cluster}/backups/${name}`),
+  summary: (cluster: string) => v1Api.get<BackupSummary>(`/clusters/${cluster}/backups/summary`),
+}
+
+export interface Tenant {
+  id: string
+  cluster?: string
+  name: string
+  description?: string
+  namespaces: string[]
+  resourceQuotas: {
+    cpu: string
+    memory: string
+    pods: string
+    services: string
+    persistentVolumeClaims: string
+  }
+  networkPolicies: {
+    enabled: boolean
+    defaultDeny: boolean
+  }
+  rbac: {
+    enabled: boolean
+    defaultRole: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TenantUser {
+  id: string
+  tenantId: string
+  username: string
+  email?: string
+  role: string
+  namespaces?: string[]
+  subjectKind?: 'User' | 'Group' | 'ServiceAccount'
+  subjectName?: string
+  subjectNamespace?: string
+  createdAt: string
+}
+
+export interface TenantStatistics {
+  totalTenants: number
+  totalUsers: number
+  totalNamespaces: number
+  usersByRole: Record<string, number>
+}
+
+export interface AuditLog {
+  id: string
+  timestamp: string
+  eventType: string
+  category: string
+  severity: string
+  source: string
+  user: string
+  action: string
+  resource: Record<string, string>
+  result: string
+  details?: Record<string, unknown>
+  ipAddress?: string
+  userAgent?: string
+}
+
+export interface AuditStatistics {
+  totalLogs: number
+  byEventType: Record<string, number>
+  bySeverity: Record<string, number>
+  byCategory: Record<string, number>
+  byUser: Record<string, number>
+  recent24h: number
+}
+
+export const tenancyApi = {
+  listTenants: (params?: { cluster?: string; name?: string; namespace?: string }) => v1Api.get<Tenant[]>('/tenants', { params }),
+  getTenant: (id: string) => v1Api.get<Tenant>(`/tenants/${id}`),
+  createTenant: (tenant: Partial<Tenant>) => v1Api.post<Tenant>('/tenants', tenant),
+  updateTenant: (id: string, tenant: Partial<Tenant>) => v1Api.put<Tenant>(`/tenants/${id}`, tenant),
+  deleteTenant: (id: string) => v1Api.delete(`/tenants/${id}`),
+  stats: () => v1Api.get<TenantStatistics>('/tenants/stats'),
+  listUsers: (params?: { tenantId?: string; role?: string }) => v1Api.get<TenantUser[]>('/tenant-users', { params }),
+  createUser: (user: Partial<TenantUser>) => v1Api.post<TenantUser>('/tenant-users', user),
+  deleteUser: (id: string) => v1Api.delete(`/tenant-users/${id}`),
+}
+
+export const auditApi = {
+  listLogs: (params?: { eventType?: string; category?: string; severity?: string; user?: string; limit?: number }) =>
+    v1Api.get<AuditLog[]>('/audit/logs', { params }),
+  stats: () => v1Api.get<AuditStatistics>('/audit/stats'),
 }
 
 export default api

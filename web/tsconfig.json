@@ -19,8 +19,8 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node", "react", "react-dom"]
+    "types": ["node", "react", "react-dom", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src"],
+  "include": ["src", "vitest.setup.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

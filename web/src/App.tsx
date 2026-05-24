@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { cn } from './lib/utils'
 import ClusterDashboard from './pages/ClusterDashboard'
+import BackupsPage from './pages/BackupsPage'
 import PodsPage from './pages/PodsPage'
 import NodesPage from './pages/NodesPage'
 import MonitoringPage from './pages/MonitoringPage'
 import DeploymentsPage from './pages/DeploymentsPage'
+import TenantsPage from './pages/TenantsPage'
 import { ServicesPage } from './pages/ServicesPage'
-import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe } from 'lucide-react'
+import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe, DatabaseBackup, Shield } from 'lucide-react'
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -36,6 +38,8 @@ function App() {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Database },
+    { path: '/backups', label: 'Backups', icon: DatabaseBackup },
+    { path: '/tenants', label: 'Tenants', icon: Shield },
     { path: '/deployments', label: 'Deployments', icon: Boxes },
     { path: '/services', label: 'Services', icon: Globe },
     { path: '/pods', label: 'Pods', icon: Server },
@@ -166,6 +170,8 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Routes>
           <Route path="/" element={<ClusterDashboard />} />
+          <Route path="/backups" element={<BackupsPage />} />
+          <Route path="/tenants" element={<TenantsPage />} />
           <Route path="/deployments" element={<DeploymentsPage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/pods" element={<PodsPage />} />

@@ -6,28 +6,47 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/kudig-io/klaw/internal/alerting"
+	"github.com/kudig-io/klaw/internal/audit"
+	"github.com/kudig-io/klaw/internal/backup"
 	"github.com/kudig-io/klaw/internal/kubernetes"
 	"github.com/kudig-io/klaw/internal/metrics"
 	"github.com/kudig-io/klaw/internal/monitoring"
+	"github.com/kudig-io/klaw/internal/storage"
+	"github.com/kudig-io/klaw/internal/tenancy"
 )
 
 type Server struct {
 	k8sManager       *kubernetes.Manager
 	monitoringService *monitoring.Service
+	alertingManager  *alerting.Manager
+	backupManager    *backup.Manager
+	tenancyManager   *tenancy.Manager
+	auditLogger      *audit.Logger
 	resources        *kubernetes.Resources
 	metricsCollector  *metrics.Collector
 	router           *mux.Router
 }
 
 func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service) *Server {
+	resources := kubernetes.NewResources(k8sManager)
+	store, err := storage.NewStore(filepath.Join("data", "klaw.db"))
+	if err != nil {
+		panic(err)
+	}
 	return &Server{
 		k8sManager:       k8sManager,
 		monitoringService: monitoringService,
-		resources:        kubernetes.NewResources(k8sManager),
+		alertingManager:  alerting.NewManager(resources, store),
+		backupManager:    backup.NewManager(store),
+		tenancyManager:   tenancy.NewManager(k8sManager, store),
+		auditLogger:      audit.NewLogger(store),
+		resources:        resources,
 		metricsCollector:  metrics.NewCollector(k8sManager),
 		router:           mux.NewRouter(),
 	}
@@ -68,10 +87,42 @@ func (s *Server) SetupRoutes() {
 	s.router.HandleFunc("/api/clusters/{cluster}/namespaces/{namespace}/services", s.handleListServices).Methods("GET")
 	s.router.HandleFunc("/api/clusters/{cluster}/namespaces/{namespace}/services/{name}", s.handleGetService).Methods("GET")
 	s.router.HandleFunc("/api/clusters/{cluster}/namespaces/{namespace}/services/{name}/endpoints", s.handleGetServiceEndpoints).Methods("GET")
+	s.router.HandleFunc("/api/clusters/{cluster}/namespaces/{namespace}/services/{name}", s.handleDeleteService).Methods("DELETE")
+
+	s.router.HandleFunc("/api/clusters/{cluster}/namespaces/{namespace}/pods/{name}/logs/analysis", s.handleAnalyzePodLogs).Methods("GET")
+	s.router.HandleFunc("/api/analysis/logs", s.handleAnalyzeRawLogs).Methods("POST")
+	s.router.HandleFunc("/api/clusters/{cluster}/rbac/analysis", s.handleAnalyzeRBAC).Methods("GET")
 
 	s.router.HandleFunc("/api/monitoring/{cluster}/status", s.handleGetMonitorStatus).Methods("GET")
 	s.router.HandleFunc("/api/monitoring/{cluster}/alerts", s.handleGetMonitorAlerts).Methods("GET")
 	s.router.HandleFunc("/api/monitoring/{cluster}/history", s.handleGetMetricsHistory).Methods("GET")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/rules", s.handleGetAlertRules).Methods("GET")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/rules", s.handleCreateAlertRule).Methods("POST")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/rules/{id}", s.handleUpdateAlertRule).Methods("PUT")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/rules/{id}", s.handleDeleteAlertRule).Methods("DELETE")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/evaluate", s.handleEvaluateAlerts).Methods("POST")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/history", s.handleGetAlertHistory).Methods("GET")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/stats", s.handleGetAlertStats).Methods("GET")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/{id}/acknowledge", s.handleAcknowledgeAlert).Methods("POST")
+	s.router.HandleFunc("/api/clusters/{cluster}/alerts/{id}/resolve", s.handleResolveAlertRecord).Methods("POST")
+	s.router.HandleFunc("/api/clusters/{cluster}/backups", s.handleListBackups).Methods("GET")
+	s.router.HandleFunc("/api/clusters/{cluster}/backups", s.handleCreateBackup).Methods("POST")
+	s.router.HandleFunc("/api/clusters/{cluster}/backups/summary", s.handleBackupSummary).Methods("GET")
+	s.router.HandleFunc("/api/clusters/{cluster}/backups/{name}", s.handleGetBackup).Methods("GET")
+	s.router.HandleFunc("/api/clusters/{cluster}/backups/{name}", s.handleDeleteBackup).Methods("DELETE")
+	s.router.HandleFunc("/api/tenants", s.handleListTenants).Methods("GET")
+	s.router.HandleFunc("/api/tenants", s.handleCreateTenant).Methods("POST")
+	s.router.HandleFunc("/api/tenants/stats", s.handleTenantStatistics).Methods("GET")
+	s.router.HandleFunc("/api/tenants/{id}", s.handleGetTenant).Methods("GET")
+	s.router.HandleFunc("/api/tenants/{id}", s.handleUpdateTenant).Methods("PUT")
+	s.router.HandleFunc("/api/tenants/{id}", s.handleDeleteTenant).Methods("DELETE")
+	s.router.HandleFunc("/api/tenant-users", s.handleListTenantUsers).Methods("GET")
+	s.router.HandleFunc("/api/tenant-users", s.handleCreateTenantUser).Methods("POST")
+	s.router.HandleFunc("/api/tenant-users/{id}", s.handleDeleteTenantUser).Methods("DELETE")
+	s.router.HandleFunc("/api/audit/logs", s.handleAuditLogs).Methods("GET")
+	s.router.HandleFunc("/api/audit/stats", s.handleAuditStats).Methods("GET")
+
+	s.setupUnifiedV1Routes()
 
 	// SPA 路由支持 - 所有非 API 请求返回 index.html
 	s.router.PathPrefix("/").HandlerFunc(s.serveSPA).Methods("GET")

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { clusterApi } from '../lib/api'
-import { cn, getStatusColor, formatDate } from '../lib/utils'
+import { analysisApi, clusterApi, type RBACAnalysis } from '../lib/api'
+import { cn, formatDate } from '../lib/utils'
 import { RefreshCw, Loader2 } from 'lucide-react'
 
 const ClusterDashboard: React.FC = () => {
   const [clusters, setClusters] = useState<any[]>([])
   const [statuses, setStatuses] = useState<Record<string, any>>({})
+  const [rbacSummaries, setRbacSummaries] = useState<Record<string, RBACAnalysis>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -21,13 +22,30 @@ const ClusterDashboard: React.FC = () => {
         const statusResponse = await clusterApi.getClusterStatus(cluster.name)
         return { [cluster.name]: statusResponse.data }
       })
+      const rbacPromises = clustersResponse.data.map(async (cluster: any) => {
+        try {
+          const response = await analysisApi.analyzeRBAC(cluster.name)
+          return { [cluster.name]: response.data }
+        } catch {
+          return { [cluster.name]: null }
+        }
+      })
 
-      const statusResults = await Promise.all(statusPromises)
+      const [statusResults, rbacResults] = await Promise.all([
+        Promise.all(statusPromises),
+        Promise.all(rbacPromises),
+      ])
       const statusMap: Record<string, any> = {}
       statusResults.forEach((result: Record<string, any>) => {
         Object.assign(statusMap, result)
       })
       setStatuses(statusMap)
+
+      const rbacMap: Record<string, RBACAnalysis> = {}
+      rbacResults.forEach((result: Record<string, any>) => {
+        Object.assign(rbacMap, result)
+      })
+      setRbacSummaries(rbacMap)
     } catch (err: any) {
       const errorMsg = err.response?.data?.error || err.message || String(err)
       setError(`Failed to fetch cluster data: ${errorMsg}`)
@@ -44,12 +62,6 @@ const ClusterDashboard: React.FC = () => {
   const getNodeStatusIcon = (ready: number, total: number) => {
     if (ready === total) return '✅'
     if (ready > 0) return '⚠️'
-    return '❌'
-  }
-
-  const getPodStatusIcon = (running: number, total: number) => {
-    if (running === total) return '✅'
-    if (running > 0) return '⚠️'
     return '❌'
   }
 
@@ -155,6 +167,32 @@ const ClusterDashboard: React.FC = () => {
                       <div className="text-center text-sm text-gray-500 dark:text-gray-400">
                         Total: {status.pods.total}
                       </div>
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">RBAC Summary</h3>
+                      {rbacSummaries[cluster.name] ? (
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <div className="text-gray-500 dark:text-gray-400">Roles</div>
+                            <div className="font-semibold">{rbacSummaries[cluster.name].totalRoles}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500 dark:text-gray-400">ClusterRoles</div>
+                            <div className="font-semibold">{rbacSummaries[cluster.name].totalClusterRoles}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500 dark:text-gray-400">Bindings</div>
+                            <div className="font-semibold">{rbacSummaries[cluster.name].totalBindings}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500 dark:text-gray-400">ClusterBindings</div>
+                            <div className="font-semibold">{rbacSummaries[cluster.name].totalClusterBindings}</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">RBAC analysis unavailable</div>
+                      )}
                     </div>
 
                     <div className="flex space-x-2">

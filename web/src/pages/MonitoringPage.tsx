@@ -1,24 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { clusterApi, monitoringApi } from '../lib/api'
-import { cn, formatDate } from '../lib/utils'
-import { RefreshCw, Loader2, AlertCircle, Activity, Clock, AlertTriangle, AlertOctagon } from 'lucide-react'
-
-// Mock 数据
-const mockData = {
-  status: { active: true, cluster: 'kind-test', dataPoints: 1440 },
-  alerts: [
-    { id: '1', type: 'pod', level: 'warning', message: 'Pod pending > 5 min', createdAt: new Date().toISOString() },
-    { id: '2', type: 'node', level: 'info', message: 'Memory > 70%', createdAt: new Date().toISOString() },
-  ],
-  cpu: [30, 35, 42, 38, 45, 52, 48, 55, 60, 58, 62, 55],
-  memory: [50, 52, 55, 58, 60, 62, 65, 63, 68, 70, 72, 68],
-}
+import { alertingApi, clusterApi, monitoringApi, type AlertRecord, type AlertRule, type AlertStats } from '../lib/api'
+import { formatDate } from '../lib/utils'
+import { RefreshCw, Loader2, AlertCircle, Activity, Clock, AlertTriangle, Siren, CheckCircle2 } from 'lucide-react'
 
 const MonitoringPage: React.FC = () => {
   const [clusters, setClusters] = useState<any[]>([])
   const [selectedCluster, setSelectedCluster] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState(mockData)
+  const [status, setStatus] = useState<any>({ active: false, cluster: '', dataPoints: 0 })
+  const [alerts, setAlerts] = useState<AlertRecord[]>([])
+  const [rules, setRules] = useState<AlertRule[]>([])
+  const [stats, setStats] = useState<AlertStats | null>(null)
+  const [lastTriggered, setLastTriggered] = useState<AlertRecord[]>([])
 
   useEffect(() => {
     fetchClusters()
@@ -45,45 +38,52 @@ const MonitoringPage: React.FC = () => {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [statusRes, alertsRes] = await Promise.all([
+      const [statusRes, historyRes, statsRes, rulesRes] = await Promise.all([
         monitoringApi.getStatus(selectedCluster),
-        monitoringApi.getAlerts(selectedCluster),
+        alertingApi.getHistory(selectedCluster, 20),
+        alertingApi.getStats(selectedCluster),
+        alertingApi.getRules(selectedCluster),
       ])
-      
-      // 如果 API 有数据就使用，否则用 mock
-      setData({
-        status: statusRes.data.active ? statusRes.data : mockData.status,
-        alerts: alertsRes.data?.length > 0 ? alertsRes.data : mockData.alerts,
-        cpu: mockData.cpu,
-        memory: mockData.memory,
-      })
-    } catch {
-      setData(mockData)
+
+      setStatus(statusRes.data)
+      setAlerts(historyRes.data)
+      setStats(statsRes.data)
+      setRules(rulesRes.data)
+    } catch (err) {
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
-  const getAlertColor = (level: string) => {
-    if (level === 'critical') return 'border-red-500 bg-red-50'
+  const evaluateAlerts = async () => {
+    if (!selectedCluster) return
+    setLoading(true)
+    try {
+      const response = await alertingApi.evaluate(selectedCluster)
+      setLastTriggered(response.data)
+      await loadData()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const acknowledgeAlert = async (alertId: string) => {
+    await alertingApi.acknowledge(selectedCluster, alertId)
+    await loadData()
+  }
+
+  const resolveAlert = async (alertId: string) => {
+    await alertingApi.resolve(selectedCluster, alertId)
+    await loadData()
+  }
+
+  const getAlertColor = (level: string, resolved?: boolean) => {
+    if (resolved) return 'border-gray-400 bg-gray-50'
+    if (level === 'critical' || level === 'error') return 'border-red-500 bg-red-50'
     if (level === 'warning') return 'border-yellow-500 bg-yellow-50'
     return 'border-blue-500 bg-blue-50'
   }
-
-  // 简单的柱状图
-  const renderBars = (values: number[], color: string) => (
-    <div className="h-48 flex items-end space-x-1">
-      {values.map((v, i) => (
-        <div key={i} className="flex-1 flex flex-col items-center group">
-          <div className="opacity-0 group-hover:opacity-100 text-xs mb-1">{v}%</div>
-          <div 
-            className={`w-full ${color} rounded-t`}
-            style={{ height: `${v}%` }}
-          />
-        </div>
-      ))}
-    </div>
-  )
 
   return (
     <div>
@@ -105,6 +105,10 @@ const MonitoringPage: React.FC = () => {
             <RefreshCw className="h-4 w-4" />
             <span>Refresh</span>
           </button>
+          <button onClick={evaluateAlerts} className="btn btn-primary flex items-center space-x-2">
+            <Siren className="h-4 w-4" />
+            <span>Evaluate Rules</span>
+          </button>
         </div>
       </div>
 
@@ -119,37 +123,101 @@ const MonitoringPage: React.FC = () => {
             <div className="card p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
                 <Activity className="h-5 w-5 text-blue-600" />
-                <span>CPU Usage</span>
+                <span>Alert Stats</span>
               </h2>
-              {renderBars(data.cpu, 'bg-blue-500')}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500">Total</div>
+                  <div className="text-2xl font-semibold">{stats?.total ?? 0}</div>
+                </div>
+                <div className="bg-red-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500">Active</div>
+                  <div className="text-2xl font-semibold">{stats?.active ?? 0}</div>
+                </div>
+                <div className="bg-yellow-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500">Recent 24h</div>
+                  <div className="text-2xl font-semibold">{stats?.recent24h ?? 0}</div>
+                </div>
+                <div className="bg-green-50 rounded-lg p-4">
+                  <div className="text-sm text-gray-500">Rules</div>
+                  <div className="text-2xl font-semibold">{rules.length}</div>
+                </div>
+              </div>
             </div>
 
             <div className="card p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
-                <Activity className="h-5 w-5 text-green-600" />
-                <span>Memory Usage</span>
+                <Clock className="h-5 w-5 text-green-600" />
+                <span>Rule Coverage</span>
               </h2>
-              {renderBars(data.memory, 'bg-green-500')}
+              <div className="space-y-3">
+                {rules.slice(0, 5).map((rule) => (
+                  <div key={rule.id} className="rounded-lg border border-gray-200 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{rule.name}</span>
+                      <span className="text-xs uppercase text-gray-500">{rule.severity}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      {rule.condition.type}.{rule.condition.field} {rule.condition.operator} {String(rule.condition.threshold)}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+
+          {lastTriggered.length > 0 && (
+            <div className="card p-6">
+              <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 text-orange-600" />
+                <span>Last Evaluation Triggered {lastTriggered.length} Alerts</span>
+              </h2>
+              <div className="space-y-2">
+                {lastTriggered.map((alert) => (
+                  <div key={alert.id} className="rounded-lg p-3 border border-orange-200 bg-orange-50">
+                    <div className="font-medium">{alert.ruleName}</div>
+                    <div className="text-sm text-gray-600">{alert.resourceKind} {alert.namespace ? `${alert.namespace}/` : ''}{alert.resourceName}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Alerts */}
           <div className="card p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <span>Alerts ({data.alerts.length})</span>
+              <span>Alert History ({alerts.length})</span>
             </h2>
             <div className="space-y-3">
-              {data.alerts.map((alert: any) => (
+              {alerts.map((alert) => (
                 <div 
                   key={alert.id} 
-                  className={`rounded-lg p-4 border-l-4 ${getAlertColor(alert.level)}`}
+                  className={`rounded-lg p-4 border-l-4 ${getAlertColor(alert.severity, alert.resolved)}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{alert.message}</span>
-                    <span className="text-sm text-gray-500">{formatDate(alert.createdAt)}</span>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="font-medium">{alert.message}</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {alert.ruleName} · {alert.resourceKind} · {alert.namespace ? `${alert.namespace}/` : ''}{alert.resourceName}
+                      </div>
+                    </div>
+                    <span className="text-sm text-gray-500 whitespace-nowrap">{formatDate(alert.createdAt)}</span>
                   </div>
-                  <span className="text-sm text-gray-600 capitalize">{alert.type} - {alert.level}</span>
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-gray-600 capitalize">{alert.ruleType} - {alert.severity}</span>
+                    {!alert.acknowledged && !alert.resolved && (
+                      <button onClick={() => acknowledgeAlert(alert.id)} className="btn btn-secondary text-xs">
+                        Acknowledge
+                      </button>
+                    )}
+                    {!alert.resolved && (
+                      <button onClick={() => resolveAlert(alert.id)} className="btn btn-secondary text-xs flex items-center space-x-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span>Resolve</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -162,16 +230,16 @@ const MonitoringPage: React.FC = () => {
               <div className="bg-gray-50 rounded-lg p-4 text-center">
                 <div className="text-sm text-gray-500">Status</div>
                 <div className="text-lg font-semibold text-green-600">
-                  {data.status.active ? 'Active' : 'Inactive'}
+                  {status.active ? 'Active' : 'Inactive'}
                 </div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 text-center">
                 <div className="text-sm text-gray-500">Data Points</div>
-                <div className="text-lg font-semibold">{data.status.dataPoints}</div>
+                <div className="text-lg font-semibold">{status.dataPoints}</div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 text-center">
                 <div className="text-sm text-gray-500">Cluster</div>
-                <div className="text-lg font-semibold">{data.status.cluster}</div>
+                <div className="text-lg font-semibold">{status.cluster}</div>
               </div>
             </div>
           </div>

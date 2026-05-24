@@ -18,6 +18,8 @@ const DeploymentsPage: React.FC = () => {
   const [scalingDeployment, setScalingDeployment] = useState<string | null>(null)
   const [restartingDeployment, setRestartingDeployment] = useState<string | null>(null)
 
+  const getDeploymentNamespace = (deployment: Deployment) => selectedNamespace || deployment.metadata.namespace
+
   useEffect(() => {
     fetchClusters()
   }, [])
@@ -73,40 +75,45 @@ const DeploymentsPage: React.FC = () => {
     }
   }
 
-  const fetchDeploymentStatus = async (deploymentName: string) => {
+  const fetchDeploymentStatus = async (deployment: Deployment) => {
+    const deploymentName = deployment.metadata.name
+    const namespace = getDeploymentNamespace(deployment)
     try {
-      setStatusLoading({ ...statusLoading, [deploymentName]: true })
-      const response = await deploymentApi.getDeploymentStatus(selectedCluster, selectedNamespace, deploymentName)
-      setDeploymentStatus({ ...deploymentStatus, [deploymentName]: response.data })
+      setStatusLoading((prev) => ({ ...prev, [deploymentName]: true }))
+      const response = await deploymentApi.getDeploymentStatus(selectedCluster, namespace, deploymentName)
+      setDeploymentStatus((prev) => ({ ...prev, [deploymentName]: response.data }))
     } catch (err) {
       console.error('Error fetching deployment status:', err)
     } finally {
-      setStatusLoading({ ...statusLoading, [deploymentName]: false })
+      setStatusLoading((prev) => ({ ...prev, [deploymentName]: false }))
     }
   }
 
-  const toggleDeploymentDetails = (deploymentName: string) => {
+  const toggleDeploymentDetails = (deployment: Deployment) => {
+    const deploymentName = deployment.metadata.name
     if (expandedDeployment === deploymentName) {
       setExpandedDeployment(null)
     } else {
       setExpandedDeployment(deploymentName)
       if (!deploymentStatus[deploymentName]) {
-        fetchDeploymentStatus(deploymentName)
+        fetchDeploymentStatus(deployment)
       }
     }
   }
 
-  const scaleDeployment = async (deploymentName: string, currentReplicas: number, delta: number) => {
+  const scaleDeployment = async (deployment: Deployment, currentReplicas: number, delta: number) => {
+    const deploymentName = deployment.metadata.name
+    const namespace = getDeploymentNamespace(deployment)
     const newReplicas = Math.max(0, currentReplicas + delta)
     if (newReplicas === currentReplicas) return
 
     try {
       setScalingDeployment(deploymentName)
-      await deploymentApi.scaleDeployment(selectedCluster, selectedNamespace, deploymentName, newReplicas)
+      await deploymentApi.scaleDeployment(selectedCluster, namespace, deploymentName, newReplicas)
       // 刷新 Deployment 列表
       await fetchDeployments()
       // 刷新状态
-      await fetchDeploymentStatus(deploymentName)
+      await fetchDeploymentStatus(deployment)
     } catch (err) {
       setError('Failed to scale deployment')
       console.error('Error scaling deployment:', err)
@@ -115,14 +122,16 @@ const DeploymentsPage: React.FC = () => {
     }
   }
 
-  const restartDeployment = async (deploymentName: string) => {
+  const restartDeployment = async (deployment: Deployment) => {
+    const deploymentName = deployment.metadata.name
+    const namespace = getDeploymentNamespace(deployment)
     if (!confirm(`Are you sure you want to restart deployment ${deploymentName}?`)) {
       return
     }
 
     try {
       setRestartingDeployment(deploymentName)
-      await deploymentApi.restartDeployment(selectedCluster, selectedNamespace, deploymentName)
+      await deploymentApi.restartDeployment(selectedCluster, namespace, deploymentName)
       alert(`Deployment ${deploymentName} restarted successfully`)
     } catch (err) {
       setError('Failed to restart deployment')
@@ -281,7 +290,7 @@ const DeploymentsPage: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => scaleDeployment(
-                            deployment.metadata.name,
+                            deployment,
                             deployment.spec.replicas || 0,
                             -1
                           )}
@@ -295,7 +304,7 @@ const DeploymentsPage: React.FC = () => {
                         </span>
                         <button
                           onClick={() => scaleDeployment(
-                            deployment.metadata.name,
+                            deployment,
                             deployment.spec.replicas || 0,
                             1
                           )}
@@ -317,7 +326,7 @@ const DeploymentsPage: React.FC = () => {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end space-x-2">
                         <button
-                          onClick={() => restartDeployment(deployment.metadata.name)}
+                          onClick={() => restartDeployment(deployment)}
                           disabled={restartingDeployment === deployment.metadata.name}
                           className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
                           title="Restart Deployment"
@@ -328,7 +337,7 @@ const DeploymentsPage: React.FC = () => {
                           )} />
                         </button>
                         <button
-                          onClick={() => toggleDeploymentDetails(deployment.metadata.name)}
+                          onClick={() => toggleDeploymentDetails(deployment)}
                           className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
                         >
                           {expandedDeployment === deployment.metadata.name ? (

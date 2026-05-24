@@ -56,14 +56,17 @@ func TestHandler_HandleCommand(t *testing.T) {
 
 func TestHandler_ShowHelp(t *testing.T) {
 	handler := ops.NewHandler(nil, nil)
-	help := handler.HandleCommand("help")
+	help, err := handler.HandleCommand("help")
+	if err != nil {
+		t.Fatalf("HandleCommand(help) error = %v", err)
+	}
 
 	if help == "" {
 		t.Error("ShowHelp() returned empty help message")
 	}
 
 	expectedHelp := "Available commands:"
-	if help[:len(expectedHelp)] != expectedHelp {
+	if len(help) < len(expectedHelp) || help[:len(expectedHelp)] != expectedHelp {
 		t.Errorf("ShowHelp() = %v, want %v", help, expectedHelp)
 	}
 }
