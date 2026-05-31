@@ -94,5 +94,8 @@ func (s *Store) init() error {
 	if err != nil {
 		return fmt.Errorf("initialize storage: %w", err)
 	}
+	if err := s.InitSchema(); err != nil {
+		return fmt.Errorf("initialize domain schema: %w", err)
+	}
 	return nil
 }
