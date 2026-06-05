@@ -728,48 +728,52 @@ func (h *Handler) analyzeRBAC(clusterName string) (string, error) {
 	return result, nil
 }
 
-// showHelp 显示帮助信息
-func (h *Handler) showHelp() string {
-	return `Available commands:
+// renderHelpMarkdown 生成统一 Markdown 表格格式的帮助信息
+func renderHelpMarkdown() string {
+	return `## Klaw ChatOps Commands
 
-Cluster commands:
-  cluster status <cluster-name>    - Get cluster status
-  cluster metrics <cluster-name>    - Get cluster metrics
-  cluster chart <cluster-name>       - Send monitoring chart
+### Cluster
 
-Deployment commands:
-  deployment list <cluster-name> <namespace>          - List deployments
-  deployment status <cluster-name> <namespace> <deployment-name> - Get deployment status
-  deployment scale <cluster-name> <namespace> <deployment-name> <replicas> - Scale deployment
-  deployment restart <cluster-name> <namespace> <deployment-name> - Restart deployment
-  deployment pods <cluster-name> <namespace> <deployment-name> - Get deployment pods
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| cluster status | <cluster> | Get cluster status |
+| cluster metrics | <cluster> | Get cluster metrics |
+| cluster chart | <cluster> | Send monitoring chart |
 
-Service commands:
-  service list <cluster-name> <namespace> - List services
-  service describe <cluster-name> <namespace> <service-name> - Describe service
-  service endpoints <cluster-name> <namespace> <service-name> - Get service endpoints
+### Resources
 
-RBAC commands:
-  rbac analyze <cluster-name> - Analyze RBAC roles and bindings
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| pod list | <cluster> <namespace> | List pods |
+| pod describe | <cluster> <namespace> <pod> | Describe pod |
+| pod logs | <cluster> <namespace> <pod> | Get pod logs |
+| pod delete | <cluster> <namespace> <pod> | Delete pod |
+| pod analyze | <cluster> <namespace> <pod> | Analyze pod logs |
+| deployment list | <cluster> <namespace> | List deployments |
+| deployment status | <cluster> <namespace> <deploy> | Get deployment status |
+| deployment scale | <cluster> <namespace> <deploy> <replicas> | Scale deployment |
+| deployment restart | <cluster> <namespace> <deploy> | Restart deployment |
+| service list | <cluster> <namespace> | List services |
+| service describe | <cluster> <namespace> <service> | Describe service |
+| service endpoints | <cluster> <namespace> <service> | Get service endpoints |
+| node list | <cluster> | List nodes |
+| node describe | <cluster> <node> | Describe node |
+| node metrics | <cluster> | Get node metrics |
 
-Pod commands:
-  pod list <cluster-name> <namespace>         - List pods
-  pod describe <cluster-name> <namespace> <pod-name> - Describe pod
-  pod logs <cluster-name> <namespace> <pod-name>     - Get pod logs
-  pod delete <cluster-name> <namespace> <pod-name>    - Delete pod
-  pod analyze <cluster-name> <namespace> <pod-name>   - Analyze pod logs
+### Analysis
 
-Node commands:
-  node list <cluster-name>          - List nodes
-  node describe <cluster-name> <node-name> - Describe node
-  node metrics <cluster-name>         - Get node metrics
+| Command | Arguments | Description |
+|---------|-----------|-------------|
+| rbac analyze | <cluster> | Analyze RBAC configuration |
+| monitor status | <cluster> | Get monitoring status |
+| monitor alerts | <cluster> | Get active alerts |
+| monitor chart | <cluster> | Send monitoring chart |
 
-Monitor commands:
-  monitor status <cluster-name> - Get monitoring status
-  monitor alerts <cluster-name> - Get monitoring alerts
-  monitor chart <cluster-name>    - Send monitoring chart
-
-Help:
-  help - Show this help message
+**Shortcuts:** c=cluster, p=pod, n=node, d=deployment, s=service, r=rbac, m=monitor, ls=list, desc=describe, log=logs, del=delete, rm=delete
 `
+}
+
+// showHelp 显示帮助信息（统一为 Markdown 表格格式，与 kudig 对齐）
+func (h *Handler) showHelp() string {
+	return renderHelpMarkdown()
 }

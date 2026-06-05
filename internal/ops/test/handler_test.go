@@ -65,8 +65,8 @@ func TestHandler_ShowHelp(t *testing.T) {
 		t.Error("ShowHelp() returned empty help message")
 	}
 
-	expectedHelp := "Available commands:"
+	expectedHelp := "## Klaw ChatOps Commands"
 	if len(help) < len(expectedHelp) || help[:len(expectedHelp)] != expectedHelp {
-		t.Errorf("ShowHelp() = %v, want %v", help, expectedHelp)
+		t.Errorf("ShowHelp() = %v, want prefix %v", help, expectedHelp)
 	}
 }
