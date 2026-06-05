@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kudig-io/klaw/internal/kubernetes"
 	"github.com/kudig-io/klaw/internal/loganalysis"
@@ -299,11 +300,14 @@ func (h *Handler) getClusterStatus(clusterName string) (string, error) {
 		return "", err
 	}
 
-	result := fmt.Sprintf("Cluster: %s\n", clusterName)
-	result += fmt.Sprintf("Nodes: %d\n", len(nodes))
-	result += fmt.Sprintf("Pods: %d\n", len(pods))
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Cluster: %s\n\n", clusterName))
+	sb.WriteString("| Metric | Value |\n")
+	sb.WriteString("|--------|-------|\n")
+	sb.WriteString(fmt.Sprintf("| Nodes | %d |\n", len(nodes)))
+	sb.WriteString(fmt.Sprintf("| Pods | %d |\n", len(pods)))
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // getClusterMetrics 获取集群指标
@@ -318,16 +322,19 @@ func (h *Handler) getClusterMetrics(clusterName string) (string, error) {
 		return "", err
 	}
 
-	result := fmt.Sprintf("Cluster Metrics: %s\n", clusterName)
-	result += fmt.Sprintf("Timestamp: %s\n", clusterMetrics.Timestamp.Format("2006-01-02 15:04:05"))
-	result += fmt.Sprintf("Nodes: %d (Ready: %d, NotReady: %d)\n",
-		clusterMetrics.Nodes.Total, clusterMetrics.Nodes.Ready, clusterMetrics.Nodes.NotReady)
-	result += fmt.Sprintf("Pods: %d (Running: %d, Pending: %d, Failed: %d)\n",
-		clusterMetrics.Pods.Total, clusterMetrics.Pods.Running, clusterMetrics.Pods.Pending, clusterMetrics.Pods.Failed)
-	result += fmt.Sprintf("Total CPU: %s, Total Memory: %s\n",
-		clusterMetrics.Resources.TotalCPU, clusterMetrics.Resources.TotalMemory)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Cluster Metrics: %s\n\n", clusterName))
+	sb.WriteString("| Metric | Value |\n")
+	sb.WriteString("|--------|-------|\n")
+	sb.WriteString(fmt.Sprintf("| Timestamp | %s |\n", clusterMetrics.Timestamp.Format("2006-01-02 15:04:05")))
+	sb.WriteString(fmt.Sprintf("| Nodes | %d (Ready: %d, NotReady: %d) |\n",
+		clusterMetrics.Nodes.Total, clusterMetrics.Nodes.Ready, clusterMetrics.Nodes.NotReady))
+	sb.WriteString(fmt.Sprintf("| Pods | %d (Running: %d, Pending: %d, Failed: %d) |\n",
+		clusterMetrics.Pods.Total, clusterMetrics.Pods.Running, clusterMetrics.Pods.Pending, clusterMetrics.Pods.Failed))
+	sb.WriteString(fmt.Sprintf("| Total CPU | %s |\n", clusterMetrics.Resources.TotalCPU))
+	sb.WriteString(fmt.Sprintf("| Total Memory | %s |\n", clusterMetrics.Resources.TotalMemory))
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // sendClusterChart 发送集群图表
@@ -355,7 +362,7 @@ func (h *Handler) sendClusterChart(clusterName string) (string, error) {
 		}
 	}
 
-	return fmt.Sprintf("Sent monitoring chart for cluster %s", clusterName), nil
+	return fmt.Sprintf("**Sent** monitoring chart for cluster `%s`", clusterName), nil
 }
 
 // listPods 列出Pod
@@ -369,12 +376,18 @@ func (h *Handler) listPods(clusterName, namespace string) (string, error) {
 		return "", err
 	}
 
-	result := fmt.Sprintf("Pods in namespace %s:\n", namespace)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Pods in `%s`\n\n", namespace))
+	sb.WriteString("| Name | Status | Node |\n")
+	sb.WriteString("|------|--------|------|\n")
 	for _, pod := range pods {
-		result += fmt.Sprintf("- %s (%s)\n", pod.Name, pod.Status.Phase)
+		sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", pod.Name, pod.Status.Phase, pod.Spec.NodeName))
+	}
+	if len(pods) == 0 {
+		sb.WriteString("| *(none)* | | |\n")
 	}
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // describePod 描述Pod
@@ -388,13 +401,16 @@ func (h *Handler) describePod(clusterName, namespace, podName string) (string, e
 		return "", err
 	}
 
-	result := fmt.Sprintf("Pod: %s\n", pod.Name)
-	result += fmt.Sprintf("Namespace: %s\n", pod.Namespace)
-	result += fmt.Sprintf("Status: %s\n", pod.Status.Phase)
-	result += fmt.Sprintf("Node: %s\n", pod.Spec.NodeName)
-	result += fmt.Sprintf("Created: %s\n", pod.CreationTimestamp.Format("2006-01-02 15:04:05"))
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Pod: %s\n\n", pod.Name))
+	sb.WriteString("| Property | Value |\n")
+	sb.WriteString("|----------|-------|\n")
+	sb.WriteString(fmt.Sprintf("| Namespace | %s |\n", pod.Namespace))
+	sb.WriteString(fmt.Sprintf("| Status | %s |\n", pod.Status.Phase))
+	sb.WriteString(fmt.Sprintf("| Node | %s |\n", pod.Spec.NodeName))
+	sb.WriteString(fmt.Sprintf("| Created | %s |\n", pod.CreationTimestamp.Format("2006-01-02 15:04:05")))
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // getPodLogs 获取Pod日志
@@ -408,7 +424,7 @@ func (h *Handler) getPodLogs(clusterName, namespace, podName string) (string, er
 		return "", err
 	}
 
-	return fmt.Sprintf("Logs from pod %s:\n%s", podName, logs), nil
+	return fmt.Sprintf("## Logs from `%s`\n\n```\n%s\n```", podName, logs), nil
 }
 
 // analyzePodLogs 分析 Pod 日志
@@ -423,13 +439,17 @@ func (h *Handler) analyzePodLogs(clusterName, namespace, podName string) (string
 	}
 
 	analysis := loganalysis.NewAnalyzer().AnalyzeLogs(logs)
-	result := fmt.Sprintf("Log analysis for pod %s:\n", podName)
-	result += fmt.Sprintf("- Total lines: %d\n", analysis.TotalLines)
-	result += fmt.Sprintf("- Errors: %d\n", analysis.ErrorCount)
-	result += fmt.Sprintf("- Warnings: %d\n", analysis.WarningCount)
-	result += fmt.Sprintf("- Security events: %d\n", len(analysis.SecurityEvents))
-	result += fmt.Sprintf("- Slow requests: %d\n", len(analysis.PerformanceMetrics.SlowRequests))
-	return result, nil
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Log Analysis: `%s`\n\n", podName))
+	sb.WriteString("| Metric | Value |\n")
+	sb.WriteString("|--------|-------|\n")
+	sb.WriteString(fmt.Sprintf("| Total lines | %d |\n", analysis.TotalLines))
+	sb.WriteString(fmt.Sprintf("| Errors | %d |\n", analysis.ErrorCount))
+	sb.WriteString(fmt.Sprintf("| Warnings | %d |\n", analysis.WarningCount))
+	sb.WriteString(fmt.Sprintf("| Security events | %d |\n", len(analysis.SecurityEvents)))
+	sb.WriteString(fmt.Sprintf("| Slow requests | %d |\n", len(analysis.PerformanceMetrics.SlowRequests)))
+
+	return sb.String(), nil
 }
 
 // deletePod 删除Pod
@@ -443,7 +463,7 @@ func (h *Handler) deletePod(clusterName, namespace, podName string) (string, err
 		return "", err
 	}
 
-	return fmt.Sprintf("Deleted pod %s in namespace %s", podName, namespace), nil
+	return fmt.Sprintf("**Deleted** pod `%s` in namespace `%s`", podName, namespace), nil
 }
 
 // listNodes 列出节点
@@ -457,12 +477,38 @@ func (h *Handler) listNodes(clusterName string) (string, error) {
 		return "", err
 	}
 
-	result := fmt.Sprintf("Nodes in cluster %s:\n", clusterName)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Nodes in `%s`\n\n", clusterName))
+	sb.WriteString("| Name | Status | Roles | Version |\n")
+	sb.WriteString("|------|--------|-------|---------|\n")
 	for _, node := range nodes {
-		result += fmt.Sprintf("- %s\n", node.Name)
+		status := "NotReady"
+		for _, cond := range node.Status.Conditions {
+			if cond.Type == "Ready" && cond.Status == "True" {
+				status = "Ready"
+				break
+			}
+		}
+		roles := []string{}
+		for label := range node.Labels {
+			if strings.HasPrefix(label, "node-role.kubernetes.io/") {
+				role := strings.TrimPrefix(label, "node-role.kubernetes.io/")
+				if role != "" {
+					roles = append(roles, role)
+				}
+			}
+		}
+		if len(roles) == 0 {
+			roles = append(roles, "<none>")
+		}
+		version := node.Status.NodeInfo.KubeletVersion
+		sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n", node.Name, status, strings.Join(roles, ","), version))
+	}
+	if len(nodes) == 0 {
+		sb.WriteString("| *(none)* | | | |\n")
 	}
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // describeNode 描述节点
@@ -476,12 +522,26 @@ func (h *Handler) describeNode(clusterName, nodeName string) (string, error) {
 		return "", err
 	}
 
-	result := fmt.Sprintf("Node: %s\n", node.Name)
-	result += fmt.Sprintf("Status: Ready\n")
-	result += fmt.Sprintf("CPU: %s\n", node.Status.Capacity.Cpu().String())
-	result += fmt.Sprintf("Memory: %s\n", node.Status.Capacity.Memory().String())
+	status := "NotReady"
+	for _, cond := range node.Status.Conditions {
+		if cond.Type == "Ready" && cond.Status == "True" {
+			status = "Ready"
+			break
+		}
+	}
 
-	return result, nil
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Node: %s\n\n", node.Name))
+	sb.WriteString("| Property | Value |\n")
+	sb.WriteString("|----------|-------|\n")
+	sb.WriteString(fmt.Sprintf("| Status | %s |\n", status))
+	sb.WriteString(fmt.Sprintf("| CPU | %s |\n", node.Status.Capacity.Cpu().String()))
+	sb.WriteString(fmt.Sprintf("| Memory | %s |\n", node.Status.Capacity.Memory().String()))
+	sb.WriteString(fmt.Sprintf("| OS | %s %s |\n", node.Status.NodeInfo.OperatingSystem, node.Status.NodeInfo.OSImage))
+	sb.WriteString(fmt.Sprintf("| Kernel | %s |\n", node.Status.NodeInfo.KernelVersion))
+	sb.WriteString(fmt.Sprintf("| Container Runtime | %s |\n", node.Status.NodeInfo.ContainerRuntimeVersion))
+
+	return sb.String(), nil
 }
 
 // getNodeMetrics 获取节点指标
@@ -490,17 +550,23 @@ func (h *Handler) getNodeMetrics(clusterName string) (string, error) {
 		return "", err
 	}
 
-	metrics, err := h.resources.GetNodeMetrics(clusterName)
+	nodeMetrics, err := h.resources.GetNodeMetrics(clusterName)
 	if err != nil {
 		return "", err
 	}
 
-	result := fmt.Sprintf("Node Metrics for cluster %s:\n", clusterName)
-	for nodeName, nodeMetric := range metrics {
-		result += fmt.Sprintf("- %s: CPU=%s, Memory=%s\n", nodeName, nodeMetric.CPU, nodeMetric.Memory)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Node Metrics: `%s`\n\n", clusterName))
+	sb.WriteString("| Node | CPU | Memory |\n")
+	sb.WriteString("|------|-----|--------|\n")
+	for nodeName, nm := range nodeMetrics {
+		sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", nodeName, nm.CPU, nm.Memory))
+	}
+	if len(nodeMetrics) == 0 {
+		sb.WriteString("| *(none)* | | |\n")
 	}
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // getMonitorStatus 获取监控状态
@@ -511,10 +577,10 @@ func (h *Handler) getMonitorStatus(clusterName string) (string, error) {
 
 	history := h.monitoringService.GetMetricsHistory(clusterName)
 	if history == nil {
-		return fmt.Sprintf("No monitoring data for cluster %s", clusterName), nil
+		return fmt.Sprintf("**Monitoring:** No data for cluster `%s`", clusterName), nil
 	}
 
-	return fmt.Sprintf("Monitoring status for cluster %s: Active (%d data points)", clusterName, len(history)), nil
+	return fmt.Sprintf("**Monitoring:** Cluster `%s` is Active (%d data points)", clusterName, len(history)), nil
 }
 
 // getMonitorAlerts 获取监控告警
@@ -524,18 +590,28 @@ func (h *Handler) getMonitorAlerts(clusterName string) (string, error) {
 	}
 
 	alerts := h.monitoringService.GetAlerts()
-	if len(alerts) == 0 {
-		return fmt.Sprintf("No alerts for cluster %s", clusterName), nil
-	}
-
-	result := fmt.Sprintf("Alerts for cluster %s:\n", clusterName)
+	clusterAlerts := []struct{ Level, Type, Message string }{}
 	for _, alert := range alerts {
 		if alert.Cluster == clusterName {
-			result += fmt.Sprintf("- [%s] %s: %s\n", alert.Level, alert.Type, alert.Message)
+			clusterAlerts = append(clusterAlerts, struct{ Level, Type, Message string }{
+				Level: alert.Level, Type: alert.Type, Message: alert.Message,
+			})
 		}
 	}
 
-	return result, nil
+	if len(clusterAlerts) == 0 {
+		return fmt.Sprintf("**Alerts:** No active alerts for cluster `%s`", clusterName), nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Alerts for `%s`\n\n", clusterName))
+	sb.WriteString("| Level | Type | Message |\n")
+	sb.WriteString("|-------|------|---------|\n")
+	for _, alert := range clusterAlerts {
+		sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", alert.Level, alert.Type, alert.Message))
+	}
+
+	return sb.String(), nil
 }
 
 // sendMonitorChart 发送监控图表
@@ -554,14 +630,25 @@ func (h *Handler) listDeployments(clusterName, namespace string) (string, error)
 		return "", err
 	}
 
-	result := fmt.Sprintf("Deployments in namespace %s:\n", namespace)
-	for _, deployment := range deployments {
-		available := deployment.Status.AvailableReplicas
-		desired := *deployment.Spec.Replicas
-		result += fmt.Sprintf("- %s (%d/%d available)\n", deployment.Name, available, desired)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Deployments in `%s`\n\n", namespace))
+	sb.WriteString("| Name | Ready | Up-to-date | Available | Age |\n")
+	sb.WriteString("|------|-------|------------|-----------|-----|\n")
+	for _, dep := range deployments {
+		ready := dep.Status.ReadyReplicas
+		var desired int32
+		if dep.Spec.Replicas != nil {
+			desired = *dep.Spec.Replicas
+		}
+		age := formatAge(dep.CreationTimestamp.Time)
+		sb.WriteString(fmt.Sprintf("| %s | %d/%d | %d | %d | %s |\n",
+			dep.Name, ready, desired, dep.Status.UpdatedReplicas, dep.Status.AvailableReplicas, age))
+	}
+	if len(deployments) == 0 {
+		sb.WriteString("| *(none)* | | | | |\n")
 	}
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // getDeploymentStatus 获取 Deployment 状态
@@ -575,22 +662,28 @@ func (h *Handler) getDeploymentStatus(clusterName, namespace, deploymentName str
 		return "", err
 	}
 
-	result := fmt.Sprintf("Deployment: %s\n", status.Name)
-	result += fmt.Sprintf("Namespace: %s\n", status.Namespace)
-	result += fmt.Sprintf("Replicas: %d (available: %d, ready: %d, updated: %d)\n",
-		status.Replicas, status.AvailableReplicas, status.ReadyReplicas, status.UpdatedReplicas)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Deployment: %s\n\n", status.Name))
+	sb.WriteString("| Property | Value |\n")
+	sb.WriteString("|----------|-------|\n")
+	sb.WriteString(fmt.Sprintf("| Namespace | %s |\n", status.Namespace))
+	sb.WriteString(fmt.Sprintf("| Replicas | %d (available: %d, ready: %d, updated: %d) |\n",
+		status.Replicas, status.AvailableReplicas, status.ReadyReplicas, status.UpdatedReplicas))
 
 	if len(status.Conditions) > 0 {
-		result += "Conditions:\n"
+		sb.WriteString("\n### Conditions\n\n")
+		sb.WriteString("| Type | Status | Reason |\n")
+		sb.WriteString("|------|--------|--------|\n")
 		for _, condition := range status.Conditions {
-			result += fmt.Sprintf("  - %s: %s\n", condition.Type, condition.Status)
-			if condition.Reason != "" {
-				result += fmt.Sprintf("    Reason: %s\n", condition.Reason)
+			reason := condition.Reason
+			if reason == "" {
+				reason = "-"
 			}
+			sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", condition.Type, condition.Status, reason))
 		}
 	}
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // scaleDeployment 扩缩容 Deployment
@@ -604,7 +697,7 @@ func (h *Handler) scaleDeployment(clusterName, namespace, deploymentName string,
 		return "", err
 	}
 
-	return fmt.Sprintf("Scaled deployment %s in namespace %s to %d replicas", deploymentName, namespace, replicas), nil
+	return fmt.Sprintf("**Scaled** deployment `%s` in `%s` to **%d** replicas", deploymentName, namespace, replicas), nil
 }
 
 // restartDeployment 重启 Deployment
@@ -618,7 +711,7 @@ func (h *Handler) restartDeployment(clusterName, namespace, deploymentName strin
 		return "", err
 	}
 
-	return fmt.Sprintf("Restarted deployment %s in namespace %s", deploymentName, namespace), nil
+	return fmt.Sprintf("**Restarted** deployment `%s` in namespace `%s`", deploymentName, namespace), nil
 }
 
 // getDeploymentPods 获取 Deployment 关联的 Pods
@@ -632,12 +725,18 @@ func (h *Handler) getDeploymentPods(clusterName, namespace, deploymentName strin
 		return "", err
 	}
 
-	result := fmt.Sprintf("Pods for deployment %s:\n", deploymentName)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Pods for deployment `%s`\n\n", deploymentName))
+	sb.WriteString("| Name | Status | Node |\n")
+	sb.WriteString("|------|--------|------|\n")
 	for _, pod := range pods {
-		result += fmt.Sprintf("- %s (%s)\n", pod.Name, pod.Status.Phase)
+		sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", pod.Name, pod.Status.Phase, pod.Spec.NodeName))
+	}
+	if len(pods) == 0 {
+		sb.WriteString("| *(none)* | | |\n")
 	}
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // listServices 列出 Service
@@ -651,12 +750,26 @@ func (h *Handler) listServices(clusterName, namespace string) (string, error) {
 		return "", err
 	}
 
-	result := fmt.Sprintf("Services in namespace %s:\n", namespace)
-	for _, service := range services {
-		result += fmt.Sprintf("- %s (%s)\n", service.Name, service.Spec.Type)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Services in `%s`\n\n", namespace))
+	sb.WriteString("| Name | Type | Cluster-IP | Ports |\n")
+	sb.WriteString("|------|------|------------|-------|\n")
+	for _, svc := range services {
+		ports := []string{}
+		for _, p := range svc.Spec.Ports {
+			ports = append(ports, fmt.Sprintf("%d/%s", p.Port, p.Protocol))
+		}
+		if len(ports) == 0 {
+			ports = append(ports, "<none>")
+		}
+		sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
+			svc.Name, svc.Spec.Type, svc.Spec.ClusterIP, strings.Join(ports, ",")))
+	}
+	if len(services) == 0 {
+		sb.WriteString("| *(none)* | | | |\n")
 	}
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // describeService 描述 Service
@@ -670,13 +783,16 @@ func (h *Handler) describeService(clusterName, namespace, serviceName string) (s
 		return "", err
 	}
 
-	result := fmt.Sprintf("Service: %s\n", service.Name)
-	result += fmt.Sprintf("Namespace: %s\n", service.Namespace)
-	result += fmt.Sprintf("Type: %s\n", service.Spec.Type)
-	result += fmt.Sprintf("ClusterIP: %s\n", service.Spec.ClusterIP)
-	result += fmt.Sprintf("Ports: %d\n", len(service.Spec.Ports))
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Service: %s\n\n", service.Name))
+	sb.WriteString("| Property | Value |\n")
+	sb.WriteString("|----------|-------|\n")
+	sb.WriteString(fmt.Sprintf("| Namespace | %s |\n", service.Namespace))
+	sb.WriteString(fmt.Sprintf("| Type | %s |\n", service.Spec.Type))
+	sb.WriteString(fmt.Sprintf("| ClusterIP | %s |\n", service.Spec.ClusterIP))
+	sb.WriteString(fmt.Sprintf("| Ports | %d |\n", len(service.Spec.Ports)))
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // getServiceEndpoints 获取 Service Endpoints
@@ -690,18 +806,24 @@ func (h *Handler) getServiceEndpoints(clusterName, namespace, serviceName string
 		return "", err
 	}
 
-	result := fmt.Sprintf("Endpoints for service %s:\n", serviceName)
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## Endpoints for `%s`\n\n", serviceName))
+	sb.WriteString("| IP | Port |\n")
+	sb.WriteString("|----|------|\n")
+	hasEndpoints := false
 	for _, subset := range endpoints.Subsets {
 		for _, address := range subset.Addresses {
-			result += fmt.Sprintf("- %s\n", address.IP)
+			for _, port := range subset.Ports {
+				sb.WriteString(fmt.Sprintf("| %s | %d/%s |\n", address.IP, port.Port, port.Protocol))
+				hasEndpoints = true
+			}
 		}
 	}
-
-	if result == fmt.Sprintf("Endpoints for service %s:\n", serviceName) {
-		result += "- <none>\n"
+	if !hasEndpoints {
+		sb.WriteString("| *(none)* | |\n")
 	}
 
-	return result, nil
+	return sb.String(), nil
 }
 
 // analyzeRBAC 分析集群 RBAC
@@ -720,12 +842,31 @@ func (h *Handler) analyzeRBAC(clusterName string) (string, error) {
 		return "", err
 	}
 
-	result := fmt.Sprintf("RBAC analysis for cluster %s:\n", clusterName)
-	result += fmt.Sprintf("- Roles: %d\n", analysis.TotalRoles)
-	result += fmt.Sprintf("- ClusterRoles: %d\n", analysis.TotalClusterRoles)
-	result += fmt.Sprintf("- RoleBindings: %d\n", analysis.TotalBindings)
-	result += fmt.Sprintf("- ClusterRoleBindings: %d\n", analysis.TotalClusterBindings)
-	return result, nil
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("## RBAC Analysis: `%s`\n\n", clusterName))
+	sb.WriteString("| Resource | Count |\n")
+	sb.WriteString("|----------|-------|\n")
+	sb.WriteString(fmt.Sprintf("| Roles | %d |\n", analysis.TotalRoles))
+	sb.WriteString(fmt.Sprintf("| ClusterRoles | %d |\n", analysis.TotalClusterRoles))
+	sb.WriteString(fmt.Sprintf("| RoleBindings | %d |\n", analysis.TotalBindings))
+	sb.WriteString(fmt.Sprintf("| ClusterRoleBindings | %d |\n", analysis.TotalClusterBindings))
+
+	return sb.String(), nil
+}
+
+// formatAge returns a human-readable duration string for a given creation time.
+func formatAge(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return fmt.Sprintf("%ds", int(d.Seconds()))
+	case d < time.Hour:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dd", int(d.Hours()/24))
+	}
 }
 
 // renderHelpMarkdown 生成统一 Markdown 表格格式的帮助信息
