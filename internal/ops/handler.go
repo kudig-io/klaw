@@ -914,7 +914,7 @@ func renderHelpMarkdown() string {
 `
 }
 
-// showHelp 显示帮助信息（统一为 Markdown 表格格式，与 kudig 对齐）
+// showHelp 显示帮助信息（统一为 Markdown 表格格式，与 klaw 对齐）
 func (h *Handler) showHelp() string {
 	return renderHelpMarkdown()
 }

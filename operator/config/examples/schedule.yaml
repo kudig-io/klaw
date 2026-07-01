@@ -1,0 +1,39 @@
+apiVersion: kudig.io/v1
+kind: DiagnosticSchedule
+metadata:
+  name: hourly-cluster-check
+  namespace: kudig-system
+spec:
+  schedule: "@hourly"
+  type: cluster
+  historyLimit: 5
+  clusterDiagnosticTemplate:
+    mode: online
+    outputFormat: json
+    excludeAnalyzers:
+      - kernel.panic
+    notify:
+      enabled: true
+      minSeverity: warning
+---
+apiVersion: kudig.io/v1
+kind: DiagnosticSchedule
+metadata:
+  name: daily-node-check
+  namespace: kudig-system
+spec:
+  schedule: "@daily"
+  type: node
+  historyLimit: 3
+  nodeDiagnosticTemplate:
+    mode: online
+    outputFormat: html
+    nodeSelector:
+      node-role.kubernetes.io/worker: "true"
+    analyzers:
+      - system.cpu
+      - system.memory
+      - system.disk
+    notify:
+      enabled: true
+      minSeverity: critical

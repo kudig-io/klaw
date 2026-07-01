@@ -1,0 +1,19 @@
+apiVersion: kudig.io/v1
+kind: NodeDiagnostic
+metadata:
+  name: worker-nodes-check
+  namespace: kudig-system
+spec:
+  mode: online
+  outputFormat: html
+  nodeSelector:
+    node-role.kubernetes.io/worker: "true"
+  analyzers:
+    - system.cpu
+    - system.memory
+    - system.disk
+    - kubernetes.node_status
+    - kubernetes.pleg
+  notify:
+    enabled: true
+    minSeverity: critical

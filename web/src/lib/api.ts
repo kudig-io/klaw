@@ -1,13 +1,13 @@
 import axios from 'axios'
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-const v1Api = axios.create({
+export const v1Api = axios.create({
   baseURL: '/api/v1',
   headers: {
     'Content-Type': 'application/json',

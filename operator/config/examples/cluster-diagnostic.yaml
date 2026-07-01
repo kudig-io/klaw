@@ -1,0 +1,14 @@
+apiVersion: kudig.io/v1
+kind: ClusterDiagnostic
+metadata:
+  name: daily-cluster-check
+  namespace: kudig-system
+spec:
+  mode: online
+  outputFormat: json
+  excludeAnalyzers:
+    - kernel.panic  # Exclude kernel panic checks for faster results
+  notify:
+    enabled: true
+    webhookURL: "${KUDIG_SLACK_WEBHOOK_URL}"
+    minSeverity: warning

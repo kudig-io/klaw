@@ -42,14 +42,18 @@ type Statistics struct {
 }
 
 type Logger struct {
-	store   *storage.Store
-	logs    []AuditEvent
-	mu      sync.RWMutex
+	store             *storage.Store
+	logs              []AuditEvent
+	securityEvents    []SecurityEvent
+	complianceReports []ComplianceReport
+	mu                sync.RWMutex
 }
 
 func NewLogger(store *storage.Store) *Logger {
 	l := &Logger{store: store}
 	l.load()
+	l.loadSecurity()
+	l.loadCompliance()
 	return l
 }
 
@@ -139,4 +143,20 @@ func (l *Logger) load() {
 
 func (l *Logger) saveLocked() error {
 	return l.store.PutJSON("audit", "logs", l.logs)
+}
+
+func (l *Logger) loadSecurity() {
+	_, _ = l.store.GetJSON("audit", "security_events", &l.securityEvents)
+}
+
+func (l *Logger) saveSecurityLocked() error {
+	return l.store.PutJSON("audit", "security_events", l.securityEvents)
+}
+
+func (l *Logger) loadCompliance() {
+	_, _ = l.store.GetJSON("audit", "compliance_reports", &l.complianceReports)
+}
+
+func (l *Logger) saveComplianceLocked() error {
+	return l.store.PutJSON("audit", "compliance_reports", l.complianceReports)
 }

@@ -9,7 +9,8 @@ import MonitoringPage from './pages/MonitoringPage'
 import DeploymentsPage from './pages/DeploymentsPage'
 import TenantsPage from './pages/TenantsPage'
 import { ServicesPage } from './pages/ServicesPage'
-import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe, DatabaseBackup, Shield } from 'lucide-react'
+import DiagnosticsPage from './pages/DiagnosticsPage'
+import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe, DatabaseBackup, Shield, Stethoscope } from 'lucide-react'
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -45,6 +46,7 @@ function App() {
     { path: '/pods', label: 'Pods', icon: Server },
     { path: '/nodes', label: 'Nodes', icon: Activity },
     { path: '/monitoring', label: 'Monitoring', icon: AlertCircle },
+    { path: '/diagnostics', label: 'Diagnostics', icon: Stethoscope },
   ]
 
   return (
@@ -177,6 +179,7 @@ function App() {
           <Route path="/pods" element={<PodsPage />} />
           <Route path="/nodes" element={<NodesPage />} />
           <Route path="/monitoring" element={<MonitoringPage />} />
+          <Route path="/diagnostics" element={<DiagnosticsPage />} />
         </Routes>
       </main>
 

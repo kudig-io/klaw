@@ -3,6 +3,7 @@ package rbacanalysis
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -141,4 +142,34 @@ func (a *Analyzer) AnalyzeRBAC(ctx context.Context) (*RBACAnalysis, error) {
 
 func formatSubjectKey(subject rbacv1.Subject) string {
 	return fmt.Sprintf("%s:%s:%s", subject.Kind, subject.Namespace, subject.Name)
+}
+
+func (a *Analyzer) ListRoles(ctx context.Context, namespace string) ([]rbacv1.Role, error) {
+	items, err := a.clientset.RbacV1().Roles(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return items.Items, nil
+}
+
+func (a *Analyzer) ListClusterRoles(ctx context.Context) ([]rbacv1.ClusterRole, error) {
+	items, err := a.clientset.RbacV1().ClusterRoles().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return items.Items, nil
+}
+
+func (a *Analyzer) ClusterRolesByPrefix(ctx context.Context, prefix string) ([]rbacv1.ClusterRole, error) {
+	all, err := a.ListClusterRoles(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var matched []rbacv1.ClusterRole
+	for _, cr := range all {
+		if strings.HasPrefix(cr.Name, prefix) {
+			matched = append(matched, cr)
+		}
+	}
+	return matched, nil
 }

@@ -118,7 +118,7 @@ func (r *CommandRouter) HandleFunc() messaging.MessageHandler {
 	return r.HandleMessage
 }
 
-// ShowHelp 显示帮助信息（统一 Markdown 表格格式，与 kudig 对齐）
+// ShowHelp 显示帮助信息（统一 Markdown 表格格式，与 klaw 对齐）
 func (r *CommandRouter) ShowHelp() string {
 	return renderHelpMarkdown()
 }

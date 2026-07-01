@@ -8,11 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/kudig-io/klaw/internal/alerting"
 	"github.com/kudig-io/klaw/internal/audit"
+	"github.com/kudig-io/klaw/internal/automation"
 	"github.com/kudig-io/klaw/internal/backup"
 	"github.com/kudig-io/klaw/internal/kubernetes"
 	"github.com/kudig-io/klaw/internal/metrics"
@@ -22,34 +25,42 @@ import (
 )
 
 type Server struct {
-	k8sManager       *kubernetes.Manager
+	k8sManager        *kubernetes.Manager
 	monitoringService *monitoring.Service
-	alertingManager  *alerting.Manager
-	backupManager    *backup.Manager
-	tenancyManager   *tenancy.Manager
-	auditLogger      *audit.Logger
-	resources        *kubernetes.Resources
+	alertingManager   *alerting.Manager
+	backupManager     *backup.Manager
+	tenancyManager    *tenancy.Manager
+	auditLogger       *audit.Logger
+	automationManager *automation.Manager
+	resources         *kubernetes.Resources
 	metricsCollector  *metrics.Collector
-	router           *mux.Router
+	router            *mux.Router
 }
 
-func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service) *Server {
+func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service) (*Server, error) {
 	resources := kubernetes.NewResources(k8sManager)
 	store, err := storage.NewStore(filepath.Join("data", "klaw.db"))
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("init storage: %w", err)
 	}
-	return &Server{
-		k8sManager:       k8sManager,
+	autoMgr := automation.NewManager(store)
+	if client, err := k8sManager.GetClient(""); err == nil {
+		autoMgr.WithClientset(client)
+	}
+	s := &Server{
+		k8sManager:        k8sManager,
 		monitoringService: monitoringService,
-		alertingManager:  alerting.NewManager(resources, store),
-		backupManager:    backup.NewManager(store),
-		tenancyManager:   tenancy.NewManager(k8sManager, store),
-		auditLogger:      audit.NewLogger(store),
-		resources:        resources,
+		alertingManager:   alerting.NewManager(resources, store),
+		backupManager:     backup.NewManager(store),
+		tenancyManager:    tenancy.NewManager(k8sManager, store),
+		auditLogger:       audit.NewLogger(store),
+		automationManager: autoMgr,
+		resources:         resources,
 		metricsCollector:  metrics.NewCollector(k8sManager),
-		router:           mux.NewRouter(),
+		router:            mux.NewRouter(),
 	}
+	s.SetupRoutes()
+	return s, nil
 }
 
 func (s *Server) SetupRoutes() {
@@ -124,6 +135,10 @@ func (s *Server) SetupRoutes() {
 
 	s.setupUnifiedV1Routes()
 
+	s.router.HandleFunc("/api/v1/diag/run", s.handleRunDiagnostics).Methods("GET")
+	s.router.HandleFunc("/api/v1/diag/analyzers", s.handleDiagAnalyzers).Methods("GET")
+	s.setupAnalysisV1Routes()
+
 	// SPA 路由支持 - 所有非 API 请求返回 index.html
 	s.router.PathPrefix("/").HandlerFunc(s.serveSPA).Methods("GET")
 }
@@ -169,13 +184,22 @@ func enableCORS(next http.Handler) http.Handler {
 }
 
 func (s *Server) Start(port int) error {
-	s.SetupRoutes()
 	addr := fmt.Sprintf(":%d", port)
 	log.Printf("Starting server on %s", addr)
-	
-	// 包装 router 添加 CORS 支持
-	handler := enableCORS(s.router)
+
+	handler := deprecationMiddleware(enableCORS(s.router))
 	return http.ListenAndServe(addr, handler)
+}
+
+func deprecationMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") && !strings.HasPrefix(r.URL.Path, "/api/v1/") {
+			w.Header().Set("Deprecation", "true")
+			w.Header().Set("Sunset", "2026-12-31")
+			w.Header().Set("Link", `</api/v1/>; rel="successor-version"`)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) respondJSON(w http.ResponseWriter, data interface{}, statusCode int) {

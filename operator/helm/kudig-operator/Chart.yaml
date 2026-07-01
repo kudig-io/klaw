@@ -1,0 +1,17 @@
+apiVersion: v2
+name: kudig-operator
+description: A Helm chart for Kudig Kubernetes Operator
+type: application
+version: 0.1.0
+appVersion: "v2.0.0"
+keywords:
+  - kubernetes
+  - diagnostic
+  - operator
+  - monitoring
+home: https://github.com/kudig-io/kudig
+sources:
+  - https://github.com/kudig-io/kudig
+maintainers:
+  - name: Kudig Team
+    email: support@kudig.io
