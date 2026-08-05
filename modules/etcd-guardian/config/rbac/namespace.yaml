@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: etcd-guardian-system
+  labels:
+    app.kubernetes.io/name: etcdguardian
+    app.kubernetes.io/component: system
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest

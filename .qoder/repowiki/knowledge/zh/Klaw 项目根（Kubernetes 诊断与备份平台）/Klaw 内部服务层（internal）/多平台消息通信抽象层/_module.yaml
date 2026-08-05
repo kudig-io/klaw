@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: klaw_service/messaging
+title: 多平台消息通信抽象层
+scope:
+    - internal/messaging/
+source_files: []
+depends_on: []
+related_to:
+    - path: docs
+    - path: klaw_service/events
+    - path: klaw_service/monitoring_metrics
+    - path: klaw_service/ops

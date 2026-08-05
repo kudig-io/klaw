@@ -1,0 +1,8 @@
+export { default as Dashboard } from './Dashboard'
+export { default as BackupList } from './BackupList'
+export { default as BackupCreate } from './BackupCreate'
+export { default as RestoreList } from './RestoreList'
+export { default as RestoreCreate } from './RestoreCreate'
+export { default as ScheduleList } from './ScheduleList'
+export { default as ScheduleCreate } from './ScheduleCreate'
+export { default as Layout } from './Layout'

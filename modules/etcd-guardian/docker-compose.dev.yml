@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  etcd:
+    extends:
+      file: docker-compose.yml
+      service: etcd
+
+  backend:
+    extends:
+      file: docker-compose.yml
+      service: backend
+    environment:
+      - GIN_MODE=debug
+      - LOG_LEVEL=debug
+    volumes:
+      - ./backend:/workspace:cached
+
+  web-ui:
+    extends:
+      file: docker-compose.yml
+      service: web-ui
+    volumes:
+      - ./web-ui:/app:cached
+      - /app/node_modules
+
+  minio:
+    extends:
+      file: docker-compose.yml
+      service: minio
+
+  prometheus:
+    extends:
+      file: docker-compose.yml
+      service: prometheus
+
+  grafana:
+    extends:
+      file: docker-compose.yml
+      service: grafana
+
+volumes:
+  etcd-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  etcd-guardian-net:

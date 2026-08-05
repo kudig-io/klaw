@@ -1,0 +1,34 @@
+apiVersion: etcdguardian.io/v1alpha1
+kind: EtcdBackup
+metadata:
+  name: daily-backup
+  namespace: etcd-guardian-system
+spec:
+  backupMode: Full
+  etcdCluster:
+    endpoints:
+      - https://etcd-0:2379
+      - https://etcd-1:2379
+      - https://etcd-2:2379
+    caCert: /etc/etcd/pki/ca.crt
+    clientCert: /etc/etcd/pki/client.crt
+    clientKey: /etc/etcd/pki/client.key
+  storageLocation:
+    provider: S3
+    bucket: my-etcd-backups
+    region: us-east-1
+    endpoint: https://minio:9000
+    credentialsSecret: s3-credentials
+    prefix: etcd-backups/
+  validation:
+    enabled: true
+    consistencyCheck: true
+    hashAlgorithm: sha256
+  retentionPolicy:
+    maxBackups: 30
+    maxAge: 720h
+  encryption:
+    enabled: false
+  concurrency:
+    workers: 3
+    chunkSize: 10485760

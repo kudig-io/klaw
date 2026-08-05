@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: klaw_service/monitoring_metrics
+title: Kubernetes 集群监控与指标采集
+scope:
+    - internal/metrics/
+    - internal/monitoring/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/config_chart_openclaw
+    - path: klaw_service/messaging

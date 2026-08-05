@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: klaw_service
+title: Klaw 内部服务层（internal）
+scope:
+    - internal/
+source_files: []
+depends_on: []
+related_to: []

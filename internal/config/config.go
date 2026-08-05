@@ -59,7 +59,20 @@ type OpenClawConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Port int `yaml:"port"`
+	Port int        `yaml:"port"`
+	Auth AuthConfig `yaml:"auth"`
+	CORS CORSConfig `yaml:"cors"`
+}
+
+// AuthConfig API 认证配置
+type AuthConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Token   string `yaml:"token"` // 建议通过环境变量 KLAW_API_TOKEN 注入，避免落盘
+}
+
+// CORSConfig 跨域配置
+type CORSConfig struct {
+	AllowedOrigins []string `yaml:"allowed_origins"`
 }
 
 // EventConfig 事件监听配置
@@ -101,5 +114,33 @@ func Load(path string) (*Config, error) {
 		config.Server.Port = 8080
 	}
 
+	// 环境变量覆盖（敏感信息不落盘，由 Secret 注入）
+	applyEnvOverrides(&config)
+
 	return &config, nil
+}
+
+// applyEnvOverrides 从环境变量覆盖敏感配置（优先级高于配置文件）
+func applyEnvOverrides(cfg *Config) {
+	if v := os.Getenv("KLAW_API_TOKEN"); v != "" {
+		cfg.Server.Auth.Token = v
+	}
+	if v := os.Getenv("KLAW_DINGTALK_APP_KEY"); v != "" {
+		cfg.Messaging.DingTalk.AppKey = v
+	}
+	if v := os.Getenv("KLAW_DINGTALK_APP_SECRET"); v != "" {
+		cfg.Messaging.DingTalk.AppSecret = v
+	}
+	if v := os.Getenv("KLAW_DINGTALK_WEBHOOK"); v != "" {
+		cfg.Messaging.DingTalk.Webhook = v
+	}
+	if v := os.Getenv("KLAW_DINGTALK_SECRET"); v != "" {
+		cfg.Messaging.DingTalk.Secret = v
+	}
+	if v := os.Getenv("KLAW_FEISHU_APP_ID"); v != "" {
+		cfg.Messaging.Feishu.AppID = v
+	}
+	if v := os.Getenv("KLAW_FEISHU_APP_SECRET"); v != "" {
+		cfg.Messaging.Feishu.AppSecret = v
+	}
 }

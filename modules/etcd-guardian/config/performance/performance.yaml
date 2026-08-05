@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: etcdguardian-performance-config
+  namespace: etcd-guardian-system
+  labels:
+    app.kubernetes.io/name: etcdguardian
+    app.kubernetes.io/component: config
+data:
+  performance.yaml: |
+    # Performance Tuning Configuration
+    # Adjust these values based on your cluster size and workload
+    
+    # Backup Configuration
+    backup:
+      # Number of concurrent backup workers
+      workers: 3
+      # Chunk size for streaming backups (bytes)
+      chunkSize: 10485760  # 10MB
+      # Maximum backup size before compression (bytes)
+      maxBackupSize: 107374182400  # 100GB
+      # Compression algorithm (gzip, lz4, zstd)
+      compression: gzip
+      # Compression level (1-9 for gzip, 1-19 for zstd)
+      compressionLevel: 6
+      # Enable streaming upload for large backups
+      streamingUpload: true
+      # Buffer size for streaming (bytes)
+      streamBufferSize: 5242880  # 5MB
+    
+    # Restore Configuration  
+    restore:
+      # Number of concurrent restore workers
+      workers: 2
+      # Chunk size for downloading backups (bytes)
+      downloadChunkSize: 10485760  # 10MB
+      # Enable parallel download
+      parallelDownload: true
+      # Number of parallel download streams
+      parallelStreams: 3
+      # Buffer size for restore operations (bytes)
+      restoreBufferSize: 5242880  # 5MB
+    
+    # etcd Connection Configuration
+    etcd:
+      # Connection timeout
+      dialTimeout: 5s
+      # Request timeout
+      requestTimeout: 30s
+      # Maximum number of retries
+      maxRetries: 3
+      # Retry backoff duration
+      retryBackoff: 1s
+      # Keep-alive time
+      keepAliveTime: 30s
+      # Keep-alive timeout
+      keepAliveTimeout: 10s
+      # Maximum call send message size (bytes)
+      maxCallSendMsgSize: 104857600  # 100MB
+      # Maximum call receive message size (bytes)
+      maxCallRecvMsgSize: 104857600  # 100MB
+    
+    # Storage Configuration
+    storage:
+      # Upload timeout
+      uploadTimeout: 300s
+      # Download timeout
+      downloadTimeout: 300s
+      # Multipart upload threshold (bytes)
+      multipartThreshold: 104857600  # 100MB
+      # Multipart upload chunk size (bytes)
+      multipartChunkSize: 52428800  # 50MB
+      # Maximum concurrent uploads
+      maxConcurrentUploads: 5
+      # Enable server-side encryption
+      sseEnabled: false
+    
+    # Controller Configuration
+    controller:
+      # Maximum concurrent reconciles per controller
+      maxConcurrentReconciles: 5
+      # Reconcile timeout
+      reconcileTimeout: 300s
+      # Cache resync interval
+      cacheResyncInterval: 10h
+      # QPS limit for Kubernetes API
+      apiQPS: 50
+      # Burst limit for Kubernetes API
+      apiBurst: 100
+    
+    # Resource Limits
+    resources:
+      # CPU limit for backup jobs (millicores)
+      backupCPULimit: 1000
+      # Memory limit for backup jobs (MiB)
+      backupMemoryLimit: 1024
+      # CPU limit for restore jobs (millicores)
+      restoreCPULimit: 1000
+      # Memory limit for restore jobs (MiB)
+      restoreMemoryLimit: 1024

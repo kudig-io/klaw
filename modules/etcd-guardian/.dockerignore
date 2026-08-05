@@ -1,0 +1,85 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+testbin/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+cover.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kubernetes
+*.kubeconfig
+kubeconfig
+
+# Helm
+charts/*/charts/
+charts/*/*.tgz
+
+# Temporary files
+tmp/
+*.tmp
+
+# Build outputs
+dist/
+*.tar.gz
+*.zip
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+.travis.yml
+.gitlab-ci.yml
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Test files
+*_test.go
+testdata/
+
+# Web UI
+web-ui/node_modules/
+web-ui/dist/
+web-ui/.vite/
+web-ui/.cache/
+
+# Backend
+backend/go.sum.bak
+backend/*.sum
+
+# Misc
+.qoder/
+README 2.md

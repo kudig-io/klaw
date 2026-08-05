@@ -1,6 +1,6 @@
 # 🦞 Klaw - Kubernetes 智能运维助手
 
-[![Go Version](https://img.shields.io/badge/Go-1.20+-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org)
 [![React Version](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -41,7 +41,7 @@ Klaw 是一个开箱即用的 Kubernetes 运维工具，提供现代化的 Web U
 - **多集群管理**：支持同时管理多个 Kubernetes 集群
 - **监控告警**：CPU、内存、节点状态、Pod 状态监控
 - **自动图表生成**：集群资源使用趋势图
-- **权限控制**：基于消息平台的用户认证
+- **权限控制**：API Bearer Token 认证（`server.auth`）+ CORS 白名单，ChatOps 侧基于消息平台的用户身份
 
 ## 🏗️ 架构设计
 
@@ -72,7 +72,7 @@ Klaw 是一个开箱即用的 Kubernetes 运维工具，提供现代化的 Web U
 
 ### 环境要求
 
-- Go 1.20+
+- Go 1.24+（modules/etcd-guardian 需 Go 1.26+）
 - Node.js 18+
 - 访问 Kubernetes 集群的权限（~/.kube/config）
 

@@ -1,0 +1,22 @@
+apiVersion: etcdguardian.io/v1alpha1
+kind: EtcdRestore
+metadata:
+  name: restore-from-backup
+  namespace: etcd-guardian-system
+spec:
+  backupName: daily-backup
+  restoreMode: Full
+  etcdCluster:
+    endpoints:
+      - https://etcd-0:2379
+      - https://etcd-1:2379
+      - https://etcd-2:2379
+    dataDir: /var/lib/etcd
+    caCert: /etc/etcd/pki/ca.crt
+    clientCert: /etc/etcd/pki/client.crt
+    clientKey: /etc/etcd/pki/client.key
+  quiesceCluster: true
+  validation:
+    enabled: true
+    preRestoreCheck: true
+    postRestoreCheck: true

@@ -1,6 +1,6 @@
 # 变量定义
 BINARY_NAME=klaw
-GO_VERSION=1.20
+GO_VERSION=1.24
 DOCKER_IMAGE=klaw:latest
 DOCKER_REGISTRY=kudig-io
 
@@ -18,7 +18,7 @@ build-frontend:
 .PHONY: build-backend
 build-backend:
 	@echo "Building backend..."
-	go build -o $(BINARY_NAME) cmd/klaw/main.go
+	go build -o $(BINARY_NAME) ./cmd/klaw
 
 # 构建所有
 .PHONY: build
@@ -39,7 +39,7 @@ dev-frontend:
 .PHONY: dev-backend
 dev-backend:
 	@echo "Starting backend server..."
-	go run cmd/klaw/main.go
+	go run ./cmd/klaw
 
 # 运行应用
 .PHONY: run

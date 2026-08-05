@@ -24,3 +24,12 @@ openclaw:
 
 server:
   port: 8080
+  auth:
+    enabled: true
+    # 也可通过环境变量 KLAW_API_TOKEN 注入，避免密钥落盘
+    token: change-me
+  cors:
+    # 跨域白名单；留空表示仅允许同源
+    allowed_origins: []
+    # allowed_origins:
+    #   - https://klaw.example.com

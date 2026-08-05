@@ -1,5 +1,5 @@
 # 多阶段构建 - 前端构建阶段
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/web
 
@@ -16,7 +16,7 @@ COPY web/ ./
 RUN npm run build
 
 # 后端构建阶段
-FROM golang:1.20-alpine AS backend-builder
+FROM golang:1.24-alpine AS backend-builder
 
 WORKDIR /app
 
@@ -30,13 +30,15 @@ RUN go mod download
 COPY . .
 
 # 构建应用
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o klaw cmd/klaw/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o klaw ./cmd/klaw
 
 # 最终运行时镜像
-FROM alpine:latest
+FROM alpine:3.20
 
-# 安装ca证书（用于Kubernetes API访问）
-RUN apk --no-cache add ca-certificates
+# 安装ca证书（用于Kubernetes API访问）并创建非 root 用户
+RUN apk --no-cache add ca-certificates \
+    && addgroup -g 65532 klaw \
+    && adduser -D -u 65532 -G klaw klaw
 
 WORKDIR /app
 
@@ -51,6 +53,12 @@ COPY configs/ ./configs/
 
 # 复制技能目录
 COPY skills/ ./skills/
+
+# 数据目录（SQLite），运行时可挂载持久卷
+RUN mkdir -p /app/data && chown -R klaw:klaw /app
+
+# 非 root 运行
+USER 65532:65532
 
 # 暴露端口
 EXPOSE 8080

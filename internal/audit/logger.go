@@ -2,6 +2,7 @@ package audit
 
 import (
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -80,7 +81,9 @@ func (l *Logger) Log(event AuditEvent) AuditEvent {
 	if len(l.logs) > 10000 {
 		l.logs = l.logs[:10000]
 	}
-	_ = l.saveLocked()
+	if err := l.saveLocked(); err != nil {
+		log.Printf("audit: failed to persist event %s: %v", event.ID, err)
+	}
 	return event
 }
 

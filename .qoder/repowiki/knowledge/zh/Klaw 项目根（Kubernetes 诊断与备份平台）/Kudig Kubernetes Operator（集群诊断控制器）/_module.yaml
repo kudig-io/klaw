@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: operator
+title: Kudig Kubernetes Operator（集群诊断控制器）
+scope:
+    - operator/
+source_files: []
+depends_on: []
+related_to:
+    - path: deployment
+    - path: klaw_service/diag_pipeline

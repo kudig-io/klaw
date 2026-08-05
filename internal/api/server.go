@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -17,6 +18,7 @@ import (
 	"github.com/kudig-io/klaw/internal/audit"
 	"github.com/kudig-io/klaw/internal/automation"
 	"github.com/kudig-io/klaw/internal/backup"
+	"github.com/kudig-io/klaw/internal/config"
 	"github.com/kudig-io/klaw/internal/kubernetes"
 	"github.com/kudig-io/klaw/internal/metrics"
 	"github.com/kudig-io/klaw/internal/monitoring"
@@ -35,9 +37,17 @@ type Server struct {
 	resources         *kubernetes.Resources
 	metricsCollector  *metrics.Collector
 	router            *mux.Router
+	authEnabled       bool
+	authToken         string
+	corsCfg           config.CORSConfig
+	metrics           *httpMetrics
+	httpServer        *http.Server
 }
 
-func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service) (*Server, error) {
+func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service, serverCfg config.ServerConfig) (*Server, error) {
+	if serverCfg.Auth.Enabled && serverCfg.Auth.Token == "" {
+		return nil, fmt.Errorf("server.auth.enabled is true but no API token configured (set server.auth.token or KLAW_API_TOKEN)")
+	}
 	resources := kubernetes.NewResources(k8sManager)
 	store, err := storage.NewStore(filepath.Join("data", "klaw.db"))
 	if err != nil {
@@ -58,12 +68,21 @@ func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Ser
 		resources:         resources,
 		metricsCollector:  metrics.NewCollector(k8sManager),
 		router:            mux.NewRouter(),
+		authEnabled:       serverCfg.Auth.Enabled,
+		authToken:         serverCfg.Auth.Token,
+		corsCfg:           serverCfg.CORS,
+		metrics:           newHTTPMetrics(),
 	}
 	s.SetupRoutes()
 	return s, nil
 }
 
 func (s *Server) SetupRoutes() {
+	// 运维端点：健康检查与指标（不经过认证）
+	s.router.HandleFunc("/healthz", s.handleHealthz).Methods("GET")
+	s.router.HandleFunc("/readyz", s.handleReadyz).Methods("GET")
+	s.router.HandleFunc("/metrics", s.handleMetrics).Methods("GET")
+
 	s.router.HandleFunc("/api/clusters", s.handleGetClusters).Methods("GET")
 	s.router.HandleFunc("/api/clusters/{name}", s.handleGetCluster).Methods("GET")
 	s.router.HandleFunc("/api/clusters/{name}/status", s.handleGetClusterStatus).Methods("GET")
@@ -167,28 +186,33 @@ func (s *Server) serveSPA(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./web/dist/index.html")
 }
 
-// enableCORS 添加跨域支持
-func enableCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		
-		next.ServeHTTP(w, r)
-	})
-}
-
 func (s *Server) Start(port int) error {
 	addr := fmt.Sprintf(":%d", port)
-	log.Printf("Starting server on %s", addr)
+	log.Printf("Starting server on %s (auth=%v)", addr, s.authEnabled)
 
-	handler := deprecationMiddleware(enableCORS(s.router))
-	return http.ListenAndServe(addr, handler)
+	// 中间件链：指标 -> CORS白名单 -> 认证 -> 弃用提示 -> 路由
+	handler := s.metrics.middleware(
+		corsMiddleware(s.corsCfg,
+			s.authMiddleware(
+				deprecationMiddleware(s.router))))
+
+	s.httpServer = &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
+}
+
+// Shutdown 优雅停机：等待存量请求完成后关闭服务
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.httpServer == nil {
+		return nil
+	}
+	return s.httpServer.Shutdown(ctx)
 }
 
 func deprecationMiddleware(next http.Handler) http.Handler {

@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: klaw_service/analyzers
+title: Kubernetes 集群多维分析器（日志/网络/RBAC/存储）
+scope:
+    - internal/loganalysis/
+    - internal/networkanalysis/
+    - internal/rbacanalysis/
+    - internal/storageanalysis/
+source_files: []
+depends_on: []
+related_to: []

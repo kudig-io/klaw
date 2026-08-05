@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: klaw_service/api
+title: HTTP API 服务与路由层
+scope:
+    - internal/api/
+source_files: []
+depends_on: []
+related_to:
+    - path: etcd_backup_module
+    - path: web_frontend
