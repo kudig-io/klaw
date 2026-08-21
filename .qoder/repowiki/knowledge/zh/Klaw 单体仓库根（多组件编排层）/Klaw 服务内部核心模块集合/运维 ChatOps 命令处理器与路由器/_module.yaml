@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: klaw_service/ops
+title: 运维 ChatOps 命令处理器与路由器
+scope:
+    - internal/ops/
+source_files: []
+depends_on: []
+related_to: []

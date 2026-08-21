@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: klaw_service/automation
+title: 自动化脚本执行引擎
+scope:
+    - internal/automation/
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: ""
+title: Klaw 单体仓库根（多组件编排层）
+scope:
+    - Dockerfile
+    - Makefile
+    - .gitignore
+    - go.mod
+    - go.sum
+    - CHANGELOG.md
+    - DEVELOPMENT_PLAN.md
+    - README.md
+source_files: []
+depends_on: []
+related_to: []

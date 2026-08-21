@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: etcd_guardian_module/web_ui
+title: Etcd Guardian Web UI（前端管理界面）
+scope:
+    - modules/etcd-guardian/web-ui/
+source_files: []
+depends_on: []
+related_to: []

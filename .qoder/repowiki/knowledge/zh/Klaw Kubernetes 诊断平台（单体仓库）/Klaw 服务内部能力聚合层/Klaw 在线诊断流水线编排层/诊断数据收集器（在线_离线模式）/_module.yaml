@@ -1,9 +1,0 @@
-schema_version: 1
-module_path: klaw_service/diag_pipeline/collector
-title: 诊断数据收集器（在线/离线模式）
-scope:
-    - internal/diag/collector/
-source_files: []
-depends_on: []
-related_to:
-    - path: klaw_service/diag_pipeline/pipeline_core

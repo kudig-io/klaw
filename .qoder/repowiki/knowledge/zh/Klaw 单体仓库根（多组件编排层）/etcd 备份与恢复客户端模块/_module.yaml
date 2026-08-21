@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: etcd_backup_module
+title: etcd 备份与恢复客户端模块
+scope:
+    - modules/etcd-backup/
+source_files: []
+depends_on: []
+related_to: []
