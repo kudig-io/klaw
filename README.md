@@ -1,203 +1,598 @@
-# 🦞 Klaw - Kubernetes 智能运维助手
+# 🦞 Klaw — Kubernetes 智能运维与诊断平台
 
-[![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.24.2-blue.svg)](https://golang.org)
 [![React Version](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Helm Chart](https://img.shields.io/badge/Helm-1.0.0-0f1689.svg)](./helm/klaw)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
-Klaw 是一个开箱即用的 Kubernetes 运维工具，提供现代化的 Web UI 界面和 ChatOps 能力，支持通过钉钉/飞书直接管理集群，实现实时事件监控和告警推送。
+Klaw 把「集群管理控制台」「深度诊断引擎」「ChatOps 机器人」「实时事件告警」四件事装进一个二进制里。
+一份配置、一次部署，既能在浏览器里点，也能在钉钉/飞书群里喊，还能在终端里 `klaw diag` 一把梭。
 
-## 🌟 核心特性
+---
 
-### 📊 Web 管理界面
-- **Dashboard**：集群概览、节点/Pod 统计、资源使用趋势
-- **Deployment 管理**：列表、详情、扩缩容、重启、查看关联 Pod
-- **Service 管理**：列表、详情、Endpoints 展示
-- **Pod 管理**：查看、搜索、删除、实时日志
-- **Node 管理**：节点状态、资源容量、实时监控
-- **Monitoring**：实时告警、历史趋势、图表展示
-- **深色模式**：自动/手动主题切换
+## 目录
 
-### 💬 ChatOps（钉钉/飞书）
-- **双向通信**：在钉钉群中直接执行命令，实时获取结果
-- **命令支持**：
-  ```
-  klaw cluster status <cluster>       # 查看集群状态
-  klaw pod list <cluster> <ns>        # 列出 Pod
-  klaw pod logs <cluster> <ns> <pod>  # 查看日志
-  klaw pod delete <cluster> <ns> <pod># 删除 Pod
-  klaw node list <cluster>            # 列出节点
-  klaw monitor status <cluster>       # 查看监控状态
-  ```
-- **命令缩写**：`p` = `pod`, `ls` = `list`, `desc` = `describe`
-- **富文本输出**：Markdown 格式、表格展示、代码块
+- [核心能力](#核心能力)
+- [仓库结构](#仓库结构)
+- [架构](#架构)
+- [快速开始](#快速开始)
+  - [本地二进制](#方式一本地二进制)
+  - [Docker](#方式二docker)
+  - [kind + Helm（in-cluster）](#方式三kind--helmin-cluster推荐用于验证)
+- [配置](#配置)
+- [CLI](#cli)
+- [HTTP API](#http-api)
+- [ChatOps](#chatops)
+- [实时事件监控](#实时事件监控)
+- [前端开发](#前端开发)
+- [测试](#测试)
+- [Makefile 目标](#makefile-目标)
+- [子项目](#子项目)
+- [已知限制](#已知限制)
+- [文档索引](#文档索引)
 
-### ⚡ 实时事件监控（Watch 模式）
-- **秒级推送**：从轮询升级为 K8s Watch API，延迟 < 1 秒
-- **智能过滤**：按命名空间、资源类型、事件类型、原因过滤
-- **防消息风暴**：速率限制、事件去重、事件聚合
-- **Markdown 告警**：美观的事件推送格式
+---
 
-### 🔧 运维能力
-- **多集群管理**：支持同时管理多个 Kubernetes 集群
-- **监控告警**：CPU、内存、节点状态、Pod 状态监控
-- **自动图表生成**：集群资源使用趋势图
-- **权限控制**：API Bearer Token 认证（`server.auth`）+ CORS 白名单，ChatOps 侧基于消息平台的用户身份
+## 核心能力
 
-## 🏗️ 架构设计
+### 🖥️ Web 管理控制台
+
+React 18 + Vite + Tailwind 构建的单页应用，与后端二进制打包在一起（`web/dist` 由 Go 直接托管）。
+
+| 页面 | 能力 |
+|---|---|
+| `ClusterDashboard` | 集群概览、节点/Pod 统计、RBAC 摘要、资源趋势 |
+| `PodsPage` | 列表、搜索、详情、实时日志、删除 |
+| `DeploymentsPage` | 列表、详情、扩缩容、滚动重启、关联 Pod |
+| `ServicesPage` | 列表、详情、Endpoints |
+| `NodesPage` | 节点状态、容量、指标 |
+| `MonitoringPage` | 告警列表、历史趋势、图表 |
+| `DiagnosticsPage` | 触发诊断、查看分析器结果 |
+| `BackupsPage` | 集群资源备份的创建/列表/删除 |
+| `TenantsPage` | 多租户与租户用户管理 |
+
+深色模式由 `ThemeContext` 提供，支持跟随系统。
+
+### 🔬 诊断引擎（`internal/diag`）
+
+一条可编排的诊断流水线：**采集 → 分析 → 根因 → 报告 → 修复建议**。
+
+- **9 大类、73 个已注册分析器**（`kernel` / `kubernetes` / `log` / `network` / `process` / `runtime` / `security` / `servicemesh` / `system`，外加 eBPF 分析器）
+- **YAML 规则引擎**（`diag/rules`）：无需改代码即可新增检查项
+- **根因分析**（`diag/rca`）：从散落的告警收敛到因果链
+- **自动修复**（`diag/autofix`）：给出可执行的修复动作
+- **多格式报告**（`diag/reporter`）：HTML / JSON / Text
+- **eBPF 探针**（`diag/ebpf`）：TCP、DNS、文件 I/O 内核级观测（仅 Linux，通过 build tag 隔离）
+- **AI 助手**（`diag/ai`）：接入 LLM 对诊断结果做自然语言归纳
+- **镜像扫描**（`diag/scanner`）：集成 trivy
+- **成本分析**（`diag/cost`）：基于云厂商定价估算资源开销
+- **TUI**（`diag/tui`）：bubbletea 终端交互界面
+
+### 💬 ChatOps（钉钉 / 飞书）
+
+在群里 @ 机器人直接操作集群，支持命令缩写与 Markdown 富文本回复。
+
+### ⚡ 实时事件监控
+
+基于 Kubernetes Watch API，秒级推送；内置速率限制、去重、聚合、静音窗口，避免消息风暴。
+
+### 🔧 平台能力
+
+- **多集群**：一份配置管理多个 kubeconfig / context，也支持 in-cluster
+- **告警规则**：规则 CRUD、手动评估、历史、确认/解决、统计
+- **备份恢复**：集群资源级备份（`internal/backup`）+ etcd 级备份（`modules/etcd-guardian`）
+- **自动化脚本**：脚本 CRUD、执行、历史、统计（`internal/automation`）
+- **多租户 + 审计**：租户/用户模型与操作审计日志（`internal/tenancy`、`internal/audit`）
+- **安全**：Bearer Token 认证、CORS 白名单、非 root 容器（UID 65532）、恒定时间 token 比较
+- **可观测**：`/healthz`、`/readyz`、`/metrics`（Prometheus 文本格式，零外部依赖）
+- **持久化**：内嵌 SQLite（`modernc.org/sqlite`，纯 Go，无需 CGO）
+
+---
+
+## 仓库结构
+
+这是一个 monorepo，包含 5 个独立的 Go module：
+
+| 路径 | Module | Go | 说明 |
+|---|---|---|---|
+| `./` | `github.com/kudig-io/klaw` | 1.24.2 | 主应用：API + Web + 诊断 + ChatOps |
+| `operator/` | `.../klaw/operator` | 1.21 | Kudig Operator，CRD 驱动的诊断编排 |
+| `modules/etcd-backup/` | `.../modules/etcd-backup` | 1.25 | etcd 备份/恢复客户端库 |
+| `modules/etcd-guardian/` | `.../modules/etcd-guardian` | 1.26.0 | etcd 备份恢复 Operator（含 CRD、控制器、Helm Chart） |
+| `modules/etcd-guardian/backend/` | `.../etcd-guardian/backend` | 1.22 | etcd-guardian 的 Gin 后端 API |
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Klaw                                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────────────────┐│
-│  │   Web UI     │  │   ChatOps    │  │         Event System                ││
-│  │   (React)    │  │  (DingTalk)  │  │  ┌─────────┐  ┌─────────────────┐  ││
-│  │              │  │              │  │  │  Watch  │  │  Event Notifier │  ││
-│  │  Dashboard   │  │  双向通信    │  │  │ Source  │  │  • Rate Limit   │  ││
-│  │  Deployments │  │  命令路由    │  │  └────┬────┘  │  • Deduplicate  │  ││
-│  │  Services    │  │  Markdown    │  │       │       │  • Aggregate    │  ││
-│  └──────────────┘  └──────────────┘  │       ▼       └─────────────────┘  ││
-│           │                │         │  K8s Events  ──▶  DingTalk Push    ││
-│           └────────────────┴─────────┴─────────────────────────────────────┘│
-│                              │                                               │
-│                   ┌─────────┴─────────┐                                     │
-│                   ▼                   ▼                                     │
-│        ┌─────────────────────┐  ┌─────────────────────┐                    │
-│        │   K8s Manager       │  │   API Server        │                    │
-│        │   (client-go)       │  │   (Gorilla)         │                    │
-│        └─────────────────────┘  └─────────────────────┘                    │
-└─────────────────────────────────────────────────────────────────────────────┘
+klaw/
+├── cmd/klaw/               # CLI 入口：main / server / diag
+├── internal/
+│   ├── api/                # HTTP 服务器、路由、中间件、全部 handler
+│   ├── kubernetes/         # 集群客户端管理（kubeconfig / in-cluster）
+│   ├── diag/               # 诊断流水线（analyzer/rules/rca/autofix/reporter/ebpf/ai/...）
+│   ├── events/             # Watch 事件采集与通知管道
+│   ├── messaging/          # 钉钉 / 飞书通信抽象
+│   ├── ops/                # ChatOps 命令路由与处理
+│   ├── monitoring/         # 轮询式指标采集与告警
+│   ├── alerting/           # 告警规则引擎
+│   ├── backup/             # 集群资源备份
+│   ├── automation/         # 自动化脚本执行引擎
+│   ├── tenancy/            # 多租户
+│   ├── audit/              # 审计日志与安全合规
+│   ├── storage/            # SQLite 持久化与 schema 迁移
+│   ├── metrics/            # 进程内指标采集
+│   ├── chart/              # ASCII 图表生成
+│   ├── config/             # 配置加载 + 环境变量覆盖
+│   ├── openclaw/           # OpenClaw 技能管理
+│   └── {log,network,rbac,storage}analysis/   # 四类专项分析器
+├── web/                    # React 前端
+├── operator/               # Kudig Operator（CRD: ClusterDiagnostic / NodeDiagnostic / Schedule）
+├── modules/                # etcd-backup、etcd-guardian
+├── helm/klaw/              # Helm Chart（含 values-kind.yaml）
+├── deployment/kind/        # kind 本地集群配置与管理脚本
+├── configs/                # config.yaml / config.yaml.example
+├── skills/                 # OpenClaw 技能定义
+└── docs/                   # 设计与实施文档
 ```
 
-## 🚀 快速开始
+---
+
+## 架构
+
+```
+                       ┌──────────────────────────────────────────────┐
+   浏览器 ──────────▶  │  Web UI (React SPA, 由 Go 静态托管)          │
+                       └───────────────────┬──────────────────────────┘
+                                           │ /api/v1/*
+   钉钉/飞书 ────────▶  ┌─────────────────▼──────────────────────────┐
+                       │  HTTP Server (gorilla/mux)                  │
+                       │  metrics ▸ CORS ▸ auth ▸ deprecation        │
+                       └───┬───────────┬──────────┬──────────┬───────┘
+                           │           │          │          │
+                  ┌────────▼──┐ ┌──────▼─────┐ ┌──▼──────┐ ┌─▼─────────┐
+                  │ K8s       │ │ Diag       │ │ Ops     │ │ Event     │
+                  │ Manager   │ │ Pipeline   │ │ Router  │ │ Watcher   │
+                  │(client-go)│ │ 73 分析器  │ │ChatOps  │ │ 限流/去重 │
+                  └────┬──────┘ └──────┬─────┘ └────┬────┘ └─────┬─────┘
+                       │               │            │            │
+                       ▼               ▼            ▼            ▼
+                  Kubernetes API   SQLite 存储   消息平台     告警推送
+```
+
+终端侧独立于 HTTP 服务：`klaw diag` 直接驱动同一套诊断流水线，输出 Text/JSON/TUI。
+
+---
+
+## 快速开始
 
 ### 环境要求
 
-- Go 1.24+（modules/etcd-guardian 需 Go 1.26+）
-- Node.js 18+
-- 访问 Kubernetes 集群的权限（~/.kube/config）
+| 组件 | 版本 | 备注 |
+|---|---|---|
+| Go | 1.24+ | `modules/etcd-guardian` 需 1.26+ |
+| Node.js | 18+ | 构建前端 |
+| Kubernetes | 1.24+ | 或用 kind 起本地集群 |
+| Docker | 可选 | 容器化部署 / kind |
+| Helm | 3.x | 集群内部署 |
 
-### 安装
+### 方式一：本地二进制
 
 ```bash
-# 克隆仓库
 git clone https://github.com/kudig-io/klaw.git
 cd klaw
 
-# 构建前端
-cd web
-npm install
-npm run build
-cd ..
+# 一键构建前端 + 后端
+make build
 
-# 构建后端
-go build -o klaw ./cmd/klaw
-```
-
-### 配置
-
-1. 复制配置文件：
-
-```bash
+# 配置
 cp configs/config.yaml.example configs/config.yaml
-```
+$EDITOR configs/config.yaml
 
-2. 编辑 `configs/config.yaml`：
-
-```yaml
-# Kubernetes 集群配置
-kubernetes:
-  clusters:
-    - name: kind-my-k8s
-      kubeconfig: ~/.kube/config
-      context: kind-my-k8s
-
-# 钉钉集成（可选）
-messaging:
-  dingtalk:
-    enabled: true
-    webhook: "https://oapi.dingtalk.com/robot/send?access_token=xxx"
-    secret: "SECxxx"
-    webhook_port: 8081  # 接收钉钉消息的端口
-
-# 实时事件监听（可选）
-events:
-  enabled: true
-  watch_types:
-    - Pod
-    - Deployment
-    - Service
-  event_types:
-    - Warning
-    - Error
-  min_severity: warning
-  rate_limit: 10
-  dedup_window: 300
-
-server:
-  port: 8080
-```
-
-### 运行
-
-```bash
+# 运行（默认执行 server 子命令）
 ./klaw
 ```
 
-输出：
+访问 <http://localhost:8080>。
+
+> 认证默认开启（`server.auth.enabled: true`），请求 `/api/*` 需带 `Authorization: Bearer <token>`。
+> 详见[已知限制](#已知限制)——Web UI 当前不会自动注入该 header。
+
+### 方式二：Docker
+
+```bash
+docker build -t kudig-io/klaw:latest .
+
+docker run -d \
+  -p 8080:8080 \
+  -e KLAW_API_TOKEN='your-token' \
+  -v ~/.kube/config:/home/klaw/.kube/config:ro \
+  -v $(pwd)/configs/config.yaml:/app/configs/config.yaml:ro \
+  kudig-io/klaw:latest
 ```
-✓ Event source registered for cluster: kind-my-k8s
-✓ Event monitoring started (Watch mode)
-✓ Web UI server started on port 8080
 
-🦞 Klaw started successfully. Press Ctrl+C to exit.
+三阶段构建：`node:20-alpine`（前端）→ `golang:1.24-alpine`（后端，`CGO_ENABLED=0`）→ `alpine:3.20`（运行时，非 root UID 65532），最终镜像约 127MB。
+
+网络受限时可指定模块代理：
+
+```bash
+docker build --build-arg GOPROXY=https://goproxy.cn,direct -t kudig-io/klaw:dev .
 ```
 
-访问 Web UI：http://localhost:8080
+### 方式三：kind + Helm（in-cluster，推荐用于验证）
 
-## 💬 钉钉集成完整指南
+这条路径已端到端验证过，Klaw 以 ServiceAccount 身份通过 `rest.InClusterConfig()` 访问 API Server，无需挂载 kubeconfig。
 
-### 1. 创建钉钉机器人
+```bash
+# 1. 创建本地集群（1 control-plane + 2 worker）
+kind create cluster --config deployment/kind/cluster-config.yaml
 
-1. 打开钉钉群设置 → 智能群助手 → 添加机器人
-2. 选择「自定义」机器人
-3. 设置机器人名称：Klaw
-4. 安全设置选择「加签」，复制签名密钥
-5. 复制 Webhook 地址
+# 2. 构建镜像
+docker build --build-arg GOPROXY=https://goproxy.cn,direct -t kudig-io/klaw:dev .
 
-### 2. 配置回调地址
+# 3. 加载镜像到集群节点（避免走远端仓库）
+kind load docker-image kudig-io/klaw:dev --name klaw-test
 
-在钉钉开放平台：
-1. 找到 Klaw 机器人，点击「编辑」
-2. 在「消息接收地址」中填写：
-   ```
-   http://<服务器IP>:8081/webhook/dingtalk
-   ```
-3. 保存设置
+# 4. 部署
+helm upgrade --install klaw helm/klaw \
+  -f helm/klaw/values-kind.yaml \
+  -n klaw --create-namespace --wait
 
-### 3. 配置 Klaw
+# 5. 访问
+kubectl port-forward -n klaw svc/klaw 18080:8080
+```
 
-编辑 `configs/config.yaml`：
+打开 <http://127.0.0.1:18080>。
+
+`values-kind.yaml` 相对生产 values 的差异：
+
+- `image.pullPolicy: Never` —— 镜像由 `kind load` 注入，禁止拉远端
+- `config.server.auth.enabled: false` —— 前端暂无 token 注入能力，本地默认关闭
+- `persistence.storageClass: standard` —— kind 自带的 rancher local-path
+- 资源请求下调至 100m / 128Mi
+
+生产部署使用默认 `values.yaml` 即可，Chart 会渲染出 Deployment、Service、ConfigMap、Secret（`stringData`）、PVC、ServiceAccount、ClusterRole/ClusterRoleBinding。
+
+完整的 kind 操作说明、镜像预拉取脚本与故障排查见 [deployment/README.md](./deployment/README.md)。
+
+---
+
+## 配置
+
+配置文件默认读取 `configs/config.yaml`。以下为全量结构：
 
 ```yaml
+kubernetes:
+  clusters:
+    - name: default
+      kubeconfig: ~/.kube/config   # 填 in-cluster 则使用 ServiceAccount
+      context: minikube            # 留空使用 kubeconfig 的 current-context
+    - name: production
+      kubeconfig: ~/.kube/prod-config
+      context: production
+
+server:
+  port: 8080
+  auth:
+    enabled: true
+    token: change-me               # 建议用 KLAW_API_TOKEN 注入，避免密钥落盘
+  cors:
+    allowed_origins: []            # 留空 = 仅同源；可填 https://klaw.example.com
+
 messaging:
   dingtalk:
-    enabled: true
-    webhook: "https://oapi.dingtalk.com/robot/send?access_token=xxx"
-    secret: "SECxxx"
-    webhook_port: 8081
+    enabled: false
+    app_key: your_app_key
+    app_secret: your_app_secret
+    webhook: https://oapi.dingtalk.com/robot/send?access_token=xxx
+    secret: SECxxx                 # 加签密钥
+    webhook_port: 8081             # 接收钉钉回调的端口
+  feishu:
+    enabled: false
+    app_id: your_app_id
+    app_secret: your_app_secret
+
+events:
+  enabled: true
+  watch_types: [Pod, Deployment, Service, Node]
+  namespaces: []                   # 空 = 所有命名空间
+  event_types: [Warning, Error]
+  reasons: [BackOff, Unhealthy, Failed, OOMKilled]
+  exclude_reasons: [Scheduled, Pulling, Pulled, Created, Started]
+  min_severity: warning            # info | warning | critical
+  rate_limit: 10                   # 每秒最大事件数
+  dedup_window: 300                # 去重窗口（秒）
+  mute_duration: 10                # 同类事件静音时长（分钟）
+  channels: [ops-alert]
+
+monitoring:
+  enabled: true
+  interval: 60                     # 轮询周期（秒），用于图表与趋势
+
+openclaw:
+  enabled: true
+  skills: ./skills
 ```
 
-### 4. 使用示例
+### 环境变量覆盖
 
-在钉钉群中：
+敏感项一律优先读环境变量，便于配合 Kubernetes Secret：
+
+| 变量 | 覆盖字段 |
+|---|---|
+| `KLAW_API_TOKEN` | `server.auth.token` |
+| `KLAW_DINGTALK_APP_KEY` | `messaging.dingtalk.app_key` |
+| `KLAW_DINGTALK_APP_SECRET` | `messaging.dingtalk.app_secret` |
+| `KLAW_DINGTALK_WEBHOOK` | `messaging.dingtalk.webhook` |
+| `KLAW_DINGTALK_SECRET` | `messaging.dingtalk.secret` |
+| `KLAW_FEISHU_APP_ID` | `messaging.feishu.app_id` |
+| `KLAW_FEISHU_APP_SECRET` | `messaging.feishu.app_secret` |
+
+---
+
+## CLI
 
 ```
-@Klaw klaw cluster status kind-my-k8s
+klaw v1.0.0-fusion
+
+Usage:
+  klaw [command]
+
+Available Commands:
+  server      启动 Web API + ChatOps 服务（无参数时的默认命令）
+  diag        对集群运行诊断分析（70+ 分析器）
+  version     打印版本信息
 ```
 
-回复：
+### `klaw server`
+
+| Flag | 说明 |
+|---|---|
+| `--port int` | 覆盖 `server.port`（默认 8080） |
+
+启动时依次初始化：配置加载 → K8s 管理器 → 监控服务 → ChatOps 路由 → 消息插件 → 事件监听 → OpenClaw 技能 → HTTP 服务器。
+
+### `klaw diag`
+
+| Flag | 说明 |
+|---|---|
+| `--kubeconfig string` | kubeconfig 路径（默认 `~/.kube/config`） |
+| `--context string` | kubeconfig context |
+| `--node string` | 只诊断指定节点 |
+| `--namespace string` | 只诊断指定命名空间 |
+| `--analyzer string` | 只运行指定分析器（逗号分隔） |
+| `--exclude-analyzer string` | 排除指定分析器（逗号分隔） |
+| `--json` | 以 JSON 输出 |
+
+```bash
+klaw diag                                  # 全集群诊断
+klaw diag --node worker-1                  # 聚焦单节点
+klaw diag --namespace production --json    # 指定命名空间，JSON 输出
+klaw diag --context prod --exclude-analyzer ebpf-tcp,cis
 ```
-📊 **集群状态：kind-my-k8s**
+
+---
+
+## HTTP API
+
+### 版本策略
+
+- **`/api/v1/*`** —— 当前版本，新集成一律使用
+- **`/api/*`** —— 旧版路径，已标记弃用。响应会带 `Deprecation: true` 与 `Sunset: 2026-12-31` 头
+
+### 无需认证的端点
+
+| 端点 | 说明 |
+|---|---|
+| `GET /healthz` | 存活探针，进程存活即 200 |
+| `GET /readyz` | 就绪探针，校验 Kubernetes 客户端可用 |
+| `GET /metrics` | Prometheus 文本格式（goroutine 数、内存、HTTP 请求计数、`klaw_uptime_seconds`） |
+
+### 中间件链
+
+```
+metrics ▸ CORS ▸ auth ▸ deprecation ▸ router
+```
+
+`auth` 仅拦截 `/api` 前缀；`corsMiddleware` 在未配置白名单时不下发任何跨域头。
+
+### 路由清单（`/api/v1` 前缀）
+
+**集群**
+
+```
+GET    /clusters
+GET    /clusters/{name}
+GET    /clusters/{name}/status
+GET    /clusters/{name}/metrics
+GET    /clusters/{name}/namespaces
+```
+
+**Pod**
+
+```
+GET    /clusters/{c}/pods
+GET    /clusters/{c}/namespaces/{ns}/pods
+GET    /clusters/{c}/namespaces/{ns}/pods/{name}
+GET    /clusters/{c}/namespaces/{ns}/pods/{name}/logs
+GET    /clusters/{c}/namespaces/{ns}/pods/{name}/logs/analysis
+DELETE /clusters/{c}/namespaces/{ns}/pods/{name}
+```
+
+**Deployment**
+
+```
+GET    /clusters/{c}/deployments
+GET    /clusters/{c}/namespaces/{ns}/deployments
+GET    /clusters/{c}/namespaces/{ns}/deployments/{name}
+GET    /clusters/{c}/namespaces/{ns}/deployments/{name}/pods
+GET    /clusters/{c}/namespaces/{ns}/deployments/{name}/status
+POST   /clusters/{c}/namespaces/{ns}/deployments/{name}/scale
+POST   /clusters/{c}/namespaces/{ns}/deployments/{name}/restart
+```
+
+**Service / Node / Event**
+
+```
+GET    /clusters/{c}/services
+GET    /clusters/{c}/namespaces/{ns}/services
+GET    /clusters/{c}/namespaces/{ns}/services/{name}
+GET    /clusters/{c}/namespaces/{ns}/services/{name}/endpoints
+DELETE /clusters/{c}/namespaces/{ns}/services/{name}
+
+GET    /clusters/{c}/nodes
+GET    /clusters/{c}/nodes/{name}
+GET    /clusters/{c}/nodes/metrics
+
+GET    /clusters/{c}/events
+GET    /clusters/{c}/namespaces/{ns}/events
+```
+
+**通用资源访问**（`kind` ∈ pods、deployments、services、nodes、namespaces、events、configmaps、statefulsets、ingresses）
+
+```
+GET    /clusters/{c}/resources/{kind}
+GET    /clusters/{c}/resources/{kind}/{name}
+GET    /clusters/{c}/namespaces/{ns}/resources/{kind}
+GET    /clusters/{c}/namespaces/{ns}/resources/{kind}/{name}
+```
+
+**监控与告警**
+
+```
+GET    /clusters/{c}/monitor/status
+GET    /clusters/{c}/monitor/alerts
+GET    /clusters/{c}/monitor/history
+
+GET    /clusters/{c}/alerts/rules
+POST   /clusters/{c}/alerts/rules
+PUT    /clusters/{c}/alerts/rules/{id}
+DELETE /clusters/{c}/alerts/rules/{id}
+POST   /clusters/{c}/alerts/evaluate
+GET    /clusters/{c}/alerts/history
+GET    /clusters/{c}/alerts/stats
+POST   /clusters/{c}/alerts/{id}/acknowledge
+POST   /clusters/{c}/alerts/{id}/resolve
+```
+
+**备份**
+
+```
+GET    /clusters/{c}/backups
+POST   /clusters/{c}/backups
+GET    /clusters/{c}/backups/summary
+GET    /clusters/{c}/backups/{name}
+DELETE /clusters/{c}/backups/{name}
+```
+
+**分析**
+
+```
+GET    /clusters/{c}/rbac/analysis
+POST   /analysis/logs
+GET    /analysis/network
+GET    /analysis/storage
+```
+
+**自动化**
+
+```
+GET    /automation/scripts
+POST   /automation/scripts
+GET    /automation/scripts/{id}
+PUT    /automation/scripts/{id}
+DELETE /automation/scripts/{id}
+POST   /automation/scripts/{id}/execute
+GET    /automation/history
+GET    /automation/statistics
+```
+
+**多租户与审计**
+
+```
+GET    /tenants          POST   /tenants          GET /tenants/stats
+GET    /tenants/{id}     PUT    /tenants/{id}     DELETE /tenants/{id}
+GET    /tenant-users     POST   /tenant-users     DELETE /tenant-users/{id}
+GET    /audit/logs       GET    /audit/stats
+```
+
+**诊断**
+
+```
+GET    /diag/run
+GET    /diag/analyzers
+```
+
+### 调用示例
+
+```bash
+TOKEN=your-token
+BASE=http://localhost:8080/api/v1
+
+curl -H "Authorization: Bearer $TOKEN" $BASE/clusters
+curl -H "Authorization: Bearer $TOKEN" $BASE/clusters/default/nodes
+curl -H "Authorization: Bearer $TOKEN" \
+     -X POST -d '{"replicas":3}' \
+     $BASE/clusters/default/namespaces/default/deployments/nginx/scale
+```
+
+---
+
+## ChatOps
+
+### 配置钉钉机器人
+
+1. 群设置 → 智能群助手 → 添加机器人 → 自定义
+2. 安全设置选「加签」，复制签名密钥填入 `messaging.dingtalk.secret`
+3. 复制 Webhook 填入 `messaging.dingtalk.webhook`
+4. 在开放平台把「消息接收地址」设为 `http://<服务器IP>:8081/webhook/dingtalk`
+
+飞书同理，填 `messaging.feishu.app_id` / `app_secret`。
+
+### 命令
+
+```
+klaw cluster status <cluster>              # 集群状态
+klaw cluster metrics <cluster>             # 资源指标
+klaw cluster chart <cluster>               # 推送趋势图
+
+klaw pod list <cluster> <ns>               # 列出 Pod
+klaw pod describe <cluster> <ns> <pod>     # Pod 详情
+klaw pod logs <cluster> <ns> <pod>         # 查看日志
+klaw pod analyze <cluster> <ns> <pod>      # 日志智能分析
+klaw pod delete <cluster> <ns> <pod>       # 删除 Pod
+
+klaw deployment list <cluster> <ns>
+klaw deployment status <cluster> <ns> <name>
+klaw deployment scale <cluster> <ns> <name> <replicas>
+klaw deployment restart <cluster> <ns> <name>
+klaw deployment pods <cluster> <ns> <name>
+
+klaw service list <cluster> <ns>
+klaw service describe <cluster> <ns> <name>
+klaw service endpoints <cluster> <ns> <name>
+
+klaw node list <cluster>
+klaw node describe <cluster> <node>
+klaw node metrics <cluster>
+
+klaw monitor status <cluster>
+klaw monitor alerts <cluster>
+klaw monitor chart <cluster>
+
+klaw rbac analyze <cluster>
+
+klaw help
+```
+
+**缩写**：`c`=cluster、`p`=pod、`n`=node、`d`=deployment、`s`/`svc`=service、`r`=rbac、`m`=monitor、`h`=help、
+`ls`=list、`desc`=describe、`log`=logs、`del`/`rm`=delete。所以 `klaw p ls prod default` 等价于 `klaw pod list prod default`。
+
+### 效果
+
+```
+@Klaw klaw cluster status production
+```
+
+```markdown
+📊 **集群状态：production**
 
 **节点：** 3 (3 Ready)
 **Pod：** 12 Running / 2 Pending
@@ -205,275 +600,189 @@ messaging:
 **内存：** 60% / 75%
 ```
 
-更多命令：
-```
-klaw pod list kind-my-k8s default
-klaw pod logs kind-my-k8s default nginx-xxx
-klaw node list kind-my-k8s
-klaw help
-```
+---
 
-## ⚡ 实时事件监控
-
-### 工作原理
-
-Klaw 使用 Kubernetes Watch API 实时监听集群事件：
+## 实时事件监控
 
 ```
 Klaw ──Watch──▶ Kubernetes API Server
-                ◀──实时推送事件──
-                  ↓
-            事件过滤
-                  ↓
-            速率限制
-                  ↓
-            去重/聚合
-                  ↓
-            推送到钉钉
+       ◀──事件流──
+            ↓ 过滤（类型/命名空间/原因/严重级别）
+            ↓ 速率限制
+            ↓ 去重 + 聚合 + 静音窗口
+            ↓
+       钉钉 / 飞书推送
 ```
 
-### 配置示例
-
-```yaml
-events:
-  enabled: true
-  watch_types:          # 监听的资源类型
-    - Pod
-    - Deployment
-    - Service
-    - Node
-  namespaces: []        # 空表示所有命名空间
-  event_types:          # 监听的事件类型
-    - Warning
-    - Error
-  reasons:              # 关注的原因
-    - BackOff
-    - Unhealthy
-    - Failed
-    - OOMKilled
-  exclude_reasons:      # 排除的原因
-    - Scheduled
-    - Pulling
-    - Pulled
-  min_severity: warning # 最小严重级别
-  rate_limit: 10        # 每秒最大事件数
-  dedup_window: 300     # 去重窗口（秒）
-```
-
-### 实时告警示例
-
-当 Pod 崩溃时，钉钉立即收到：
+Pod 被 OOM 杀掉时，群里会收到：
 
 ```markdown
 🔴 **Error** - Pod
 
-**资源：** Pod/nginx-xxx
-**命名空间：** default
-**集群：** kind-my-k8s
+**资源：** Pod/nginx-7d9f-x2k
+**命名空间：** production
+**集群：** production
 **原因：** OOMKilled
-**时间：** 2026-04-02 13:30:00
+**时间：** 2026-08-21 13:30:00
 **消息：**
 > Container nginx was OOM killed
 ```
 
-## 📁 项目结构
+### Watch vs 轮询
 
-```
-klaw/
-├── cmd/klaw/               # 主程序入口
-├── internal/
-│   ├── api/                # REST API 服务器
-│   ├── kubernetes/         # K8s 客户端管理
-│   ├── events/             # 事件系统（Watch 模式）
-│   │   ├── source.go       # 事件抽象层
-│   │   ├── kubernetes.go   # K8s 事件监听
-│   │   └── notifier.go     # 事件通知器
-│   ├── messaging/          # 消息平台集成
-│   │   ├── interface.go    # 通信抽象接口
-│   │   └── dingtalk/       # 钉钉插件
-│   │       ├── client.go   # 旧版客户端
-│   │       └── plugin.go   # 新版插件（双向通信）
-│   ├── ops/                # 运维命令
-│   │   ├── handler.go      # 命令处理器
-│   │   └── router.go       # 命令路由器
-│   ├── monitoring/         # 监控服务（轮询模式）
-│   ├── config/             # 配置管理
-│   └── openclaw/           # OpenClaw 集成
-├── web/                    # React 前端
-│   ├── src/
-│   │   ├── pages/          # 页面组件
-│   │   │   ├── ServicesPage.tsx
-│   │   │   ├── DeploymentsPage.tsx
-│   │   │   └── ...
-│   │   └── lib/api.ts      # API 客户端
-├── configs/
-│   └── config.yaml         # 配置文件
-├── docs/                   # 文档
-│   ├── phase1-implementation-summary.md
-│   ├── phase2-implementation-summary.md
-│   ├── dingtalk-integration.md
-│   └── service-management-impl.md
-└── README.md               # 本文件
-```
+| 维度 | 轮询模式 | Watch 模式 |
+|---|---|---|
+| 事件延迟 | 30–60 秒 | < 1 秒 |
+| API 调用 | 高频轮询 | 事件驱动，下降约 90% |
+| 连接方式 | 短连接 | 长连接 |
 
-## 🛠️ API 文档
+两者可同时开启：`events` 负责秒级告警，`monitoring` 负责分钟级采样供图表使用。
 
-### 集群管理
-- `GET /api/clusters` - 集群列表
-- `GET /api/clusters/{name}` - 集群详情
-- `GET /api/clusters/{name}/status` - 集群状态
-- `GET /api/clusters/{name}/metrics` - 集群指标
-- `GET /api/clusters/{name}/namespaces` - 命名空间列表
+---
 
-### Pod 管理
-- `GET /api/clusters/{cluster}/pods` - 所有命名空间 Pod
-- `GET /api/clusters/{cluster}/namespaces/{ns}/pods` - 命名空间 Pod
-- `GET /api/clusters/{cluster}/namespaces/{ns}/pods/{name}` - Pod 详情
-- `GET /api/clusters/{cluster}/namespaces/{ns}/pods/{name}/logs` - Pod 日志
-- `DELETE /api/clusters/{cluster}/namespaces/{ns}/pods/{name}` - 删除 Pod
-
-### Deployment 管理
-- `GET /api/clusters/{cluster}/deployments` - 所有命名空间 Deployment
-- `GET /api/clusters/{cluster}/namespaces/{ns}/deployments` - 命名空间 Deployment
-- `GET /api/clusters/{cluster}/namespaces/{ns}/deployments/{name}` - Deployment 详情
-- `POST /api/clusters/{cluster}/namespaces/{ns}/deployments/{name}/scale` - 扩缩容
-- `POST /api/clusters/{cluster}/namespaces/{ns}/deployments/{name}/restart` - 重启
-
-### Service 管理
-- `GET /api/clusters/{cluster}/services` - 所有命名空间 Service
-- `GET /api/clusters/{cluster}/namespaces/{ns}/services` - 命名空间 Service
-- `GET /api/clusters/{cluster}/namespaces/{ns}/services/{name}` - Service 详情
-- `GET /api/clusters/{cluster}/namespaces/{ns}/services/{name}/endpoints` - Endpoints
-
-### 节点管理
-- `GET /api/clusters/{cluster}/nodes` - 节点列表
-- `GET /api/clusters/{cluster}/nodes/{name}` - 节点详情
-- `GET /api/clusters/{cluster}/nodes/metrics` - 节点指标
-
-### 事件与监控
-- `GET /api/clusters/{cluster}/events` - 集群事件
-- `GET /api/monitoring/{cluster}/status` - 监控状态
-- `GET /api/monitoring/{cluster}/alerts` - 告警列表
-
-## 🔧 高级配置
-
-### 多集群配置
-
-```yaml
-kubernetes:
-  clusters:
-    - name: production
-      kubeconfig: ~/.kube/config
-      context: production
-    - name: staging
-      kubeconfig: ~/.kube/config
-      context: staging
-    - name: eks-cluster
-      kubeconfig: ~/.kube/eks-config
-      context: eks-cluster
-```
-
-### 事件过滤配置
-
-生产环境推荐配置：
-
-```yaml
-events:
-  enabled: true
-  watch_types:
-    - Pod
-    - Deployment
-    - Node
-  namespaces:
-    - production
-    - default
-  event_types:
-    - Warning
-    - Error
-  reasons:
-    - BackOff
-    - Unhealthy
-    - Failed
-    - OOMKilled
-    - CrashLoopBackOff
-  exclude_reasons:
-    - Scheduled
-    - Pulling
-    - Pulled
-    - Created
-    - Started
-  min_severity: warning
-  rate_limit: 20
-  dedup_window: 600
-  mute_duration: 10
-  channels:
-    - ops-alert
-    - dev-notify
-```
-
-### 混合模式
-
-同时启用事件监听和轮询监控：
-
-```yaml
-# 实时事件监听（秒级推送）
-events:
-  enabled: true
-  watch_types: [Pod, Deployment]
-  event_types: [Warning, Error]
-
-# 传统监控（分钟级汇总，用于图表）
-monitoring:
-  enabled: true
-  interval: 60
-```
-
-## 🐳 Docker 部署
+## 前端开发
 
 ```bash
-# 构建镜像
-docker build -t klaw:latest .
+cd web
+npm install
 
-# 运行容器
-docker run -d \
-  -p 8080:8080 \
-  -p 8081:8081 \
-  -v ~/.kube/config:/root/.kube/config \
-  -v $(pwd)/configs/config.yaml:/app/configs/config.yaml \
-  klaw:latest
+npm run dev          # Vite 开发服务器，端口 3000，/api 代理到 http://localhost:8080
+npm run dev:mock     # 用 MSW mock 数据，无需后端
+npm run build        # 生产构建到 web/dist
+npm run lint         # ESLint
 ```
 
-## 📈 性能指标
+由于 Vite 已把 `/api` 反向代理到后端，同源请求不触发 CORS，通常无需额外配置。
+若改用直连后端的方式联调，把 `http://localhost:3000` 加进 `server.cors.allowed_origins`。
 
-| 功能 | 轮询模式 | Watch 模式 | 提升 |
-|------|---------|-----------|------|
-| 事件延迟 | 30-60 秒 | < 1 秒 | 60x |
-| API 调用 | 高频轮询 | 事件驱动 | 90%↓ |
-| 资源占用 | CPU 密集 | 内存密集 | 更均衡 |
-| 连接稳定性 | 短连接 | 长连接 | 更稳定 |
+技术栈：React 18 · TypeScript 5.2 · Vite 5 · Tailwind 3.3 · react-router-dom 6 · axios 1.6 · recharts 2.10 · lucide-react。
 
-## 📚 相关文档
+---
 
-- [钉钉集成指南](./docs/dingtalk-integration.md) - 完整的钉钉配置和使用说明
-- [Phase 1 实施总结](./docs/phase1-implementation-summary.md) - 钉钉双向通信实现
-- [Phase 2 实施总结](./docs/phase2-implementation-summary.md) - 实时事件推送实现
-- [Service 管理实现](./docs/service-management-impl.md) - Service 功能详细设计
+## 测试
 
-## 🤝 贡献
+### Go
 
-欢迎提交 Issue 和 Pull Request！
+```bash
+go build ./...
+go vet ./...
+go test ./internal/... -count=1
+make test                       # go test -v ./...
+```
+
+主仓库共 59 个 `_test.go`，覆盖 API handler、诊断分析器、规则引擎、报告生成、存储层、各专项分析器与 ChatOps。
+
+### 前端
+
+```bash
+cd web
+npm run test:run        # 单元测试
+npm run test:coverage   # 覆盖率（v8）
+npm run test:ui         # Vitest UI
+./test.sh all           # 封装脚本：all | unit | integration | coverage | ui | watch
+```
+
+Vitest + jsdom + MSW，测试位于 `web/src/__tests__/{unit,integration}`。
+
+### CI
+
+`.github/workflows/ci.yml` 共 7 个 job：`go`、`operator`、`etcd-backup-module`、`etcd-guardian-module`、`frontend`、`helm`、`docker`。
+
+---
+
+## Makefile 目标
+
+```bash
+make build            # 构建前端 + 后端
+make build-frontend   # 仅前端
+make build-backend    # 仅后端
+make dev              # 并行启动前后端开发服务
+make run              # 构建并运行
+make test             # Go 测试
+make test-frontend    # 前端测试
+make fmt              # go fmt + eslint --fix
+make lint             # golangci-lint + eslint
+make docker-build     # 构建镜像
+make docker-run       # 运行容器
+make helm-install     # helm install klaw ./helm/klaw
+make helm-upgrade     # helm upgrade
+make helm-package     # 打包 Chart
+make deps             # 安装全部依赖
+make help             # 查看全部目标
+```
+
+---
+
+## 子项目
+
+### Kudig Operator（`operator/`）
+
+CRD 驱动的声明式诊断编排，基于 controller-runtime 0.16.3。
+
+| CRD | 用途 |
+|---|---|
+| `ClusterDiagnostic` | 声明一次集群级诊断任务 |
+| `NodeDiagnostic` | 声明节点级诊断任务 |
+| `Schedule` | 定时触发上述诊断 |
+
+部署：`operator/helm/kudig-operator`。示例 CR：`operator/config/examples/`。详见 [operator/README.md](./operator/README.md)。
+
+### etcd Guardian（`modules/etcd-guardian/`）
+
+完整的 etcd 备份恢复 Operator，自带控制器、CRD、Gin 后端 API、独立 Web UI 与 Helm Chart。可独立部署，也可作为 Klaw 的 etcd 备份能力后端。详见 `modules/etcd-guardian/README.md`。
+
+### etcd Backup（`modules/etcd-backup/`）
+
+轻量的 etcd 备份/恢复客户端库，供上层复用。
+
+---
+
+## 已知限制
+
+1. **Web UI 不会自动携带 Bearer Token。**
+   `web/src/lib/api.ts` 的 axios 实例目前没有请求拦截器，因此当 `server.auth.enabled: true` 时，浏览器访问会收到
+   `401 Unauthorized: missing bearer token`。当前的规避方式是本地开发关闭认证（`values-kind.yaml` 已默认关闭），
+   生产环境请置于反向代理 / Ingress 认证之后。彻底修复需要给前端补 token 输入与持久化 + 请求拦截器。
+
+2. **eBPF 诊断仅在 Linux 可用。** 相关分析器通过 build tag 隔离，macOS / Windows 上编译不会失败，但探针不会注册。
+
+3. **OpenClaw 技能执行为预留接口。** `internal/openclaw` 当前完成目录扫描与技能加载，执行逻辑待补全。
+
+4. **`/api/*` 旧版路由将于 2026-12-31 下线。** 请迁移到 `/api/v1/*`。
+
+---
+
+## 文档索引
+
+| 文档 | 内容 |
+|---|---|
+| [deployment/README.md](./deployment/README.md) | kind 本地集群、in-cluster 部署、镜像预拉取、故障排查 |
+| [docs/technical-assessment-report.md](./docs/technical-assessment-report.md) | 8 维度生产就绪度评估与修复记录 |
+| [docs/dingtalk-integration.md](./docs/dingtalk-integration.md) | 钉钉集成完整指南 |
+| [docs/phase1-implementation-summary.md](./docs/phase1-implementation-summary.md) | 钉钉双向通信实现 |
+| [docs/phase2-implementation-summary.md](./docs/phase2-implementation-summary.md) | 实时事件推送实现 |
+| [docs/service-management-impl.md](./docs/service-management-impl.md) | Service 管理功能设计 |
+| [docs/fusion-phase1-execution-status.md](./docs/fusion-phase1-execution-status.md) | 诊断核心融合执行状态 |
+| [CHANGELOG.md](./CHANGELOG.md) | 版本变更记录 |
+| [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md) | 开发计划与迭代路线 |
+
+---
+
+## 贡献
 
 1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+2. 创建特性分支：`git checkout -b feature/AmazingFeature`
+3. 确保 `make lint && make test` 通过
+4. 提交：`git commit -m 'feat: add AmazingFeature'`
+5. 推送并开启 Pull Request
 
-## 📄 许可证
+---
 
-MIT License
+## 许可证
 
-## 🔗 链接
+[MIT License](./LICENSE) © 2026 kudig-io
 
-- 项目主页：https://github.com/kudig-io/klaw
-- 问题反馈：https://github.com/kudig-io/klaw/issues
+## 链接
+
+- 项目主页：<https://github.com/kudig-io/klaw>
+- 问题反馈：<https://github.com/kudig-io/klaw/issues>

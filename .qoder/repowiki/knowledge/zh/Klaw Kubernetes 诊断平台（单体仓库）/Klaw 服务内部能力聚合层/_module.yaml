@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: klaw_service
+title: Klaw 服务内部能力聚合层
+scope:
+    - internal/
+source_files: []
+depends_on: []
+related_to:
+    - path: deployment

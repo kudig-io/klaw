@@ -20,6 +20,10 @@ FROM golang:1.24-alpine AS backend-builder
 
 WORKDIR /app
 
+# 模块代理，网络受限环境可通过 --build-arg GOPROXY=https://goproxy.cn,direct 覆盖
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=${GOPROXY}
+
 # 复制go.mod和go.sum文件
 COPY go.mod go.sum ./
 

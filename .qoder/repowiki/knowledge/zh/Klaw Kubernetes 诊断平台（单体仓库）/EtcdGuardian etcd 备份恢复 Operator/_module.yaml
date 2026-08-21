@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: etcd_guardian_module
+title: EtcdGuardian etcd 备份恢复 Operator
+scope:
+    - modules/etcd-guardian/
+source_files: []
+depends_on: []
+related_to: []

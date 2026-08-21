@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: klaw_service/config_chart_openclaw
+title: 配置加载、图表生成与OpenClaw技能管理
+scope:
+    - internal/config/
+    - internal/chart/
+    - internal/openclaw/
+source_files: []
+depends_on: []
+related_to: []

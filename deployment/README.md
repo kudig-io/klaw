@@ -96,6 +96,54 @@ cd /Users/allengaller/Documents/GitHub/kudig-io/klaw
 
 然后访问 http://localhost:8080
 
+## 在 kind 中部署 Klaw（in-cluster，推荐）
+
+以下流程已在 macOS + Docker Desktop + kind v0.31 + Kubernetes v1.35 上验证通过。
+Klaw 以 Pod 形式运行在集群内，通过 ServiceAccount 凭据访问 API Server，无需挂载 kubeconfig。
+
+```bash
+# 1. 创建集群
+kind create cluster --config deployment/kind/cluster-config.yaml
+
+# 2. 构建镜像（国内网络可指定 GOPROXY）
+docker build --build-arg GOPROXY=https://goproxy.cn,direct -t kudig-io/klaw:dev .
+
+# 3. 加载镜像到集群节点
+kind load docker-image kudig-io/klaw:dev --name klaw-test
+
+# 4. 部署
+helm upgrade --install klaw helm/klaw \
+  -f helm/klaw/values-kind.yaml \
+  -n klaw --create-namespace --wait
+
+# 5. 访问
+kubectl port-forward -n klaw svc/klaw 18080:8080
+```
+
+打开 http://127.0.0.1:18080 即为 Web UI，`/healthz`、`/readyz`、`/metrics` 为探针与指标端点。
+
+### values-kind.yaml 关键点
+
+- `image.tag: dev` + `pullPolicy: Never`：只用 `kind load` 注入的本地镜像，不回源拉取
+- `config.server.auth.enabled: false`：Web UI 前端目前不会注入 Bearer token，本地默认关闭认证；
+  若要验证 API 鉴权，改为 `true` 后用 `curl -H "Authorization: Bearer <secrets.apiToken>"` 访问
+- `persistence.storageClass: standard`：使用 kind 自带的 local-path StorageClass
+
+### 网络受限环境的镜像预拉取
+
+Docker Hub 直连超时时，可先经镜像加速站拉取再打回原名：
+
+```bash
+for i in node:20-alpine golang:1.24-alpine alpine:3.20; do
+  docker pull docker.1ms.run/library/$i && docker tag docker.1ms.run/library/$i $i
+done
+
+docker pull docker.1ms.run/kindest/node:v1.35.0
+docker tag docker.1ms.run/kindest/node:v1.35.0 kindest/node:v1.35.0
+```
+
+注意：`~/.docker/daemon.json` 中的 `registry-mirrors` 必须位于顶层，放在 `builder` 段内不会生效。
+
 ## 管理脚本命令
 
 ```bash

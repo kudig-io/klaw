@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: klaw_service/diag_pipeline/rca_autofix
+title: 根因分析与自动修复引擎
+scope:
+    - internal/diag/rca/
+    - internal/diag/autofix/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/diag_pipeline/rules_engine

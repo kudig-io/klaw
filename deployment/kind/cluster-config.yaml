@@ -50,11 +50,13 @@ networking:
   serviceSubnet: "10.96.0.0/12"
 
 # 特性开关
-featureGates:
-  # 启用某些实验性功能（根据需要）
-  
+featureGates: {}
+
 # 容器运行时配置
-containerdConfigPatches:
-  - |-
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5000"]
-      endpoint = ["http://kind-registry:5000"]
+# 注意：containerd 2.x（kindest/node v1.31+）已弃用 io.containerd.grpc.v1.cri 插件名，
+# 沿用旧写法会导致 CRI 插件加载失败、kubelet 无法启动。
+# 如需本地 registry，请改用 config_path 方式并确认 containerd 版本。
+# containerdConfigPatches:
+#   - |-
+#     [plugins."io.containerd.cri.v1.images".registry]
+#       config_path = "/etc/containerd/certs.d"

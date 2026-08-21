@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: klaw_service/diag_pipeline/rules_engine
+title: YAML 规则诊断引擎
+scope:
+    - internal/diag/rules/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/diag_pipeline/rca_autofix

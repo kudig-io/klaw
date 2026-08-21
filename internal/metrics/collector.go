@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sclient "k8s.io/client-go/kubernetes"
 
 	"github.com/kudig-io/klaw/internal/kubernetes"
 )
@@ -133,13 +134,8 @@ func (c *Collector) CollectClusterMetrics(clusterName string) (*ClusterMetrics, 
 }
 
 // collectNodeMetrics 收集节点指标
-func (c *Collector) collectNodeMetrics(client interface{}) (*NodeMetricsSummary, error) {
-	k8sClient, ok := client.(interface{ CoreV1() interface{ Nodes() interface{ List(ctx context.Context, opts metav1.ListOptions) (*corev1.NodeList, error) } } })
-	if !ok {
-		return nil, fmt.Errorf("invalid client type")
-	}
-
-	nodes, err := k8sClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+func (c *Collector) collectNodeMetrics(client k8sclient.Interface) (*NodeMetricsSummary, error) {
+	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -179,13 +175,8 @@ func (c *Collector) collectNodeMetrics(client interface{}) (*NodeMetricsSummary,
 }
 
 // collectPodMetrics 收集Pod指标
-func (c *Collector) collectPodMetrics(client interface{}) (*PodMetricsSummary, error) {
-	k8sClient, ok := client.(interface{ CoreV1() interface{ Pods(namespace string) interface{ List(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error) } } })
-	if !ok {
-		return nil, fmt.Errorf("invalid client type")
-	}
-
-	pods, err := k8sClient.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
+func (c *Collector) collectPodMetrics(client k8sclient.Interface) (*PodMetricsSummary, error) {
+	pods, err := client.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -227,13 +218,8 @@ func (c *Collector) collectPodMetrics(client interface{}) (*PodMetricsSummary, e
 }
 
 // collectResourceMetrics 收集资源指标
-func (c *Collector) collectResourceMetrics(client interface{}) (*ResourceMetrics, error) {
-	k8sClient, ok := client.(interface{ CoreV1() interface{ Nodes() interface{ List(ctx context.Context, opts metav1.ListOptions) (*corev1.NodeList, error) } } })
-	if !ok {
-		return nil, fmt.Errorf("invalid client type")
-	}
-
-	nodes, err := k8sClient.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+func (c *Collector) collectResourceMetrics(client k8sclient.Interface) (*ResourceMetrics, error) {
+	nodes, err := client.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -257,13 +243,8 @@ func (c *Collector) collectResourceMetrics(client interface{}) (*ResourceMetrics
 }
 
 // collectEventMetrics 收集事件指标
-func (c *Collector) collectEventMetrics(client interface{}) ([]EventMetric, error) {
-	k8sClient, ok := client.(interface{ CoreV1() interface{ Events(namespace string) interface{ List(ctx context.Context, opts metav1.ListOptions) (*corev1.EventList, error) } } })
-	if !ok {
-		return nil, fmt.Errorf("invalid client type")
-	}
-
-	events, err := k8sClient.CoreV1().Events("").List(context.Background(), metav1.ListOptions{
+func (c *Collector) collectEventMetrics(client k8sclient.Interface) ([]EventMetric, error) {
+	events, err := client.CoreV1().Events("").List(context.Background(), metav1.ListOptions{
 		Limit: 50,
 	})
 	if err != nil {
