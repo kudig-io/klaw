@@ -79,7 +79,7 @@ func TestTranslateUpstream(t *testing.T) {
 	}
 	// 工具调用
 	_, _, calls := TranslateUpstream(map[string]any{
-		"type": "response.function_call_arguments.done",
+		"type":    "response.function_call_arguments.done",
 		"call_id": "c1", "name": "list_pods", "arguments": `{"namespace":"default"}`,
 	})
 	if len(calls) != 1 || calls[0].Name != "list_pods" || calls[0].CallID != "c1" {
