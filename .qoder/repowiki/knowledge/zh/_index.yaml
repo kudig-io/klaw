@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-08-21T08:26:54Z"
+exported_at: "2026-08-25T07:58:53Z"
 modules:
     "":
-        dir_name: Klaw 单体仓库根（多组件编排层）
-        title: Klaw 单体仓库根（多组件编排层）
+        dir_name: Klaw 单体仓库根模块
+        title: Klaw 单体仓库根模块
         scope:
             - Dockerfile
             - Makefile
@@ -38,8 +38,8 @@ modules:
         depends_on: []
         related_to: []
     docs:
-        dir_name: Klaw 项目技术文档与实施记录
-        title: Klaw 项目技术文档与实施记录
+        dir_name: Klaw 项目技术文档与实施总结
+        title: Klaw 项目技术文档与实施总结
         scope:
             - docs/
         source_files: []

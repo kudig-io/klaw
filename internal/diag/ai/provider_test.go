@@ -122,3 +122,81 @@ func TestGetLocalizedMessage(t *testing.T) {
 		t.Error("expected non-empty message")
 	}
 }
+
+func TestFactoryMimoDefaults(t *testing.T) {
+	config := &Config{Provider: "mimo", APIKey: "tp-test", Model: "gpt-4"}
+
+	factory := NewFactory(config)
+	provider, err := factory.CreateProvider()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	openaiProvider, ok := provider.(*OpenAIProvider)
+	if !ok {
+		t.Fatalf("expected *OpenAIProvider, got %T", provider)
+	}
+	if openaiProvider.config.BaseURL != "https://api.xiaomimimo.com/v1" {
+		t.Errorf("expected mimo default BaseURL, got %s", openaiProvider.config.BaseURL)
+	}
+	if openaiProvider.config.Model != "mimo-v2.5" {
+		t.Errorf("expected mimo default model mimo-v2.5, got %s", openaiProvider.config.Model)
+	}
+}
+
+func TestFactoryMimoExplicitConfigWins(t *testing.T) {
+	config := &Config{
+		Provider: "MIMO", // 大小写不敏感
+		APIKey:   "tp-test",
+		BaseURL:  "https://proxy.example.com/v1",
+		Model:    "mimo-v2.5-pro",
+	}
+
+	provider, err := NewFactory(config).CreateProvider()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	p := provider.(*OpenAIProvider)
+	if p.config.BaseURL != "https://proxy.example.com/v1" || p.config.Model != "mimo-v2.5-pro" {
+		t.Errorf("explicit BaseURL/Model should win, got %s / %s", p.config.BaseURL, p.config.Model)
+	}
+}
+
+func TestFactoryMimoNoAPIKey(t *testing.T) {
+	config := &Config{Provider: "mimo", APIKey: ""}
+	_, err := NewFactory(config).CreateProvider()
+	if err == nil {
+		t.Error("expected error when mimo API key is empty")
+	}
+}
+
+func TestFactoryOllamaNoAPIKeyAllowed(t *testing.T) {
+	config := &Config{Provider: "ollama", APIKey: "", Model: "gpt-4"}
+
+	provider, err := NewFactory(config).CreateProvider()
+	if err != nil {
+		t.Fatalf("ollama should work without API key: %v", err)
+	}
+	p := provider.(*OpenAIProvider)
+	if p.config.BaseURL != "http://localhost:11434/v1" {
+		t.Errorf("expected ollama default BaseURL, got %s", p.config.BaseURL)
+	}
+	if p.config.Model != "llama3" {
+		t.Errorf("expected ollama default model llama3, got %s", p.config.Model)
+	}
+}
+
+func TestGetEnvIntInvalidFallsBackToDefault(t *testing.T) {
+	os.Setenv("KUDIG_AI_TIMEOUT", "30s") // 非法整数
+	defer os.Unsetenv("KUDIG_AI_TIMEOUT")
+
+	if got := getEnvInt("KUDIG_AI_TIMEOUT", 30); got != 30 {
+		t.Errorf("invalid int should fall back to default 30, got %d", got)
+	}
+
+	os.Setenv("KUDIG_AI_TEMPERATURE", "abc")
+	defer os.Unsetenv("KUDIG_AI_TEMPERATURE")
+	if got := getEnvFloat("KUDIG_AI_TEMPERATURE", 0.3); got != 0.3 {
+		t.Errorf("invalid float should fall back to default 0.3, got %v", got)
+	}
+}

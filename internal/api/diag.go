@@ -13,6 +13,8 @@ func (s *Server) handleRunDiagnostics(w http.ResponseWriter, r *http.Request) {
 		Context:    r.URL.Query().Get("context"),
 		NodeName:   r.URL.Query().Get("node"),
 		Namespace:  r.URL.Query().Get("namespace"),
+		// ?ai=false 可显式关闭 AI 摘要，避免每次诊断都产生 LLM 调用开销
+		DisableAI: r.URL.Query().Get("ai") == "false",
 	}
 
 	result, err := diag.RunOnlineDiagnostics(r.Context(), req)

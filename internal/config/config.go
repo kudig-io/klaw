@@ -14,6 +14,7 @@ type Config struct {
 	OpenClaw   OpenClawConfig   `yaml:"openclaw"`
 	Server     ServerConfig     `yaml:"server"`
 	Events     EventConfig      `yaml:"events"`
+	SOS        SOSConfig        `yaml:"sos"`
 }
 
 // KubernetesConfig Kubernetes配置
@@ -113,6 +114,15 @@ func Load(path string) (*Config, error) {
 	if config.Server.Port == 0 {
 		config.Server.Port = 8080
 	}
+	if config.SOS.Dashscope.Region == "" {
+		config.SOS.Dashscope.Region = "cn-beijing"
+	}
+	if config.SOS.Dashscope.Model == "" {
+		config.SOS.Dashscope.Model = "qwen3.5-omni-plus-realtime"
+	}
+	if config.SOS.Dashscope.Voice == "" {
+		config.SOS.Dashscope.Voice = "Ethan"
+	}
 
 	// 环境变量覆盖（敏感信息不落盘，由 Secret 注入）
 	applyEnvOverrides(&config)
@@ -143,4 +153,24 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("KLAW_FEISHU_APP_SECRET"); v != "" {
 		cfg.Messaging.Feishu.AppSecret = v
 	}
+	if v := os.Getenv("KLAW_SOS_DASHSCOPE_API_KEY"); v != "" {
+		cfg.SOS.Dashscope.APIKey = v
+	}
+}
+
+// SOSConfig SOS 语音应急快速对话配置
+type SOSConfig struct {
+	Enabled            bool               `yaml:"enabled"`
+	Dashscope          SOSDashscopeConfig `yaml:"dashscope"`
+	FAQFile            string             `yaml:"faq_file"`            // 外部语料路径；为空时使用内嵌默认语料
+	InstructionsPrefix string             `yaml:"instructions_prefix"` // 追加在默认系统提示之前
+}
+
+// SOSDashscopeConfig 阿里云百炼 DashScope Realtime 配置
+type SOSDashscopeConfig struct {
+	APIKey      string `yaml:"api_key"`      // 建议通过环境变量 KLAW_SOS_DASHSCOPE_API_KEY 注入，避免落盘
+	WorkspaceID string `yaml:"workspace_id"` // 百炼 Workspace ID（端点子域名）
+	Region      string `yaml:"region"`       // cn-beijing / ap-southeast-1
+	Model       string `yaml:"model"`
+	Voice       string `yaml:"voice"`
 }

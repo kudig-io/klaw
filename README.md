@@ -325,6 +325,42 @@ openclaw:
 | `KLAW_FEISHU_APP_ID` | `messaging.feishu.app_id` |
 | `KLAW_FEISHU_APP_SECRET` | `messaging.feishu.app_secret` |
 
+### AI 诊断助手（可选）
+
+诊断引擎可选接入 LLM，对诊断结果生成自然语言摘要与修复建议（`klaw diag` 尾部自动输出
+`=== AI 分析 ===` 段落，HTTP `/api/v1/diag/run` 返回 `ai_analysis` 字段）。全部通过环境变量
+配置，未设置 `KUDIG_AI_API_KEY` 时自动禁用，不影响诊断主流程：
+
+| 变量 | 说明 | 默认 |
+|---|---|---|
+| `KUDIG_AI_PROVIDER` | `openai` / `qwen` / `ollama` / `mimo` | `openai` |
+| `KUDIG_AI_API_KEY` | API Key（Bearer 鉴权） | 空（禁用 AI） |
+| `KUDIG_AI_BASE_URL` | 自定义 OpenAI 兼容端点 | 按 provider 自动补齐 |
+| `KUDIG_AI_MODEL` | 模型名 | 按 provider 自动补齐 |
+| `KUDIG_AI_TIMEOUT` | 超时（秒） | `30` |
+| `KUDIG_AI_LANGUAGE` | 输出语言 `zh` / `en` | `zh` |
+| `KUDIG_AI_MAX_TOKENS` | 最大生成 token 数 | `2000` |
+| `KUDIG_AI_TEMPERATURE` | 采样温度 | `0.3` |
+
+#### 使用小米 MiMo
+
+```bash
+export KUDIG_AI_PROVIDER=mimo
+export KUDIG_AI_API_KEY=tp-xxxx        # MiMo 开放平台 (https://mimo.mi.com) 申请
+# 模型默认 mimo-v2.5，可切换：export KUDIG_AI_MODEL=mimo-v2.5-pro
+klaw diag                              # 诊断报告末尾自动附带 AI 分析
+klaw diag --no-ai                      # 显式关闭本次 AI 分析
+```
+
+集群内部署时通过 Helm 注入（写入 K8s Secret，经 `envFrom` 生效）：
+
+```bash
+helm upgrade --install klaw helm/klaw \
+  --set secrets.ai.provider=mimo \
+  --set secrets.ai.apiKey=tp-xxxx \
+  -f helm/klaw/values-kind.yaml -n klaw
+```
+
 ---
 
 ## CLI

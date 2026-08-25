@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,7 +50,8 @@ type FixSuggestion struct {
 
 // Config holds AI provider configuration
 type Config struct {
-	Provider    string `env:"KUDIG_AI_PROVIDER" default:"openai"` // openai, qwen, ollama
+	// Provider: openai, qwen, ollama, mimo（均为 OpenAI 兼容协议；mimo 为小米 MiMo 开放平台）
+	Provider    string `env:"KUDIG_AI_PROVIDER" default:"openai"`
 	APIKey      string `env:"KUDIG_AI_API_KEY"`
 	BaseURL     string `env:"KUDIG_AI_BASE_URL"` // for custom endpoints like Ollama
 	Model       string `env:"KUDIG_AI_MODEL" default:"gpt-4"`
@@ -82,18 +84,21 @@ func getEnv(key, defaultValue string) string {
 
 func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
-		var result int
-		fmt.Sscanf(value, "%d", &result)
-		return result
+		if result, err := strconv.Atoi(value); err == nil {
+			return result
+		}
+		// 非法值不能静默返回 0（会导致 Timeout=0 立即超时），回退默认值
+		fmt.Printf("⚠ Invalid %s=%q, using default %d\n", key, value, defaultValue)
 	}
 	return defaultValue
 }
 
 func getEnvFloat(key string, defaultValue float64) float64 {
 	if value := os.Getenv(key); value != "" {
-		var result float64
-		fmt.Sscanf(value, "%f", &result)
-		return result
+		if result, err := strconv.ParseFloat(value, 64); err == nil {
+			return result
+		}
+		fmt.Printf("⚠ Invalid %s=%q, using default %v\n", key, value, defaultValue)
 	}
 	return defaultValue
 }
@@ -106,7 +111,8 @@ type OpenAIProvider struct {
 
 // NewOpenAIProvider creates a new OpenAI provider
 func NewOpenAIProvider(config *Config) (*OpenAIProvider, error) {
-	if config.APIKey == "" {
+	// ollama 为本地服务，通常无鉴权，允许空 APIKey
+	if config.APIKey == "" && config.Provider != "ollama" {
 		return nil, fmt.Errorf("AI API key not configured")
 	}
 
@@ -389,16 +395,35 @@ func NewFactory(config *Config) *Factory {
 	return &Factory{config: config}
 }
 
-// CreateProvider creates an AI provider based on configuration
+// CreateProvider creates an AI provider based on configuration.
+// 所有 provider 均走 OpenAI 兼容协议，工厂仅负责按 provider 补齐默认 BaseURL/Model 与鉴权要求。
 func (f *Factory) CreateProvider() (Provider, error) {
-	if f.config.APIKey == "" {
-		return nil, fmt.Errorf("AI API key not configured, set KUDIG_AI_API_KEY")
-	}
-
-	switch f.config.Provider {
-	case "openai", "qwen", "ollama":
+	switch strings.ToLower(f.config.Provider) {
+	case "mimo":
+		if f.config.APIKey == "" {
+			return nil, fmt.Errorf("AI API key not configured, set KUDIG_AI_API_KEY")
+		}
+		// 小米 MiMo 开放平台（https://mimo.mi.com），Bearer 鉴权
+		if f.config.BaseURL == "" {
+			f.config.BaseURL = "https://api.xiaomimimo.com/v1"
+		}
+		if f.config.Model == "" || f.config.Model == "gpt-4" {
+			f.config.Model = "mimo-v2.5"
+		}
 		return NewOpenAIProvider(f.config)
-	default:
+	case "ollama":
+		// 本地 Ollama 无需鉴权；显式设置的 BaseURL/Model 优先
+		if f.config.BaseURL == "" {
+			f.config.BaseURL = "http://localhost:11434/v1"
+		}
+		if f.config.Model == "" || f.config.Model == "gpt-4" {
+			f.config.Model = "llama3"
+		}
+		return NewOpenAIProvider(f.config)
+	default: // openai、qwen 及其他 OpenAI 兼容服务
+		if f.config.APIKey == "" {
+			return nil, fmt.Errorf("AI API key not configured, set KUDIG_AI_API_KEY")
+		}
 		return NewOpenAIProvider(f.config)
 	}
 }
