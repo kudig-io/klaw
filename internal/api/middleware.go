@@ -19,6 +19,12 @@ func (s *Server) authMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		// SOS 会话端点放行：浏览器 WebSocket 无法携带自定义 Authorization 头，
+		// 由 handleSOSSession 的 checkToken（Bearer 头或 ?token= 查询参数）完成完整鉴权
+		if r.URL.Path == "/api/v1/sos/session" {
+			next.ServeHTTP(w, r)
+			return
+		}
 		authz := r.Header.Get("Authorization")
 		const prefix = "Bearer "
 		if !strings.HasPrefix(authz, prefix) {

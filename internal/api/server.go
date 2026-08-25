@@ -83,6 +83,22 @@ func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Ser
 		corsCfg:           serverCfg.CORS,
 		metrics:           newHTTPMetrics(),
 	}
+	// SOS 会话审计注入：仅记录会话开始/结束/工具调用元数据，不含音频与转写内容
+	if sosMgr != nil {
+		sosMgr.SetAuditLog(func(action, detail string) {
+			if s.auditLogger == nil {
+				return
+			}
+			s.auditLogger.Log(audit.AuditEvent{
+				EventType: action,
+				Category:  "sos",
+				Severity:  "info",
+				Source:    "sos",
+				Action:    action,
+				Details:   map[string]interface{}{"detail": detail},
+			})
+		})
+	}
 	s.SetupRoutes()
 	return s, nil
 }
