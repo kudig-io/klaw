@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-08-25T08:26:28Z"
+exported_at: "2026-08-25T07:58:53Z"
 modules:
     "":
-        dir_name: Klaw 单体多语言仓库（Go + React + K8s Operator）
-        title: Klaw 单体多语言仓库（Go + React + K8s Operator）
+        dir_name: Klaw 单体仓库根模块
+        title: Klaw 单体仓库根模块
         scope:
             - Dockerfile
             - Makefile
@@ -38,8 +38,8 @@ modules:
         depends_on: []
         related_to: []
     docs:
-        dir_name: Klaw 项目文档与 SOS 模式设计
-        title: Klaw 项目文档与 SOS 模式设计
+        dir_name: Klaw 项目技术文档与实施总结
+        title: Klaw 项目技术文档与实施总结
         scope:
             - docs/
         source_files: []
@@ -108,8 +108,8 @@ modules:
         depends_on: []
         related_to: []
     klaw_service:
-        dir_name: Klaw 内部服务聚合层
-        title: Klaw 内部服务聚合层
+        dir_name: Klaw 服务内部核心模块集合
+        title: Klaw 服务内部核心模块集合
         scope:
             - internal/
         source_files: []
@@ -141,8 +141,8 @@ modules:
         depends_on: []
         related_to: []
     klaw_service/api:
-        dir_name: Kubernetes 集群管理 HTTP API 服务
-        title: Kubernetes 集群管理 HTTP API 服务
+        dir_name: HTTP API 服务与路由层
+        title: HTTP API 服务与路由层
         scope:
             - internal/api/
         source_files: []
@@ -177,8 +177,8 @@ modules:
         depends_on: []
         related_to: []
     klaw_service/config_chart_openclaw:
-        dir_name: 配置解析、ASCII图表与OpenClaw技能管理
-        title: 配置解析、ASCII图表与OpenClaw技能管理
+        dir_name: 配置加载、图表生成与OpenClaw技能管理
+        title: 配置加载、图表生成与OpenClaw技能管理
         scope:
             - internal/config/
             - internal/chart/
@@ -188,8 +188,8 @@ modules:
         depends_on: []
         related_to: []
     klaw_service/diag_pipeline:
-        dir_name: Klaw 诊断流水线编排层
-        title: Klaw 诊断流水线编排层
+        dir_name: Klaw 在线诊断流水线编排层
+        title: Klaw 在线诊断流水线编排层
         scope:
             - internal/diag/
         source_files: []
@@ -206,8 +206,8 @@ modules:
         depends_on: []
         related_to: []
     klaw_service/diag_pipeline/ai_assistant:
-        dir_name: AI 诊断助手（LLM 根因分析）
-        title: AI 诊断助手（LLM 根因分析）
+        dir_name: AI 诊断助手与 LLM 提供商适配层
+        title: AI 诊断助手与 LLM 提供商适配层
         scope:
             - internal/diag/ai/
         source_files: []

@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: klaw_service/diag_pipeline
+title: Klaw 诊断流水线编排层
+scope:
+    - internal/diag/
+source_files: []
+depends_on: []
+related_to: []
