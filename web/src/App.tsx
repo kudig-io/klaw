@@ -10,7 +10,9 @@ import DeploymentsPage from './pages/DeploymentsPage'
 import TenantsPage from './pages/TenantsPage'
 import { ServicesPage } from './pages/ServicesPage'
 import DiagnosticsPage from './pages/DiagnosticsPage'
-import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe, DatabaseBackup, Shield, Stethoscope } from 'lucide-react'
+import SosCallPage from './pages/SosCallPage'
+import SosFloatingButton from './components/SosFloatingButton'
+import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe, DatabaseBackup, Shield, Stethoscope, Siren } from 'lucide-react'
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false)
@@ -47,6 +49,7 @@ function App() {
     { path: '/nodes', label: 'Nodes', icon: Activity },
     { path: '/monitoring', label: 'Monitoring', icon: AlertCircle },
     { path: '/diagnostics', label: 'Diagnostics', icon: Stethoscope },
+    { path: '/sos', label: 'SOS', icon: Siren },
   ]
 
   return (
@@ -180,6 +183,7 @@ function App() {
           <Route path="/nodes" element={<NodesPage />} />
           <Route path="/monitoring" element={<MonitoringPage />} />
           <Route path="/diagnostics" element={<DiagnosticsPage />} />
+          <Route path="/sos" element={<SosCallPage />} />
         </Routes>
       </main>
 
@@ -200,6 +204,8 @@ function App() {
           </div>
         </div>
       </footer>
+
+      <SosFloatingButton />
     </div>
   )
 }
