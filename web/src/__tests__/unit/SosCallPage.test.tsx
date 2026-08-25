@@ -51,6 +51,7 @@ describe('SosCallPage', () => {
         assistantText: '',
         muted: false,
         speaking: false,
+        toolCall: '',
         messages: [],
       },
       start: vi.fn(),

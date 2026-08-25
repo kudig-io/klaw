@@ -16,6 +16,7 @@ export interface SosSessionState {
   assistantText: string
   muted: boolean
   speaking: boolean
+  toolCall: string // 当前正在执行的集群工具名（空表示无）
   messages: TranscriptEntry[]
 }
 
@@ -28,6 +29,7 @@ export const initialSosState: SosSessionState = {
   assistantText: '',
   muted: false,
   speaking: false,
+  toolCall: '',
   messages: [],
 }
 
@@ -36,6 +38,7 @@ export type SosServerEvent =
   | { type: 'error'; message?: string }
   | { type: 'speech_started' }
   | { type: 'response.done' }
+  | { type: 'session.idle_timeout'; message?: string }
   | { type: 'tool_call'; name?: string }
   | { type: 'user.transcript.delta'; delta?: string }
   | { type: 'user.transcript.done'; delta?: string }
@@ -74,6 +77,11 @@ function reduceEvent(state: SosSessionState, ev: SosServerEvent): SosSessionStat
       }
     case 'error':
       return { ...state, status: 'error', error: ev.message ?? '未知错误' }
+    case 'session.idle_timeout':
+      // 空闲超时是正常结束，不用 error 状态渲染
+      return { ...state, status: 'ended', error: ev.message ?? '会话已超时结束' }
+    case 'tool_call':
+      return { ...state, toolCall: ev.name ?? '' }
     case 'speech_started':
       // 智能打断：用户开口，停止本地播报
       return { ...state, speaking: false }
@@ -87,7 +95,7 @@ function reduceEvent(state: SosSessionState, ev: SosServerEvent): SosSessionStat
       const messages = [...state.messages]
       if (state.userText) messages.push({ role: 'user', text: state.userText })
       if (state.assistantText) messages.push({ role: 'assistant', text: state.assistantText })
-      return { ...state, messages, userText: '', assistantText: '', speaking: false }
+      return { ...state, messages, userText: '', assistantText: '', speaking: false, toolCall: '' }
     }
     default:
       return state

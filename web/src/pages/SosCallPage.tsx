@@ -77,6 +77,14 @@ export default function SosCallPage() {
               {state.error ? ` · ${state.error}` : ''}
             </div>
 
+            {/* 工具调用状态：应急场景下给用户“正在查集群”的实时反馈 */}
+            {state.toolCall && (
+              <div className="flex items-center gap-2 rounded-full bg-white/5 px-4 py-1.5 text-xs text-gray-300">
+                <Loader2 className="h-3 w-3 animate-spin text-red-400" />
+                正在查询集群：{state.toolCall}
+              </div>
+            )}
+
             {/* 字幕区 */}
             <div className="w-full max-w-xl space-y-2 overflow-y-auto">
               {(state.messages ?? []).map((m, i) => (

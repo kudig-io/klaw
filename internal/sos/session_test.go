@@ -28,11 +28,14 @@ func (nopReader) GetPodLogs(_, _, _ string, _ int64) (string, error) { return ""
 // fakeUpstream 模拟 DashScope：回放预置事件，收到上行音频后退出；
 // toolCall 模式下改为下发一次工具调用并持续记录上行消息
 type fakeUpstream struct {
-	t        *testing.T
-	toolCall bool // true：下发 response.function_call_arguments.done 并持续服务
-	mu       sync.Mutex
-	received []map[string]any
-	conns    int // 累计连接数
+	t         *testing.T
+	toolCall  bool   // true：下发 response.function_call_arguments.done 并持续服务
+	toolName  string // 工具名，缺省 get_cluster_status
+	toolArgs  string // 工具参数 JSON，缺省 {}
+	waitAudio bool   // true：等首条 input_audio_buffer.append 后再下发工具调用
+	mu        sync.Mutex
+	received  []map[string]any
+	conns     int // 累计连接数
 }
 
 func (f *fakeUpstream) appendReceived(m map[string]any) {
@@ -59,6 +62,18 @@ func (f *fakeUpstream) connCount() int {
 	return f.conns
 }
 
+// lastOf 返回最后一条指定类型的消息
+func (f *fakeUpstream) lastOf(typ string) map[string]any {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for i := len(f.received) - 1; i >= 0; i-- {
+		if f.received[i]["type"] == typ {
+			return f.received[i]
+		}
+	}
+	return nil
+}
+
 func (f *fakeUpstream) serve(w http.ResponseWriter, r *http.Request) {
 	c, err := (&websocket.Upgrader{}).Upgrade(w, r, nil)
 	if err != nil {
@@ -70,12 +85,25 @@ func (f *fakeUpstream) serve(w http.ResponseWriter, r *http.Request) {
 	f.conns++
 	f.mu.Unlock()
 	if f.toolCall {
-		_ = c.WriteJSON(map[string]any{
-			"type":      "response.function_call_arguments.done",
-			"call_id":   "c1",
-			"name":      "get_cluster_status",
-			"arguments": "{}",
-		})
+		name := f.toolName
+		if name == "" {
+			name = "get_cluster_status"
+		}
+		args := f.toolArgs
+		if args == "" {
+			args = "{}"
+		}
+		emit := func() {
+			_ = c.WriteJSON(map[string]any{
+				"type":      "response.function_call_arguments.done",
+				"call_id":   "c1",
+				"name":      name,
+				"arguments": args,
+			})
+		}
+		if !f.waitAudio {
+			emit()
+		}
 	} else {
 		// 第一条消息应为 session.update；这里直接回放事件
 		_ = c.WriteJSON(map[string]any{"type": "session.created", "session": map[string]any{"model": "m", "voice": "v"}})
@@ -83,6 +111,7 @@ func (f *fakeUpstream) serve(w http.ResponseWriter, r *http.Request) {
 		_ = c.WriteJSON(map[string]any{"type": "response.audio_transcript.delta", "delta": "你好"})
 		_ = c.WriteJSON(map[string]any{"type": "input_audio_buffer.speech_started"})
 	}
+	pending := f.toolCall && f.waitAudio // 等首条 append 再下发工具调用
 	for {
 		mt, data, err := c.ReadMessage()
 		if err != nil {
@@ -92,6 +121,23 @@ func (f *fakeUpstream) serve(w http.ResponseWriter, r *http.Request) {
 			var m map[string]any
 			_ = json.Unmarshal(data, &m)
 			f.appendReceived(m)
+			if pending && m["type"] == "input_audio_buffer.append" {
+				name := f.toolName
+				if name == "" {
+					name = "get_cluster_status"
+				}
+				args := f.toolArgs
+				if args == "" {
+					args = "{}"
+				}
+				_ = c.WriteJSON(map[string]any{
+					"type":      "response.function_call_arguments.done",
+					"call_id":   "c1",
+					"name":      name,
+					"arguments": args,
+				})
+				pending = false
+			}
 			if !f.toolCall && m["type"] == "input_audio_buffer.append" {
 				return // 收到浏览器音频即结束
 			}
@@ -384,8 +430,8 @@ func TestSessionIdleTimeout(t *testing.T) {
 	_ = browser.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 	var ev ClientEvent
-	if err := browser.ReadJSON(&ev); err != nil || ev.Type != "error" || !strings.Contains(ev.Message, "idle") {
-		t.Fatalf("expected idle timeout error frame, got %+v err=%v", ev, err)
+	if err := browser.ReadJSON(&ev); err != nil || ev.Type != "session.idle_timeout" {
+		t.Fatalf("expected session.idle_timeout frame, got %+v err=%v", ev, err)
 	}
 	// 会话应已关闭：后续读取收到关闭/错误
 	_ = browser.SetReadDeadline(time.Now().Add(3 * time.Second))
@@ -564,4 +610,143 @@ func TestManagerAuditCallback(t *testing.T) {
 		time.Sleep(30 * time.Millisecond)
 	}
 	t.Fatalf("audit actions incomplete: %v", actions)
+}
+
+// recordingReader 记录工具实际收到的集群名
+type recordingReader struct {
+	nopReader
+	mu      sync.Mutex
+	cluster string
+}
+
+func (r *recordingReader) ListNodes(cluster string) ([]corev1.Node, error) {
+	r.mu.Lock()
+	r.cluster = cluster
+	r.mu.Unlock()
+	return nil, nil
+}
+
+func (r *recordingReader) lastCluster() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.cluster
+}
+
+// TestSessionStartClusterOverride 浏览器 start 指令选定集群后，工具调用作用于该集群
+func TestSessionStartClusterOverride(t *testing.T) {
+	up := &fakeUpstream{t: t, toolCall: true, waitAudio: true}
+	upSrv := httptest.NewServer(http.HandlerFunc(up.serve))
+	defer upSrv.Close()
+	u := strings.Replace(upSrv.URL, "http://", "ws://", 1)
+
+	orig := Dial
+	defer func() { Dial = orig }()
+	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
+		return conn, err
+	}
+
+	rec := &recordingReader{}
+	m, err := NewManager(testSOSConfig(), rec, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(m.HandleSessionWS))
+	defer srv.Close()
+
+	browser, _, err := websocket.DefaultDialer.Dial(strings.Replace(srv.URL, "http://", "ws://", 1), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer browser.Close()
+	_ = browser.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	// 先选集群再发音频（音频触发上游下发工具调用）
+	if err := browser.WriteJSON(map[string]any{"type": "start", "cluster": "c1"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := browser.WriteMessage(websocket.BinaryMessage, []byte{1, 0}); err != nil {
+		t.Fatal(err)
+	}
+
+	var ev ClientEvent
+	if err := browser.ReadJSON(&ev); err != nil || ev.Type != "tool_call" {
+		t.Fatalf("expected tool_call, got %+v err=%v", ev, err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if rec.lastCluster() == "c1" {
+			return
+		}
+		time.Sleep(30 * time.Millisecond)
+	}
+	t.Fatalf("tool never executed on cluster c1, got %q", rec.lastCluster())
+}
+
+// TestDispatchToolExecutionTimeout 工具执行受 toolExecTimeout 约束，超时返回错误 JSON
+func TestDispatchToolExecutionTimeout(t *testing.T) {
+	up := &fakeUpstream{t: t, toolCall: true, toolName: "get_pod_logs",
+		toolArgs: `{"namespace":"default","pod":"p"}`}
+	upSrv := httptest.NewServer(http.HandlerFunc(up.serve))
+	defer upSrv.Close()
+	u := strings.Replace(upSrv.URL, "http://", "ws://", 1)
+
+	origDial := Dial
+	origTimeout := toolExecTimeout
+	defer func() { Dial = origDial; toolExecTimeout = origTimeout }()
+	toolExecTimeout = 80 * time.Millisecond
+	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
+		return conn, err
+	}
+
+	// 注入慢工具：GetPodLogs 阻塞 5s，远超 toolExecTimeout，验证抢占式超时
+	slow := slowLogsReader{}
+	m, err := NewManager(testSOSConfig(), slow, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(m.HandleSessionWS))
+	defer srv.Close()
+
+	browser, _, err := websocket.DefaultDialer.Dial(strings.Replace(srv.URL, "http://", "ws://", 1), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer browser.Close()
+	_ = browser.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		if msg := up.lastOf("conversation.item.create"); msg != nil {
+			item, _ := msg["item"].(map[string]any)
+			out, _ := item["output"].(string)
+			if !strings.Contains(out, "deadline") {
+				t.Fatalf("expected timeout error in output, got %s", out)
+			}
+			return
+		}
+		time.Sleep(30 * time.Millisecond)
+	}
+	t.Fatal("upstream never received function_call_output")
+}
+
+// slowLogsReader GetPodLogs 长时间阻塞（验证抢占式超时后 goroutine 经缓冲 channel 安全退出）
+type slowLogsReader struct {
+	nopReader
+}
+
+func (slowLogsReader) GetPodLogs(_, _, _ string, _ int64) (string, error) {
+	time.Sleep(5 * time.Second)
+	return "", nil
+}
+
+// TestAuditCallbackPanicSafe 审计回调 panic 不外泄
+func TestAuditCallbackPanicSafe(t *testing.T) {
+	m, err := NewManager(testSOSConfig(), nopReader{}, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.SetAuditLog(func(_, _ string) { panic("boom") })
+	m.audit("sos.session_start", "") // 不应 panic
 }

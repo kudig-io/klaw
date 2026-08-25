@@ -62,4 +62,23 @@ describe('sosProtocol', () => {
     expect(s.status).toBe('error')
     expect(s.error).toBe('连接失败')
   })
+
+  it('session.idle_timeout 正常结束而非报错', () => {
+    const s = reduceSosSession(initialSosState, {
+      kind: 'event',
+      event: { type: 'session.idle_timeout', message: '会话长时间无操作，已自动结束' },
+    })
+    expect(s.status).toBe('ended')
+    expect(s.error).toBe('会话长时间无操作，已自动结束')
+  })
+
+  it('tool_call 记录当前工具，response.done 清除', () => {
+    let s = reduceSosSession(initialSosState, {
+      kind: 'event',
+      event: { type: 'tool_call', name: 'list_pods' },
+    })
+    expect(s.toolCall).toBe('list_pods')
+    s = reduceSosSession(s, { kind: 'event', event: { type: 'response.done' } })
+    expect(s.toolCall).toBe('')
+  })
 })

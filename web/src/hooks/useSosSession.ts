@@ -17,6 +17,7 @@ export function useSosSession() {
   const streamRef = useRef<MediaStream | null>(null)
   const nodeRef = useRef<AudioWorkletNode | null>(null)
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set())
+  const erroredRef = useRef(false) // 已发生错误时，onclose 不降级为 ended（保留错误状态与文案）
 
   const stopPlayback = useCallback(() => {
     sourcesRef.current.forEach((src) => {
@@ -49,6 +50,7 @@ export function useSosSession() {
 
   const start = useCallback(async () => {
     dispatch({ kind: 'reset' })
+    erroredRef.current = false
     dispatch({ kind: 'status', status: 'connecting' })
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -70,12 +72,19 @@ export function useSosSession() {
       const ws = new WebSocket(buildSosSessionUrl())
       wsRef.current = ws
       ws.binaryType = 'arraybuffer'
+      ws.onopen = () => {
+        // 会话开始帧（可选携带 cluster 选定目标集群，缺省为默认集群）
+        ws.send(JSON.stringify({ type: 'start' }))
+      }
       ws.onmessage = (ev) => {
         if (typeof ev.data === 'string') {
           const event = JSON.parse(ev.data) as SosServerEvent
           // 智能打断：收到用户开口信号立即停播本地音频
           if (event.type === 'speech_started') {
             stopPlaybackRef.current()
+          }
+          if (event.type === 'error') {
+            erroredRef.current = true
           }
           dispatch({ kind: 'event', event })
           return
@@ -93,8 +102,15 @@ export function useSosSession() {
         sourcesRef.current.add(src)
         src.start()
       }
-      ws.onclose = () => dispatch({ kind: 'status', status: 'ended' })
-      ws.onerror = () => dispatch({ kind: 'error', error: 'WebSocket 连接失败' })
+      ws.onclose = () => {
+        if (!erroredRef.current) {
+          dispatch({ kind: 'status', status: 'ended' })
+        }
+      }
+      ws.onerror = () => {
+        erroredRef.current = true
+        dispatch({ kind: 'error', error: 'WebSocket 连接失败' })
+      }
     } catch (err) {
       dispatch({ kind: 'error', error: err instanceof Error ? err.message : '无法启动语音会话' })
       cleanup()

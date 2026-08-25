@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - SOS Mode (Voice Emergency Quick Dialog)
+
+- **SOS 语音应急快速对话**（`internal/sos/` + Web `/sos` 通话页）
+  - 全屏语音通话界面：悬浮按钮/导航双入口、双向实时字幕、静音/挂断、semantic_vad 智能打断
+  - 后端代理对接阿里云百炼 Qwen-Omni-Realtime（OpenAI Realtime 兼容协议，PCM 16k 上行 / 24k 下行）
+  - 三层兜底回答：预置语料（`configs/sos-faq.yaml`）→ 集群工具（5 个只读/诊断 function calling）→ 模型通用知识
+  - 配置：`sos:` 段（`KLAW_SOS_DASHSCOPE_API_KEY` 环境变量注入 Key），默认关闭；会话/工具调用审计元数据
+
 ## [0.3.0] - 2026-04-02
 
 ### Added - Real-time Event Monitoring (Watch Mode)

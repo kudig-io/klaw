@@ -87,6 +87,36 @@ func (e *ToolExecutor) Definitions() []ToolDefinition {
 
 // Execute 按工具名分发执行，返回 JSON 字符串结果
 func (e *ToolExecutor) Execute(ctx context.Context, name string, args json.RawMessage) (string, error) {
+	return e.ExecuteForCluster(ctx, e.cluster, name, args)
+}
+
+// ExecuteForCluster 指定集群执行工具；cluster 为空时回退执行器默认集群（SOS 会话 start 指令切换）。
+// 工具调用在独立 goroutine 中执行，ctx 取消时立即抢占返回超时错误（ClusterReader 接口不带 ctx，
+// 底层 k8s 调用无法中断，被抛弃的 goroutine 生命周期由 k8s 客户端自身超时约束）
+func (e *ToolExecutor) ExecuteForCluster(ctx context.Context, cluster, name string, args json.RawMessage) (string, error) {
+	if cluster == "" {
+		cluster = e.cluster
+	}
+	c := *e
+	c.cluster = cluster
+	type result struct {
+		out string
+		err error
+	}
+	resCh := make(chan result, 1)
+	go func() {
+		out, err := c.execute(ctx, name, args)
+		resCh <- result{out, err}
+	}()
+	select {
+	case <-ctx.Done():
+		return "", fmt.Errorf("tool %s timed out: %w", name, ctx.Err())
+	case r := <-resCh:
+		return r.out, r.err
+	}
+}
+
+func (e *ToolExecutor) execute(ctx context.Context, name string, args json.RawMessage) (string, error) {
 	switch name {
 	case "get_cluster_status":
 		return e.getClusterStatus()

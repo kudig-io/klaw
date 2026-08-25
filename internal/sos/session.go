@@ -22,6 +22,7 @@ var (
 	idleTimeout       = 5 * time.Minute  // 会话空闲超时（包级变量，便于测试注入）
 	idleCheckInterval = 30 * time.Second // 空闲检查轮询间隔（与 idleTimeout 同步注入）
 	retryDialDelay    = 2 * time.Second  // 上游重连拨号延迟（便于测试注入）
+	toolExecTimeout   = 20 * time.Second // 单个工具执行超时（避免 k8s API 挂起导致 goroutine 无界存活）
 )
 
 // Dial 可替换的上游建连函数（测试注入假 DashScope）
@@ -68,11 +69,17 @@ func NewManager(cfg config.SOSConfig, reader ClusterReader, clusterName string, 
 // SetAuditLog 注入可选审计回调（不改变构造签名）；仅记录操作元数据，禁止记录音频/转写内容
 func (m *Manager) SetAuditLog(fn func(action, detail string)) { m.auditLog = fn }
 
-// audit 安全触发审计回调（未注入时空操作）
+// audit 安全触发审计回调（未注入时空操作；回调 panic 不击穿会话生命周期）
 func (m *Manager) audit(action, detail string) {
-	if m.auditLog != nil {
-		m.auditLog(action, detail)
+	if m.auditLog == nil {
+		return
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("sos: audit callback panic ignored: %v", r)
+		}
+	}()
+	m.auditLog(action, detail)
 }
 
 // checkWSOrigin 仅放行同源与 CORS 白名单内的 Origin（浏览器 WS 无法携带自定义鉴权头，
@@ -115,7 +122,8 @@ func (m *Manager) HandleSessionWS(w http.ResponseWriter, r *http.Request) {
 	}
 	upstream, err := Dial(r.Context(), m.cfg.Dashscope)
 	if err != nil {
-		_ = browser.WriteJSON(ClientEvent{Type: "error", Message: "connect dashscope failed: " + err.Error()})
+		log.Printf("sos: connect dashscope failed: %v", err)
+		_ = browser.WriteJSON(ClientEvent{Type: "error", Message: "语音服务连接失败，请检查 SOS 配置与网络"})
 		_ = browser.Close()
 		return
 	}
@@ -135,7 +143,8 @@ type session struct {
 	muAudio    sync.Mutex
 	lastAudio  time.Time
 	muted      bool
-	reconnDone bool // 上游断线只自动重连一次
+	cluster    string // 浏览器 start 指令选定的集群（空为默认集群）
+	reconnDone bool   // 上游断线只自动重连一次
 	closed     chan struct{}
 	closeOnce  sync.Once
 }
@@ -164,7 +173,7 @@ func (s *session) run(ctx context.Context) {
 			idle := time.Since(s.lastAudio) > idleTimeout
 			s.muAudio.Unlock()
 			if idle {
-				_ = s.writeBrowser(ClientEvent{Type: "error", Message: "session idle timeout"})
+				_ = s.writeBrowser(ClientEvent{Type: "session.idle_timeout", Message: "会话长时间无操作，已自动结束"})
 				return
 			}
 		case err := <-errCh:
@@ -184,7 +193,7 @@ func (s *session) run(ctx context.Context) {
 					continue
 				}
 			}
-			_ = s.writeBrowser(ClientEvent{Type: "error", Message: "connection lost"})
+			_ = s.writeBrowser(ClientEvent{Type: "error", Message: "连接已断开，请刷新页面重试"})
 			return
 		}
 	}
@@ -240,7 +249,8 @@ func (s *session) readBrowser() error {
 		switch mt {
 		case websocket.TextMessage:
 			var msg struct {
-				Type string `json:"type"`
+				Type    string `json:"type"`
+				Cluster string `json:"cluster"`
 			}
 			if err := json.Unmarshal(data, &msg); err != nil {
 				continue
@@ -248,6 +258,11 @@ func (s *session) readBrowser() error {
 			switch msg.Type {
 			case "end":
 				return nil
+			case "start":
+				// 会话开始时选定目标集群（空为默认集群），后续工具调用生效
+				s.muAudio.Lock()
+				s.cluster = msg.Cluster
+				s.muAudio.Unlock()
 			case "mute":
 				s.muAudio.Lock()
 				s.muted = true
@@ -308,7 +323,12 @@ func (s *session) readUpstream() error {
 // dispatchTool 进程内执行集群工具并回传结果
 func (s *session) dispatchTool(call FunctionCall) {
 	s.m.audit("sos.tool_call", "tool="+call.Name)
-	out, err := s.m.tools.Execute(context.Background(), call.Name, json.RawMessage(call.Arguments))
+	s.muAudio.Lock()
+	cluster := s.cluster
+	s.muAudio.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), toolExecTimeout)
+	defer cancel()
+	out, err := s.m.tools.ExecuteForCluster(ctx, cluster, call.Name, json.RawMessage(call.Arguments))
 	if err != nil {
 		// 用 json.Marshal 构造，避免手工拼接产生非法 JSON
 		b, _ := json.Marshal(map[string]string{"error": err.Error()})
