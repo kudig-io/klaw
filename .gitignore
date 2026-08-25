@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-klaw
+/klaw
 
 # Test binary, built with `go test -c`
 *.test

@@ -22,6 +22,7 @@ import (
 	"github.com/kudig-io/klaw/internal/kubernetes"
 	"github.com/kudig-io/klaw/internal/metrics"
 	"github.com/kudig-io/klaw/internal/monitoring"
+	"github.com/kudig-io/klaw/internal/sos"
 	"github.com/kudig-io/klaw/internal/storage"
 	"github.com/kudig-io/klaw/internal/tenancy"
 )
@@ -36,6 +37,7 @@ type Server struct {
 	automationManager *automation.Manager
 	resources         *kubernetes.Resources
 	metricsCollector  *metrics.Collector
+	sosManager        *sos.Manager
 	router            *mux.Router
 	authEnabled       bool
 	authToken         string
@@ -44,7 +46,7 @@ type Server struct {
 	httpServer        *http.Server
 }
 
-func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service, serverCfg config.ServerConfig) (*Server, error) {
+func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service, serverCfg config.ServerConfig, sosCfg config.SOSConfig) (*Server, error) {
 	if serverCfg.Auth.Enabled && serverCfg.Auth.Token == "" {
 		return nil, fmt.Errorf("server.auth.enabled is true but no API token configured (set server.auth.token or KLAW_API_TOKEN)")
 	}
@@ -57,6 +59,13 @@ func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Ser
 	if client, err := k8sManager.GetClient(""); err == nil {
 		autoMgr.WithClientset(client)
 	}
+	var sosMgr *sos.Manager
+	if sosCfg.Enabled {
+		sosMgr, err = sos.NewManager(sosCfg, resources, "", serverCfg.CORS.AllowedOrigins)
+		if err != nil {
+			return nil, fmt.Errorf("init sos manager: %w", err)
+		}
+	}
 	s := &Server{
 		k8sManager:        k8sManager,
 		monitoringService: monitoringService,
@@ -67,6 +76,7 @@ func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Ser
 		automationManager: autoMgr,
 		resources:         resources,
 		metricsCollector:  metrics.NewCollector(k8sManager),
+		sosManager:        sosMgr,
 		router:            mux.NewRouter(),
 		authEnabled:       serverCfg.Auth.Enabled,
 		authToken:         serverCfg.Auth.Token,
@@ -157,6 +167,7 @@ func (s *Server) SetupRoutes() {
 	s.router.HandleFunc("/api/v1/diag/run", s.handleRunDiagnostics).Methods("GET")
 	s.router.HandleFunc("/api/v1/diag/analyzers", s.handleDiagAnalyzers).Methods("GET")
 	s.setupAnalysisV1Routes()
+	s.setupSOSRoutes()
 
 	// SPA 路由支持 - 所有非 API 请求返回 index.html
 	s.router.PathPrefix("/").HandlerFunc(s.serveSPA).Methods("GET")
