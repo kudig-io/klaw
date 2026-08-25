@@ -35,6 +35,23 @@ Klaw 把「集群管理控制台」「深度诊断引擎」「ChatOps 机器人�
 
 ## 核心能力
 
+### 🚨 SOS 模式（语音应急快速对话）
+
+全屏语音通话页（悬浮按钮 / 导航 SOS 进入），经 Klaw 后端代理对接阿里云百炼
+Qwen-Omni-Realtime，全双工实时对话、语义智能打断、双向字幕。
+
+回答采用三层兜底：**预置语料**（`configs/sos-faq.yaml`，命中按标准口径回答）→
+**集群工具**（function calling 查询实时状态/日志/事件/触发诊断）→ **模型通用知识**。
+
+启用方式：
+
+```yaml
+sos:
+  enabled: true
+  dashscope:
+    workspace_id: "<百炼 Workspace ID>"   # api_key 用环境变量 KLAW_SOS_DASHSCOPE_API_KEY 注入
+```
+
 ### 🖥️ Web 管理控制台
 
 React 18 + Vite + Tailwind 构建的单页应用，与后端二进制打包在一起（`web/dist` 由 Go 直接托管）。
@@ -337,7 +354,7 @@ openclaw:
 | `KUDIG_AI_API_KEY` | API Key（Bearer 鉴权） | 空（禁用 AI） |
 | `KUDIG_AI_BASE_URL` | 自定义 OpenAI 兼容端点 | 按 provider 自动补齐 |
 | `KUDIG_AI_MODEL` | 模型名 | 按 provider 自动补齐 |
-| `KUDIG_AI_TIMEOUT` | 超时（秒） | `30` |
+| `KUDIG_AI_TIMEOUT` | 超时（秒） | `30`（MiMo 建议 `60`） |
 | `KUDIG_AI_LANGUAGE` | 输出语言 `zh` / `en` | `zh` |
 | `KUDIG_AI_MAX_TOKENS` | 最大生成 token 数 | `2000` |
 | `KUDIG_AI_TEMPERATURE` | 采样温度 | `0.3` |
@@ -347,10 +364,17 @@ openclaw:
 ```bash
 export KUDIG_AI_PROVIDER=mimo
 export KUDIG_AI_API_KEY=tp-xxxx        # MiMo 开放平台 (https://mimo.mi.com) 申请
+export KUDIG_AI_TIMEOUT=60             # 完整诊断分析实测约 20s，默认 30s 余量偏紧
 # 模型默认 mimo-v2.5，可切换：export KUDIG_AI_MODEL=mimo-v2.5-pro
 klaw diag                              # 诊断报告末尾自动附带 AI 分析
 klaw diag --no-ai                      # 显式关闭本次 AI 分析
 ```
+
+端点自动路由：`tp-` 前缀 key（Token Plan 套餐）自动使用
+`https://token-plan-cn.xiaomimimo.com/v1`，`sk-` key（按量付费）使用
+`https://api.xiaomimimo.com/v1`；如需显式指定可设 `KUDIG_AI_BASE_URL`。
+调用时会自动关闭 MiMo 的深度思考模式（`thinking: disabled`），
+避免推理 token 挤占生成预算导致正文为空。
 
 集群内部署时通过 Helm 注入（写入 K8s Secret，经 `envFrom` 生效）：
 
