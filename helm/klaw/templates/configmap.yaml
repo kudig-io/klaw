@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "klaw.fullname" . }}-config
+  labels:
+    {{- include "klaw.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    kubernetes:
+      clusters:
+{{ toYaml .Values.config.kubernetes.clusters | indent 8 }}
+    messaging:
+      dingtalk:
+        enabled: {{ .Values.config.messaging.dingtalk.enabled }}
+        webhook_port: {{ .Values.config.messaging.dingtalk.webhook_port }}
+      feishu:
+        enabled: {{ .Values.config.messaging.feishu.enabled }}
+    openclaw:
+      enabled: {{ .Values.config.openclaw.enabled }}
+      skills: {{ .Values.config.openclaw.skills | quote }}
+    server:
+      port: {{ .Values.config.server.port }}
+      auth:
+        enabled: {{ .Values.config.server.auth.enabled }}
+      cors:
+        allowed_origins:
+{{- range .Values.config.server.cors.allowed_origins }}
+          - {{ . | quote }}
+{{- end }}

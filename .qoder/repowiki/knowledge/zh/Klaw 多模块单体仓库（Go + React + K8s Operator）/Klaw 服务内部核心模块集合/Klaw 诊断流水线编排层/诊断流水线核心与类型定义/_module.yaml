@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: klaw_service/diag_pipeline/pipeline_core
+title: 诊断流水线核心与类型定义
+scope:
+    - internal/diag/pipeline.go
+    - internal/diag/import.go
+    - internal/diag/types/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/diag_pipeline/collector

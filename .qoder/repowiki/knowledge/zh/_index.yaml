@@ -3,11 +3,11 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-08-25T08:26:28Z"
+exported_at: "2026-08-26T02:48:53Z"
 modules:
     "":
-        dir_name: Klaw 单体多语言仓库（Go + React + K8s Operator）
-        title: Klaw 单体多语言仓库（Go + React + K8s Operator）
+        dir_name: Klaw 多模块单体仓库（Go + React + K8s Operator）
+        title: Klaw 多模块单体仓库（Go + React + K8s Operator）
         scope:
             - Dockerfile
             - Makefile
@@ -36,7 +36,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: operator
     docs:
         dir_name: Klaw 项目文档与 SOS 模式设计
         title: Klaw 项目文档与 SOS 模式设计
@@ -45,7 +46,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/sos
     etcd_backup_module:
         dir_name: etcd 备份与恢复客户端模块
         title: etcd 备份与恢复客户端模块
@@ -54,7 +56,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: etcd_guardian_module/backend_api
     etcd_guardian_module:
         dir_name: EtcdGuardian etcd 备份恢复 Operator
         title: EtcdGuardian etcd 备份恢复 Operator
@@ -76,7 +79,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: etcd_backup_module
     etcd_guardian_module/deployment_configs:
         dir_name: EtcdGuardian 部署配置与 Helm Chart
         title: EtcdGuardian 部署配置与 Helm Chart
@@ -108,8 +112,8 @@ modules:
         depends_on: []
         related_to: []
     klaw_service:
-        dir_name: Klaw 内部服务聚合层
-        title: Klaw 内部服务聚合层
+        dir_name: Klaw 服务内部核心模块集合
+        title: Klaw 服务内部核心模块集合
         scope:
             - internal/
         source_files: []
@@ -125,6 +129,7 @@ modules:
             - klaw_service/messaging
             - klaw_service/monitoring_metrics
             - klaw_service/ops
+            - klaw_service/sos
             - klaw_service/storage
         depends_on: []
         related_to: []
@@ -141,14 +146,15 @@ modules:
         depends_on: []
         related_to: []
     klaw_service/api:
-        dir_name: Kubernetes 集群管理 HTTP API 服务
-        title: Kubernetes 集群管理 HTTP API 服务
+        dir_name: HTTP API 服务与路由层
+        title: HTTP API 服务与路由层
         scope:
             - internal/api/
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: web_frontend
     klaw_service/audit:
         dir_name: 审计日志与安全合规检查
         title: 审计日志与安全合规检查
@@ -157,7 +163,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/storage
     klaw_service/automation:
         dir_name: 自动化脚本执行引擎
         title: 自动化脚本执行引擎
@@ -166,7 +173,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/storage
     klaw_service/backup:
         dir_name: Kubernetes 集群备份与恢复管理器
         title: Kubernetes 集群备份与恢复管理器
@@ -175,7 +183,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/storage
     klaw_service/config_chart_openclaw:
         dir_name: 配置解析、ASCII图表与OpenClaw技能管理
         title: 配置解析、ASCII图表与OpenClaw技能管理
@@ -204,7 +213,8 @@ modules:
             - klaw_service/diag_pipeline/rules_engine
             - klaw_service/diag_pipeline/supporting_utils
         depends_on: []
-        related_to: []
+        related_to:
+            - path: operator
     klaw_service/diag_pipeline/ai_assistant:
         dir_name: AI 诊断助手（LLM 根因分析）
         title: AI 诊断助手（LLM 根因分析）
@@ -222,7 +232,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/diag_pipeline/ebpf
     klaw_service/diag_pipeline/collector:
         dir_name: 诊断数据收集器（在线_离线模式）
         title: 诊断数据收集器（在线/离线模式）
@@ -231,7 +242,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/diag_pipeline/pipeline_core
     klaw_service/diag_pipeline/ebpf:
         dir_name: eBPF 诊断探针与分析器
         title: eBPF 诊断探针与分析器
@@ -240,7 +252,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/diag_pipeline/analyzer
     klaw_service/diag_pipeline/pipeline_core:
         dir_name: 诊断流水线核心与类型定义
         title: 诊断流水线核心与类型定义
@@ -251,7 +264,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/diag_pipeline/collector
     klaw_service/diag_pipeline/rca_autofix:
         dir_name: 根因分析与自动修复引擎
         title: 根因分析与自动修复引擎
@@ -261,7 +275,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/diag_pipeline/rules_engine
     klaw_service/diag_pipeline/reporter:
         dir_name: 诊断报告生成器与多格式输出
         title: 诊断报告生成器与多格式输出
@@ -270,7 +285,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/diag_pipeline/supporting_utils
     klaw_service/diag_pipeline/rules_engine:
         dir_name: YAML 规则诊断引擎
         title: YAML 规则诊断引擎
@@ -279,7 +295,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/diag_pipeline/rca_autofix
     klaw_service/diag_pipeline/supporting_utils:
         dir_name: 诊断辅助工具集（历史、通知、成本分析、镜像扫描与 TUI）
         title: 诊断辅助工具集（历史、通知、成本分析、镜像扫描与 TUI）
@@ -292,7 +309,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/diag_pipeline/reporter
     klaw_service/events:
         dir_name: Kubernetes 事件采集与通知管道
         title: Kubernetes 事件采集与通知管道
@@ -301,7 +319,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/messaging
     klaw_service/messaging:
         dir_name: 多平台消息通信抽象层
         title: 多平台消息通信抽象层
@@ -310,7 +329,9 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/events
+            - path: klaw_service/monitoring_metrics
     klaw_service/monitoring_metrics:
         dir_name: Kubernetes 集群监控与指标采集
         title: Kubernetes 集群监控与指标采集
@@ -320,7 +341,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/messaging
     klaw_service/ops:
         dir_name: 运维 ChatOps 命令处理器与路由器
         title: 运维 ChatOps 命令处理器与路由器
@@ -330,6 +352,17 @@ modules:
         children: []
         depends_on: []
         related_to: []
+    klaw_service/sos:
+        dir_name: SOS 语音应急会话桥接（DashScope Realtime WebSocket）
+        title: SOS 语音应急会话桥接（DashScope Realtime WebSocket）
+        scope:
+            - internal/sos/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: docs
+            - path: web_frontend
     klaw_service/storage:
         dir_name: SQLite 持久化存储与数据迁移
         title: SQLite 持久化存储与数据迁移
@@ -338,7 +371,10 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/audit
+            - path: klaw_service/automation
+            - path: klaw_service/backup
     operator:
         dir_name: Kudig Kubernetes Operator（集群诊断控制器）
         title: Kudig Kubernetes Operator（集群诊断控制器）
@@ -347,13 +383,17 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: deployment
+            - path: klaw_service/diag_pipeline
     web_frontend:
-        dir_name: Klaw Web 前端（Kubernetes 管理控制台）
-        title: Klaw Web 前端（Kubernetes 管理控制台）
+        dir_name: Klaw Kubernetes 管理控制台前端 SPA
+        title: Klaw Kubernetes 管理控制台前端 SPA
         scope:
             - web/
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: klaw_service/api
+            - path: klaw_service/sos

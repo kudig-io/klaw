@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: klaw_service/diag_pipeline/ebpf
+title: eBPF 诊断探针与分析器
+scope:
+    - internal/diag/ebpf/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/diag_pipeline/analyzer

@@ -1,0 +1,43 @@
+
+# kind 本地开发环境覆盖值
+# 用法：
+#   docker build -t kudig-io/klaw:dev .
+#   kind load docker-image kudig-io/klaw:dev --name klaw-test
+#   helm upgrade --install klaw helm/klaw -f helm/klaw/values-kind.yaml -n klaw --create-namespace
+
+deployment:
+  replicaCount: 1
+  image:
+    tag: dev
+    # 镜像由 kind load 注入节点，禁止拉取远端
+    pullPolicy: Never
+  # 本机资源有限，下调请求量
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+config:
+  server:
+    auth:
+      # 本地默认关闭：Web UI 前端尚未实现 Bearer token 注入，开启后页面会 401。
+      # 只验证 API 鉴权时改为 true，并用 curl -H "Authorization: Bearer <apiToken>" 访问。
+      enabled: false
+    cors:
+      # 本地前端联调时放行；vite dev server 端口见 web/vite.config.ts（3000）
+      allowed_origins:
+        - http://localhost:3000
+        - http://localhost:8080
+
+secrets:
+  # 本地固定 token，仅用于开发环境
+  apiToken: "klaw-local-dev-token"
+
+# kind 自带 rancher local-path StorageClass（standard）
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: standard

@@ -5,13 +5,22 @@
 - [internal/api/server.go](file://internal/api/server.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
+- [internal/api/sos.go](file://internal/api/sos.go)
 - [internal/config/config.go](file://internal/config/config.go)
 - [configs/config.yaml](file://configs/config.yaml)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 - [internal/metrics/collector.go](file://internal/metrics/collector.go)
 - [internal/ops/router.go](file://internal/ops/router.go)
 - [internal/ops/handler.go](file://internal/ops/handler.go)
+- [internal/sos/session.go](file://internal/sos/session.go)
 </cite>
+
+## 更新摘要
+**所做更改**
+- 新增SOS会话管理器的审计回调注入机制
+- 增强WebSocket会话管理的错误处理和响应处理
+- 改进SOS会话生命周期事件的日志记录
+- 更新SOS路由和认证机制
 
 ## 目录
 1. [简介](#简介)
@@ -37,6 +46,7 @@ subgraph "HTTP 层"
 Server["HTTP 服务器<br/>internal/api/server.go"]
 UnifiedV1["统一 API v1<br/>internal/api/unified_v1.go"]
 Tenancy["多租户能力<br/>internal/api/tenancy.go"]
+SOS["SOS会话管理<br/>internal/api/sos.go"]
 end
 subgraph "配置与运行时"
 Config["配置加载<br/>internal/config/config.go"]
@@ -50,18 +60,21 @@ OpsHandler["运维处理器<br/>internal/ops/handler.go"]
 end
 Server --> UnifiedV1
 Server --> Tenancy
+Server --> SOS
 Server --> OpsRouter
 UnifiedV1 --> Config
 Tenancy --> Config
+SOS --> Audit
 OpsRouter --> OpsHandler
 Server --> Audit
 Server --> Metrics
 ```
 
-图表来源 
+**图表来源** 
 - [internal/api/server.go](file://internal/api/server.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
+- [internal/api/sos.go](file://internal/api/sos.go)
 - [internal/config/config.go](file://internal/config/config.go)
 - [configs/config.yaml](file://configs/config.yaml)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
@@ -69,10 +82,11 @@ Server --> Metrics
 - [internal/ops/router.go](file://internal/ops/router.go)
 - [internal/ops/handler.go](file://internal/ops/handler.go)
 
-章节来源
+**章节来源**
 - [internal/api/server.go](file://internal/api/server.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
+- [internal/api/sos.go](file://internal/api/sos.go)
 - [internal/config/config.go](file://internal/config/config.go)
 - [configs/config.yaml](file://configs/config.yaml)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
@@ -84,14 +98,16 @@ Server --> Metrics
 - HTTP 服务器与路由注册：集中式入口，负责监听端口、挂载路由、注入中间件、启动生命周期钩子。
 - 统一 API v1：定义统一的资源模型、RESTful 路径命名、分页与过滤参数、错误响应格式，作为对外稳定契约。
 - 多租户能力：基于请求上下文注入租户标识，贯穿鉴权、限流、审计与数据访问层，确保租户间隔离。
+- **SOS会话管理**：提供实时语音对话功能，包含会话生命周期管理、WebSocket桥接、工具调用执行和审计回调机制。
 - 配置管理：从 YAML 与环境变量加载配置，提供热更新能力与默认值回退。
 - 审计与指标：结构化审计日志与 Prometheus 指标暴露，支撑可观测性与合规审计。
 - 运维接口：健康检查、就绪探针、调试端点，便于部署与排障。
 
-章节来源
+**章节来源**
 - [internal/api/server.go](file://internal/api/server.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
+- [internal/api/sos.go](file://internal/api/sos.go)
 - [internal/config/config.go](file://internal/config/config.go)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 - [internal/metrics/collector.go](file://internal/metrics/collector.go)
@@ -108,6 +124,7 @@ participant Server as "HTTP 服务器<br/>server.go"
 participant MW as "中间件链<br/>鉴权/审计/指标"
 participant V1 as "统一 API v1<br/>unified_v1.go"
 participant Tenant as "多租户<br/>tenancy.go"
+participant SOS as "SOS会话<br/>sos.go"
 participant Cfg as "配置<br/>config.go"
 participant Aud as "审计<br/>logger.go"
 participant Met as "指标<br/>collector.go"
@@ -121,13 +138,16 @@ V1->>Tenant : "解析并注入租户上下文"
 Tenant-->>V1 : "返回租户范围"
 V1->>Cfg : "读取或缓存配置"
 Cfg-->>V1 : "返回配置项"
-V1-->>Client : "标准化 JSON 响应"
+Server->>SOS : "SOS会话请求"
+SOS->>Aud : "审计回调注入"
+SOS-->>Client : "标准化 JSON 响应"
 ```
 
-图表来源 
+**图表来源** 
 - [internal/api/server.go](file://internal/api/server.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
+- [internal/api/sos.go](file://internal/api/sos.go)
 - [internal/config/config.go](file://internal/config/config.go)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 - [internal/metrics/collector.go](file://internal/metrics/collector.go)
@@ -152,13 +172,13 @@ Ready --> Serve["处理请求"]
 Serve --> Graceful["优雅关闭"]
 ```
 
-图表来源 
+**图表来源** 
 - [internal/api/server.go](file://internal/api/server.go)
 - [internal/config/config.go](file://internal/config/config.go)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 - [internal/metrics/collector.go](file://internal/metrics/collector.go)
 
-章节来源
+**章节来源**
 - [internal/api/server.go](file://internal/api/server.go)
 
 ### 统一 API v1 设计
@@ -202,10 +222,10 @@ UnifiedV1 --> DTO : "序列化/反序列化"
 UnifiedV1 --> Model : "领域模型映射"
 ```
 
-图表来源 
+**图表来源** 
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 
-章节来源
+**章节来源**
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 
 ### 多租户隔离机制
@@ -238,12 +258,68 @@ Store-->>Handler : "仅返回该租户数据"
 Handler-->>Client : "响应结果"
 ```
 
-图表来源 
+**图表来源** 
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 
-章节来源
+**章节来源**
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
+
+### SOS会话管理系统
+**新增** SOS会话管理系统提供实时语音对话功能，包含完整的会话生命周期管理和审计回调机制。
+
+- **会话管理器架构**：
+  - Manager结构体持有配置、指令、FAQs、工具执行器和审计回调
+  - Session结构体管理单次语音会话的浏览器连接和上游连接
+  - 支持CORS白名单和Origin安全检查
+
+- **审计回调注入机制**：
+  - 通过SetAuditLog方法注入可选审计回调函数
+  - 会话开始(sos.session_start)、结束(sos.session_end)、工具调用(sos.tool_call)时记录元数据
+  - 审计回调安全触发，未注入时空操作，不记录音频和转写内容
+
+- **WebSocket会话管理**：
+  - HandleSessionWS处理浏览器WebSocket连接升级
+  - 双向桥接浏览器与DashScope上游连接
+  - 支持自动重连机制，断线后尝试一次重连
+  - 空闲超时检测，无活动超过阈值时关闭会话
+
+- **错误处理增强**：
+  - 上游连接错误分类处理（read error vs closed normally）
+  - 工具调用错误使用JSON格式返回，避免字符串拼接问题
+  - 会话建立失败时返回适当的错误帧给客户端
+
+```mermaid
+sequenceDiagram
+participant Browser as "浏览器"
+participant Server as "API服务器"
+participant SOS as "SOS管理器"
+participant DashScope as "DashScope上游"
+participant Audit as "审计系统"
+Browser->>Server : WebSocket连接请求
+Server->>SOS : HandleSessionWS
+SOS->>Audit : sos.session_start (审计回调)
+SOS->>DashScope : 建立上游连接
+DashScope-->>SOS : 连接成功
+SOS->>Browser : 发送session事件
+Browser->>SOS : 音频数据
+SOS->>DashScope : 转发音频
+DashScope-->>SOS : 转录和音频
+SOS->>Browser : 转发转录和音频
+SOS->>Audit : sos.tool_call (工具调用)
+Browser->>SOS : end命令
+SOS->>Audit : sos.session_end (审计回调)
+SOS->>DashScope : 关闭连接
+```
+
+**图表来源** 
+- [internal/api/sos.go](file://internal/api/sos.go)
+- [internal/sos/session.go](file://internal/sos/session.go)
+- [internal/audit/logger.go](file://internal/audit/logger.go)
+
+**章节来源**
+- [internal/api/sos.go](file://internal/api/sos.go)
+- [internal/sos/session.go](file://internal/sos/session.go)
 
 ### 配置管理系统
 - 配置文件结构：
@@ -268,11 +344,11 @@ F --> H["继续初始化"]
 G --> H
 ```
 
-图表来源 
+**图表来源** 
 - [internal/config/config.go](file://internal/config/config.go)
 - [configs/config.yaml](file://configs/config.yaml)
 
-章节来源
+**章节来源**
 - [internal/config/config.go](file://internal/config/config.go)
 - [configs/config.yaml](file://configs/config.yaml)
 
@@ -287,7 +363,7 @@ G --> H
   - 最小权限原则，定期轮换密钥。
   - 敏感操作二次确认与审计。
 
-章节来源
+**章节来源**
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 
@@ -300,7 +376,7 @@ G --> H
   - 中间件捕获 panic 与未处理错误，转换为标准响应。
   - 记录结构化错误日志，附带上下文与堆栈。
 
-章节来源
+**章节来源**
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 
@@ -313,7 +389,7 @@ G --> H
   - ERROR：不可恢复错误。
 - 脱敏：禁止记录密码、令牌、PII 等敏感信息。
 
-章节来源
+**章节来源**
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 
 ### 指标与可观测性
@@ -323,7 +399,7 @@ G --> H
 - 暴露方式：Prometheus /metrics 端点，支持拉取与告警规则。
 - 追踪：集成 OpenTelemetry，生成分布式追踪。
 
-章节来源
+**章节来源**
 - [internal/metrics/collector.go](file://internal/metrics/collector.go)
 
 ### 运维接口
@@ -331,7 +407,7 @@ G --> H
 - 调试端点：/debug/pprof 性能剖析（生产禁用）。
 - 配置查看：/ops/config 只读查看当前生效配置。
 
-章节来源
+**章节来源**
 - [internal/ops/router.go](file://internal/ops/router.go)
 - [internal/ops/handler.go](file://internal/ops/handler.go)
 
@@ -342,29 +418,33 @@ API 服务依赖配置、审计、指标、多租户与运维模块，形成清�
 graph LR
 Server["HTTP 服务器"] --> UnifiedV1["统一 API v1"]
 Server --> Tenancy["多租户"]
+Server --> SOS["SOS会话管理"]
 Server --> Ops["运维接口"]
 UnifiedV1 --> Config["配置"]
 UnifiedV1 --> Audit["审计"]
 UnifiedV1 --> Metrics["指标"]
 Tenancy --> Config
 Tenancy --> Audit
+SOS --> Audit
 Ops --> Config
 ```
 
-图表来源 
+**图表来源** 
 - [internal/api/server.go](file://internal/api/server.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
+- [internal/api/sos.go](file://internal/api/sos.go)
 - [internal/config/config.go](file://internal/config/config.go)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 - [internal/metrics/collector.go](file://internal/metrics/collector.go)
 - [internal/ops/router.go](file://internal/ops/router.go)
 - [internal/ops/handler.go](file://internal/ops/handler.go)
 
-章节来源
+**章节来源**
 - [internal/api/server.go](file://internal/api/server.go)
 - [internal/api/unified_v1.go](file://internal/api/unified_v1.go)
 - [internal/api/tenancy.go](file://internal/api/tenancy.go)
+- [internal/api/sos.go](file://internal/api/sos.go)
 - [internal/config/config.go](file://internal/config/config.go)
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 - [internal/metrics/collector.go](file://internal/metrics/collector.go)
@@ -378,6 +458,7 @@ Ops --> Config
 - 批处理：批量写入与查询减少往返次数。
 - 压缩与分页：大响应启用 gzip，列表接口强制分页。
 - 指标驱动优化：基于 Prometheus 与 pprof 定位瓶颈。
+- **WebSocket连接管理**：SOS会话使用连接池和超时控制，避免资源泄漏。
 
 ## 故障排查指南
 - 常见问题：
@@ -393,20 +474,22 @@ Ops --> Config
   - 扩容实例或提升资源配额。
   - 隔离故障租户或资源。
 
-章节来源
+**章节来源**
 - [internal/audit/logger.go](file://internal/audit/logger.go)
 - [internal/metrics/collector.go](file://internal/metrics/collector.go)
 - [internal/ops/handler.go](file://internal/ops/handler.go)
 
 ## 结论
-Klaw 的 API 服务层以统一 API v1 为核心，结合多租户隔离、配置热更新、审计与指标体系，构建了可扩展、可观测、易维护的 RESTful 服务架构。通过严格的版本管理与错误处理规范，保障向后兼容与稳定性。建议持续完善 RBAC 与审计细节，强化性能监控与容量规划，以支撑大规模多租户场景。
+Klaw 的 API 服务层以统一 API v1 为核心，结合多租户隔离、配置热更新、审计与指标体系，构建了可扩展、可观测、易维护的 RESTful 服务架构。通过严格的版本管理与错误处理规范，保障向后兼容与稳定性。**最新的SOS会话管理系统增强了实时语音对话能力，通过审计回调注入机制实现了完整的会话生命周期跟踪，改进了WebSocket错误处理和响应机制，提升了系统的可观测性和可靠性。** 建议持续完善 RBAC 与审计细节，强化性能监控与容量规划，以支撑大规模多租户场景。
 
 ## 附录
 - 术语表：
   - 租户：独立的使用者或组织单元，数据与权限隔离。
   - 中间件：请求处理管道中的横切逻辑。
   - 指标：系统运行状态的量化度量。
+  - SOS：紧急支持会话（Support Operations Session），提供实时语音对话功能。
 - 参考：
   - RESTful 设计规范与最佳实践。
   - Prometheus 指标导出与告警。
   - OpenTelemetry 分布式追踪。
+  - WebSocket协议与实时通信最佳实践。

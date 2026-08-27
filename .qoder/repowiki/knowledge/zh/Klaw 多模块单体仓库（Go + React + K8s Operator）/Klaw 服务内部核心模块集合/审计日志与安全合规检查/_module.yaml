@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: klaw_service/audit
+title: 审计日志与安全合规检查
+scope:
+    - internal/audit/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/storage

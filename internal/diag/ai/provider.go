@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -51,6 +53,7 @@ type FixSuggestion struct {
 // Config holds AI provider configuration
 type Config struct {
 	// Provider: openai, qwen, ollama, mimo（均为 OpenAI 兼容协议；mimo 为小米 MiMo 开放平台）
+	// mimo 需区分计费套餐：sk- 按量 key 用 api.xiaomimimo.com；tp- Token Plan key 用 token-plan-cn.xiaomimimo.com
 	Provider    string `env:"KUDIG_AI_PROVIDER" default:"openai"`
 	APIKey      string `env:"KUDIG_AI_API_KEY"`
 	BaseURL     string `env:"KUDIG_AI_BASE_URL"` // for custom endpoints like Ollama
@@ -148,10 +151,16 @@ func (p *OpenAIProvider) Analyze(ctx context.Context, issues []types.Issue, host
 	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout)*time.Second)
 	defer cancel()
 
+	// MiMo 默认开启深度思考（reasoning_content 会挤占生成预算），
+	// go-openai 无法注入 thinking 字段，故 mimo 走专用 HTTP 路径显式关闭
+	if p.config.Provider == "mimo" {
+		return p.mimoAnalyze(timeoutCtx, issues, hostname)
+	}
+
 	// Prepare prompt
 	prompt := p.buildAnalysisPrompt(issues, hostname)
 
-	// Create chat completion
+	// Create chat completion（注意：JSON 输出请勿使用 Markdown 围栏）
 	resp, err := p.client.CreateChatCompletion(timeoutCtx, openai.ChatCompletionRequest{
 		Model:       p.config.Model,
 		MaxTokens:   p.config.MaxTokens,
@@ -243,6 +252,58 @@ func (p *OpenAIProvider) SuggestFixes(ctx context.Context, issue types.Issue) ([
 	return nil, fmt.Errorf("no response")
 }
 
+// mimoAnalyze MiMo 专用调用路径：请求体额外注入 thinking.disabled（关闭深度思考，
+// 避免 reasoning_content 挤占生成预算导致正文为空），响应仍为 OpenAI 兼容格式。
+func (p *OpenAIProvider) mimoAnalyze(ctx context.Context, issues []types.Issue, hostname string) (*AnalysisResult, error) {
+	body := map[string]any{
+		"model": p.config.Model,
+		"messages": []map[string]string{
+			{"role": "system", "content": p.getSystemPrompt()},
+			{"role": "user", "content": p.buildAnalysisPrompt(issues, hostname)},
+		},
+		"max_tokens":  p.config.MaxTokens,
+		"temperature": p.config.Temperature,
+		"stream":      false,
+		"thinking":    map[string]string{"type": "disabled"},
+	}
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build mimo request: %w", err)
+	}
+
+	endpoint := strings.TrimRight(p.config.BaseURL, "/") + "/chat/completions"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(string(payload)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create mimo request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+p.config.APIKey)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get AI analysis: %w", err)
+	}
+	defer resp.Body.Close()
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read mimo response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get AI analysis: status %d, body: %.200s", resp.StatusCode, string(data))
+	}
+
+	var chatResp openai.ChatCompletionResponse
+	if err := json.Unmarshal(data, &chatResp); err != nil {
+		return nil, fmt.Errorf("failed to parse mimo response: %w", err)
+	}
+	if len(chatResp.Choices) == 0 {
+		return nil, fmt.Errorf("no response from AI")
+	}
+
+	return p.parseAnalysisResponse(chatResp.Choices[0].Message.Content)
+}
+
 func (p *OpenAIProvider) getSystemPrompt() string {
 	if p.config.Language == "zh" {
 		return `你是一位 Kubernetes 诊断专家。分析诊断结果并提供：
@@ -251,7 +312,7 @@ func (p *OpenAIProvider) getSystemPrompt() string {
 3. 修复建议（包含风险等级）
 4. 置信度（0-1）
 
-请以 JSON 格式返回结果。`
+请直接输出 JSON（不要包裹在 Markdown 代码块中），字段：摘要、根因分析、修复建议（数组，元素含标题/描述/命令/风险等级）、置信度。`
 	}
 	return `You are a Kubernetes diagnostic expert. Analyze the diagnostic results and provide:
 1. Issue summary (English)
@@ -259,7 +320,7 @@ func (p *OpenAIProvider) getSystemPrompt() string {
 3. Fix suggestions with risk levels
 4. Confidence score (0-1)
 
-Please return results in JSON format.`
+Return the result directly as JSON (no Markdown code fences), with fields: summary, root_cause, suggestions (array of {title, description, command, risk}), confidence.`
 }
 
 func (p *OpenAIProvider) buildAnalysisPrompt(issues []types.Issue, hostname string) string {
@@ -325,11 +386,25 @@ func (p *OpenAIProvider) buildFixPrompt(issue types.Issue) string {
 	return sb.String()
 }
 
+// parseAnalysisResponse 解析 LLM 返回的分析结果。
+// 兼容两种常见输出：标准 JSON（英文字段名）与包裹在 Markdown 围栏内、
+// 使用中文键名的 JSON；两者都失败时降级为纯文本摘要。
 func (p *OpenAIProvider) parseAnalysisResponse(content string) (*AnalysisResult, error) {
-	// Try to parse as JSON
+	body := stripCodeFence(content)
+
 	var result AnalysisResult
-	if err := json.Unmarshal([]byte(content), &result); err == nil {
+	// 注意：中文键名对英文 tag 全是未知字段，Unmarshal 会"成功"但得到零值，
+	// 因此必须同时校验 Summary 非空，否则会短路掉下方的中文键映射分支
+	if err := json.Unmarshal([]byte(body), &result); err == nil && result.Summary != "" {
 		return &result, nil
+	}
+
+	// LLM 常用中文键名（如“摘要”“根因分析”）返回，做一次映射兼容
+	var raw map[string]any
+	if err := json.Unmarshal([]byte(body), &raw); err == nil {
+		if mapped := mapChineseKeys(raw); mapped != nil {
+			return mapped, nil
+		}
 	}
 
 	// If not valid JSON, create a simple result
@@ -341,6 +416,71 @@ func (p *OpenAIProvider) parseAnalysisResponse(content string) (*AnalysisResult,
 		Confidence:  0.5,
 		Language:    p.config.Language,
 	}, nil
+}
+
+// stripCodeFence 去除包裹 JSON 的 Markdown 代码围栏
+func stripCodeFence(content string) string {
+	s := strings.TrimSpace(content)
+	if strings.HasPrefix(s, "```") {
+		if idx := strings.Index(s, "\n"); idx > 0 {
+			s = s[idx+1:]
+		}
+		s = strings.TrimSuffix(s, "```")
+	}
+	return strings.TrimSpace(s)
+}
+
+// mapChineseKeys 将中文键名的分析结果映射为 AnalysisResult；无法识别时返回 nil
+func mapChineseKeys(raw map[string]any) *AnalysisResult {
+	pick := func(keys ...string) string {
+		for _, k := range keys {
+			if v, ok := raw[k].(string); ok && v != "" {
+				return v
+			}
+		}
+		return ""
+	}
+	summary := pick("摘要", "问题摘要", "summary")
+	if summary == "" {
+		return nil
+	}
+	res := &AnalysisResult{
+		Summary:     summary,
+		RootCause:   pick("根因分析", "根因", "root_cause"),
+		Suggestions: []FixSuggestion{},
+		Severity:    types.SeverityWarning,
+		Confidence:  0.7,
+	}
+	if conf, ok := raw["置信度"].(float64); ok {
+		if conf <= 1 {
+			res.Confidence = conf
+		} else { // 百分制
+			res.Confidence = conf / 100
+		}
+	}
+	if arr, ok := raw["修复建议"].([]any); ok {
+		for _, item := range arr {
+			m, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			sug := FixSuggestion{Title: strVal(m, "标题", "建议")}
+			sug.Description = strVal(m, "描述", "说明")
+			sug.Command = strVal(m, "命令")
+			sug.Risk = strVal(m, "风险等级", "风险")
+			res.Suggestions = append(res.Suggestions, sug)
+		}
+	}
+	return res
+}
+
+func strVal(m map[string]any, keys ...string) string {
+	for _, k := range keys {
+		if v, ok := m[k].(string); ok {
+			return v
+		}
+	}
+	return ""
 }
 
 func (p *OpenAIProvider) parseFixResponse(content string) ([]FixSuggestion, error) {
@@ -403,9 +543,14 @@ func (f *Factory) CreateProvider() (Provider, error) {
 		if f.config.APIKey == "" {
 			return nil, fmt.Errorf("AI API key not configured, set KUDIG_AI_API_KEY")
 		}
-		// 小米 MiMo 开放平台（https://mimo.mi.com），Bearer 鉴权
+		// 小米 MiMo 开放平台（https://mimo.mi.com），Bearer 鉴权；未显式指定 BaseURL 时按 key 前缀推断：
+		// tp- 为 Token Plan 订阅套餐（专属端点），其余为按量付费 sk- key
 		if f.config.BaseURL == "" {
-			f.config.BaseURL = "https://api.xiaomimimo.com/v1"
+			if strings.HasPrefix(f.config.APIKey, "tp-") {
+				f.config.BaseURL = "https://token-plan-cn.xiaomimimo.com/v1"
+			} else {
+				f.config.BaseURL = "https://api.xiaomimimo.com/v1"
+			}
 		}
 		if f.config.Model == "" || f.config.Model == "gpt-4" {
 			f.config.Model = "mimo-v2.5"

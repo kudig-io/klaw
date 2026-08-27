@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: klaw_service/diag_pipeline/reporter
+title: 诊断报告生成器与多格式输出
+scope:
+    - internal/diag/reporter/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/diag_pipeline/supporting_utils

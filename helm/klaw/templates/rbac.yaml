@@ -1,0 +1,50 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "klaw.fullname" . }}
+  labels:
+    {{- include "klaw.labels" . | nindent 4 }}
+rules:
+  # 只读：集群资源查看、事件、指标
+  - apiGroups: [""]
+    resources: ["nodes", "namespaces", "events", "services", "endpoints", "configmaps", "resourcequotas", "persistentvolumeclaims", "secrets"]
+    verbs: ["get", "list", "watch"]
+  # Pod 管理（查看、日志、删除）
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch", "delete"]
+  # Deployment 管理（扩缩容、重启）
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale", "replicasets", "daemonsets", "statefulsets"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  # 多租户：命名空间/配额/网络策略/RBAC 管理
+  - apiGroups: [""]
+    resources: ["namespaces", "resourcequotas"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings", "clusterrolebindings", "clusterroles"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # 诊断与告警所需批处理资源
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "klaw.fullname" . }}
+  labels:
+    {{- include "klaw.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "klaw.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "klaw.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

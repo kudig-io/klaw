@@ -1,0 +1,124 @@
+# Klaw Helm Chart 默认值
+
+nameOverride: ""
+fullnameOverride: ""
+
+# 部署配置
+deployment:
+  replicaCount: 1
+  image:
+    repository: kudig-io/klaw
+    # 默认使用 Chart.AppVersion，避免 latest 漂移
+    tag: ""
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+imagePullSecrets: []
+podAnnotations: {}
+
+# Pod 级安全上下文（非 root 运行）
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+
+# 容器级安全上下文
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# 集群内访问所需的最小 RBAC（in-cluster 模式）
+rbac:
+  create: true
+
+# 服务配置
+service:
+  type: ClusterIP
+  port: 8080
+
+# 健康检查探针
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 15
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+# 应用配置（渲染进 ConfigMap，不含敏感信息；敏感信息见 secrets）
+config:
+  kubernetes:
+    clusters:
+      # in-cluster：使用 Pod 的 ServiceAccount 凭据访问所在集群（无需挂载 kubeconfig）
+      # 如需纳管外部集群，改为 kubeconfig 文件路径并自行挂载该文件
+      - name: default
+        kubeconfig: in-cluster
+  messaging:
+    dingtalk:
+      enabled: false
+      webhook_port: 8081
+    feishu:
+      enabled: false
+  openclaw:
+    enabled: true
+    skills: /app/skills
+  server:
+    port: 8080
+    auth:
+      # 开启后所有 API 请求需携带 Bearer token（来自 Secret 的 KLAW_API_TOKEN）
+      enabled: true
+    cors:
+      # 允许的跨域来源，空列表表示拒绝跨域（同源 Web UI 不受影响）
+      allowed_origins: []
+
+# 敏感信息：渲染进 Secret（生产环境建议改用 existingSecret 引用外部 Secret）
+secrets:
+  # API 认证 token；留空且 auth.enabled=true 时需通过 existingSecret 提供
+  apiToken: ""
+  # AI 诊断助手（internal/diag/ai）：设置 apiKey 后诊断结果会附带 AI 摘要
+  # provider 可选 openai / qwen / ollama / mimo（小米 MiMo 开放平台，Bearer 鉴权）
+  ai:
+    apiKey: ""
+    provider: ""
+    baseUrl: ""
+    model: ""
+  dingtalk:
+    appKey: ""
+    appSecret: ""
+    webhook: ""
+    secret: ""
+  feishu:
+    appId: ""
+    appSecret: ""
+
+# 引用已存在的 Secret（键名需与 templates/secret.yaml 一致），设置后忽略上面的 secrets
+existingSecret: ""
+
+# 持久化配置（SQLite 数据目录 /app/data）
+persistence:
+  enabled: true
+  size: 1Gi
+  accessMode: ReadWriteOnce
+  storageClass: ""
+  existingClaim: ""

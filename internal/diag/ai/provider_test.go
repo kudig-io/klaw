@@ -124,7 +124,7 @@ func TestGetLocalizedMessage(t *testing.T) {
 }
 
 func TestFactoryMimoDefaults(t *testing.T) {
-	config := &Config{Provider: "mimo", APIKey: "tp-test", Model: "gpt-4"}
+	config := &Config{Provider: "mimo", APIKey: "sk-test", Model: "gpt-4"}
 
 	factory := NewFactory(config)
 	provider, err := factory.CreateProvider()
@@ -137,10 +137,24 @@ func TestFactoryMimoDefaults(t *testing.T) {
 		t.Fatalf("expected *OpenAIProvider, got %T", provider)
 	}
 	if openaiProvider.config.BaseURL != "https://api.xiaomimimo.com/v1" {
-		t.Errorf("expected mimo default BaseURL, got %s", openaiProvider.config.BaseURL)
+		t.Errorf("expected mimo default BaseURL for sk- key, got %s", openaiProvider.config.BaseURL)
 	}
 	if openaiProvider.config.Model != "mimo-v2.5" {
 		t.Errorf("expected mimo default model mimo-v2.5, got %s", openaiProvider.config.Model)
+	}
+}
+
+func TestFactoryMimoTokenPlanEndpoint(t *testing.T) {
+	// tp- 前缀为 Token Plan 套餐，需自动路由到专属端点
+	config := &Config{Provider: "mimo", APIKey: "tp-test", Model: "gpt-4"}
+
+	provider, err := NewFactory(config).CreateProvider()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	p := provider.(*OpenAIProvider)
+	if p.config.BaseURL != "https://token-plan-cn.xiaomimimo.com/v1" {
+		t.Errorf("expected token-plan endpoint for tp- key, got %s", p.config.BaseURL)
 	}
 }
 
@@ -183,6 +197,40 @@ func TestFactoryOllamaNoAPIKeyAllowed(t *testing.T) {
 	}
 	if p.config.Model != "llama3" {
 		t.Errorf("expected ollama default model llama3, got %s", p.config.Model)
+	}
+}
+
+func TestParseAnalysisResponse_FencedChineseJSON(t *testing.T) {
+	p := &OpenAIProvider{config: &Config{Language: "zh"}}
+	// MiMo 实测会返回 Markdown 围栏 + 中文键名的 JSON
+	content := "```json\n{\n  \"摘要\": \"kubelet 10250 未监听\",\n  \"根因分析\": \"kubelet 服务异常\",\n  \"修复建议\": [\n    {\"标题\": \"重启 kubelet\", \"命令\": \"systemctl restart kubelet\", \"风险等级\": \"低\"}\n  ],\n  \"置信度\": 0.95\n}\n```"
+
+	res, err := p.parseAnalysisResponse(content)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res.Summary != "kubelet 10250 未监听" {
+		t.Errorf("summary not mapped, got %q", res.Summary)
+	}
+	if res.RootCause != "kubelet 服务异常" {
+		t.Errorf("root cause not mapped, got %q", res.RootCause)
+	}
+	if len(res.Suggestions) != 1 || res.Suggestions[0].Command != "systemctl restart kubelet" {
+		t.Errorf("suggestions not mapped, got %+v", res.Suggestions)
+	}
+	if res.Confidence < 0.94 || res.Confidence > 0.96 {
+		t.Errorf("confidence not mapped, got %v", res.Confidence)
+	}
+}
+
+func TestParseAnalysisResponse_PlainTextFallback(t *testing.T) {
+	p := &OpenAIProvider{config: &Config{Language: "en"}}
+	res, err := p.parseAnalysisResponse("just plain text analysis")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res.Summary != "just plain text analysis" || res.Confidence != 0.5 {
+		t.Errorf("fallback broken, got %+v", res)
 	}
 }
 

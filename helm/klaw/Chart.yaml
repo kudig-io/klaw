@@ -1,0 +1,17 @@
+apiVersion: v2
+name: klaw
+version: 1.0.0
+appVersion: "1.0.0"
+description: Kubernetes management tool based on OpenClaw
+type: application
+keywords:
+  - kubernetes
+  - openclaw
+  - devops
+  - monitoring
+  - messaging
+maintainers:
+  - name: kudig-io
+    email: contact@kudig.io
+annotations:
+  category: DevOps

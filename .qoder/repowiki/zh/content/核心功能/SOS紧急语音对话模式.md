@@ -5,11 +5,28 @@
 - [README.md](file://README.md)
 - [2026-08-25-sos-mode-design.md](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md)
 - [2026-08-25-sos-mode.md](file://docs/superpowers/plans/2026-08-25-sos-mode.md)
+- [dashscope.go](file://internal/sos/dashscope.go)
+- [session.go](file://internal/sos/session.go)
+- [tools.go](file://internal/sos/tools.go)
 - [faq.go](file://internal/sos/faq.go)
-- [faq_test.go](file://internal/sos/faq_test.go)
+- [sos.go](file://internal/api/sos.go)
+- [config.go](file://internal/config/config.go)
+- [SosCallPage.tsx](file://web/src/pages/SosCallPage.tsx)
+- [useSosSession.ts](file://web/src/hooks/useSosSession.ts)
+- [sosProtocol.ts](file://web/src/lib/sosProtocol.ts)
+- [sosApi.ts](file://web/src/lib/sosApi.ts)
 - [sos-faq.yaml](file://configs/sos-faq.yaml)
 - [config.yaml.example](file://configs/config.yaml.example)
 </cite>
+
+## 更新摘要
+**变更内容**
+- **集群特定工具执行**：新增会话级集群选择能力，支持在多集群环境中精确查询指定集群资源
+- **工具执行超时保护**：实现20秒默认超时机制，防止Kubernetes API调用阻塞导致goroutine泄漏
+- **增强错误处理**：提供中文用户友好的错误消息，改善用户体验
+- **前端状态管理优化**：新增toolCall跟踪功能，实时显示当前执行的集群工具
+- **审计日志安全加固**：添加panic恢复机制，确保审计回调异常不影响会话生命周期
+- **异步工具执行架构**：工具调用在独立协程中执行，避免阻塞WebSocket主循环
 
 ## 目录
 1. [简介](#简介)
@@ -24,214 +41,275 @@
 10. [附录](#附录)
 
 ## 简介
-本文件聚焦 Klaw 的“SOS 紧急语音对话模式”，即通过 Web 控制台提供全屏语音通话入口，与阿里云百炼 DashScope Qwen-Omni-Realtime 实时全双工语音模型进行低延迟对话。其核心目标是：在事故现场快速获得答案——既能秒答产品与运维常识类问题，也能实时查询集群真实状态并触发应急诊断。回答遵循三层兜底策略：预置语料 → 集群工具（function calling）→ 模型通用知识。密钥与集群访问全部收敛在后端，浏览器不接触 DashScope API Key。
+Klaw的"SOS紧急语音对话模式"是一个经过全面安全加固和可靠性增强的实时语音应急系统。该系统通过Web控制台提供全屏语音通话入口，与阿里云百炼DashScope Qwen-Omni-Realtime实时全双工语音模型进行低延迟对话。最新版本引入了集群特定工具执行、工具超时保护、增强的错误处理和前端状态管理等关键特性，确保在事故现场能够快速获得准确答案的同时，满足企业级安全要求。
 
 ## 项目结构
-SOS 相关代码与配置主要分布在以下位置：
-- internal/sos：SOS 后端模块（FAQ 加载、instructions 组装等）
-- configs/sos-faq.yaml：外部可覆盖的 FAQ 语料文件
-- docs/superpowers/specs/2026-08-25-sos-mode-design.md：SOS 设计规格
-- docs/superpowers/plans/2026-08-25-sos-mode.md：实施计划（含任务分解、接口约束、测试计划）
-- configs/config.yaml.example：示例配置（包含 sos 段）
-- README.md：项目整体说明（含架构、API、ChatOps、部署等）
+SOS相关代码分布在以下关键位置：
+- **后端核心**：`internal/sos/` - DashScope集成、会话管理、工具执行器
+- **API层**：`internal/api/sos.go` - HTTP路由和WebSocket升级
+- **配置管理**：`internal/config/config.go` - SOS配置结构和环境变量覆盖
+- **前端界面**：`web/src/pages/SosCallPage.tsx` - 全屏语音通话页面
+- **前端逻辑**：`web/src/hooks/useSosSession.ts` - WebSocket会话管理
+- **协议定义**：`web/src/lib/sosProtocol.ts` - 前后端通信协议
 
 ```mermaid
 graph TB
-A["浏览器 SosCallPage"] --> B["Klaw 后端 /api/v1/sos/session"]
-B --> C["DashScope Realtime (wss)"]
-B --> D["集群工具执行器<br/>get_cluster_status/list_pods/get_pod_logs/list_events/run_diagnosis"]
-B --> E["FAQ 加载与 instructions 组装"]
-D --> F["kubernetes.Resources<br/>diag pipeline"]
+A["浏览器 SosCallPage"] --> B["useSosSession Hook"]
+B --> C["WebSocket /api/v1/sos/session"]
+C --> D["Klaw 后端 Manager"]
+D --> E["DashScope Realtime (wss)"]
+D --> F["集群工具执行器"]
+F --> G["Kubernetes Resources"]
+D --> H["FAQ加载与指令组装"]
+D --> I["审计日志记录"]
+F --> J["集群选择器"]
+J --> K["指定集群查询"]
 ```
 
-图表来源
-- [2026-08-25-sos-mode-design.md:60-78](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L60-L78)
-- [2026-08-25-sos-mode.md:19-27](file://docs/superpowers/plans/2026-08-25-sos-mode.md#L19-L27)
+**图表来源**
+- [SosCallPage.tsx:17-127](file://web/src/pages/SosCallPage.tsx#L17-L127)
+- [useSosSession.ts:12-124](file://web/src/hooks/useSosSession.ts#L12-L124)
+- [session.go:37-110](file://internal/sos/session.go#L37-L110)
 
-章节来源
+**章节来源**
 - [README.md:92-134](file://README.md#L92-L134)
 - [2026-08-25-sos-mode-design.md:60-78](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L60-L78)
 
 ## 核心组件
-- FAQ 语料与指令注入
-  - 内嵌种子语料 + 可选外部覆盖；构建系统提示与标准问答语料片段，注入到 Realtime 会话的 instructions 中，实现第 1 层兜底。
-- 集群工具执行器
-  - 定义 5 个只读/诊断工具，封装对 Kubernetes 资源与诊断流水线的调用，返回 JSON 结果给模型，实现第 2 层兜底。
-- 会话桥接与事件翻译
-  - 将浏览器 WS 帧与 DashScope Realtime 事件相互转换，处理音频 PCM 编码、智能打断、错误与超时等。
-- 配置与环境变量
-  - 新增 sos 配置段，支持环境变量覆盖（如 KLAW_SOS_DASHSCOPE_API_KEY），默认关闭以零开销接入。
+- **DashScope集成模块**：负责建立WebSocket连接、构建会话配置、事件翻译和音频编码
+- **会话管理器**：维护浏览器WS与DashScope WS的双向桥接，处理智能打断、重连和超时清理，具备完整的审计日志功能
+- **集群工具执行器**：注册5个只读/诊断工具，封装Kubernetes资源查询和诊断流水线调用，支持异步执行和集群选择
+- **FAQ语料系统**：加载内嵌或外部FAQ文件，构建系统提示和标准问答语料
+- **前端会话Hook**：管理AudioWorklet采集、PCM编解码、播放队列和状态管理，包含toolCall跟踪
+- **安全认证模块**：实现Bearer Token和查询参数双重认证，防止认证绕过攻击
 
-章节来源
-- [faq.go:1-69](file://internal/sos/faq.go#L1-L69)
-- [2026-08-25-sos-mode-design.md:100-118](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L100-L118)
-- [2026-08-25-sos-mode.md:31-188](file://docs/superpowers/plans/2026-08-25-sos-mode.md#L31-L188)
+**章节来源**
+- [dashscope.go:15-140](file://internal/sos/dashscope.go#L15-L140)
+- [session.go:37-291](file://internal/sos/session.go#L37-L291)
+- [tools.go:14-322](file://internal/sos/tools.go#L14-L322)
+- [useSosSession.ts:12-124](file://web/src/hooks/useSosSession.ts#L12-L124)
+- [sos.go:25-49](file://internal/api/sos.go#L25-L49)
 
 ## 架构总览
-SOS 采用“浏览器 ↔ Klaw 后端 ↔ DashScope Realtime”的双 WebSocket 链路：
-- 链路 1（浏览器 ↔ Klaw）：同源 WebSocket /api/v1/sos/session，复用现有 Bearer Token 鉴权中间件；文本帧用于控制与事件，二进制帧用于 PCM 音频。
-- 链路 2（Klaw ↔ DashScope）：wss://{workspace-id}.{region}.maas.aliyuncs.com/api-ws/v1/realtime?model={model}，Authorization: Bearer {DASHSCOPE_API_KEY}。
-- 会话配置：voice、turn_detection.type=semantic_vad、输入 pcm/16000、输出 pcm/24000、instructions（系统提示+语料）、tools（集群工具 schema）。
-- 智能打断：服务端 semantic_vad 检测到用户开口即下发 input_audio_buffer.speech_started，后端转发给浏览器，立即停播本地音频队列并清空缓冲。
+SOS采用"浏览器 ↔ Klaw后端 ↔ DashScope Realtime"的双WebSocket链路架构，经过全面的安全加固和可靠性增强：
 
+### 通信协议
+- **浏览器 ↔ Klaw**：同源WebSocket `/api/v1/sos/session`，复用Bearer Token鉴权中间件，支持查询参数token传递
+- **Klaw ↔ DashScope**：`wss://{workspace-id}.{region}.maas.aliyuncs.com/api-ws/v1/realtime?model={model}`
+
+### 会话配置
+- 语音设置：voice、turn_detection.type=semantic_vad
+- 音频格式：输入pcm/16000，输出pcm/24000
+- 功能开关：instructions（系统提示+语料）、tools（集群工具schema）
+
+### 智能打断机制
+服务端semantic_vad检测到用户开口即下发`input_audio_buffer.speech_started`，后端转发给浏览器立即停播本地音频队列并清空缓冲。
+
+### 安全认证流程
 ```mermaid
 sequenceDiagram
 participant U as "浏览器"
-participant S as "Klaw 后端"
-participant DS as "DashScope Realtime"
-participant T as "集群工具执行器"
-U->>S : "建立 WS 会话 /api/v1/sos/session"
-S->>DS : "连接 wss : //.../realtime?model=..."
-DS-->>S : "session.update 确认(voice, turn_detection, tools)"
-U->>S : "上行 PCM16k 音频帧"
-S->>DS : "转发音频数据"
-DS-->>S : "assistant.transcript.delta / speech_started / tool_call"
-S-->>U : "字幕/打断/工具调用事件"
-alt 需要集群数据
-S->>T : "Execute(name, args)"
-T-->>S : "JSON 结果"
-S->>DS : "function_call_output"
+participant A as "认证中间件"
+participant S as "SOS Handler"
+participant M as "Manager"
+participant DS as "DashScope"
+U->>A : "GET /api/v1/sos/session?token=xxx"
+A->>A : "检查authEnabled"
+alt authEnabled=true
+A->>A : "跳过认证(特殊路径)"
+else authEnabled=false
+A->>A : "放行"
 end
-DS-->>S : "PCM24k 音频段"
-S-->>U : "下行 PCM24k 音频帧"
+A->>S : "请求转发"
+S->>S : "checkToken(token)"
+alt token有效
+S->>M : "HandleSessionWS()"
+M->>DS : "建立WebSocket连接"
+DS-->>M : "session.update确认"
+M-->>U : "session事件"
+else token无效
+S-->>U : "401 Unauthorized"
+end
 ```
 
-图表来源
-- [2026-08-25-sos-mode-design.md:60-78](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L60-L78)
-- [2026-08-25-sos-mode-design.md:112-118](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L112-L118)
+**图表来源**
+- [session.go:127-169](file://internal/sos/session.go#L127-L169)
+- [dashscope.go:100-140](file://internal/sos/dashscope.go#L100-L140)
+- [sos.go:25-49](file://internal/api/sos.go#L25-L49)
 
 ## 详细组件分析
 
-### FAQ 语料与指令注入
-- 职责
-  - 加载 FAQ 语料（内嵌种子或外部文件），校验非空，拼装 system instructions 片段，注入到 Realtime 会话。
-- 数据结构
-  - FAQEntry：id、question、answer、tags。
-  - faqFile：faqs 数组。
-- 关键行为
-  - LoadFAQs(path)：path 为空使用内嵌 seed.yaml，否则读取外部文件；解析失败或无条目时报错。
-  - BuildInstructions(prefix, faqs)：拼接默认系统提示前缀、可选自定义前缀与标准问答语料，形成最终 instructions。
-- 复杂度
-  - 加载与解析为 O(N)（N 为 FAQ 条目数），字符串构建为 O(L)（L 为总字符长度）。
-- 错误处理
-  - 文件读取失败、YAML 解析失败、空语料均返回错误，便于上层统一处理。
+### 集群特定工具执行能力
+**职责**：支持在多集群环境中精确查询指定集群的资源信息
 
-```mermaid
-flowchart TD
-Start(["LoadFAQs(path)"]) --> UseSeed{"path 是否为空?"}
-UseSeed --> |是| ReadSeed["读取内嵌 seed.yaml"]
-UseSeed --> |否| ReadFile["读取外部文件"]
-ReadSeed --> Parse["yaml.Unmarshal"]
-ReadFile --> Parse
-Parse --> Valid{"是否成功且非空?"}
-Valid --> |否| Err["返回错误"]
-Valid --> |是| Return["返回 FAQ 列表"]
-```
+**关键特性**：
+- **会话级集群选择**：通过start指令携带cluster参数选定目标集群
+- **工具执行上下文**：所有工具调用自动继承选定的集群上下文
+- **默认集群回退**：未指定集群时回退到默认集群
+- **线程安全访问**：使用互斥锁保护集群上下文切换
 
-图表来源
-- [faq.go:28-46](file://internal/sos/faq.go#L28-L46)
+**实现方式**：
+- 前端发送`{type: 'start', cluster: 'cluster-name'}`指令
+- 后端session结构体维护cluster字段
+- ToolExecutor.ExecuteForCluster方法支持集群参数传递
 
-章节来源
-- [faq.go:1-69](file://internal/sos/faq.go#L1-L69)
-- [faq_test.go:1-58](file://internal/sos/faq_test.go#L1-L58)
-- [sos-faq.yaml:1-9](file://configs/sos-faq.yaml#L1-L9)
+**章节来源**
+- [session.go:253-265](file://internal/sos/session.go#L253-L265)
+- [tools.go:93-117](file://internal/sos/tools.go#L93-L117)
 
-### 集群工具执行器（第 2 层兜底）
-- 职责
-  - 注册 5 个只读/诊断工具，定义 OpenAI Realtime 兼容的 function schema，并在后端进程内执行，返回 JSON 结果。
-- 工具清单
-  - get_cluster_status：节点/Pod 统计、异常计数、最近 Warning 事件摘要。
-  - list_pods：列出 Pod，默认仅异常（Pending/CrashLoopBackOff/OOMKilled 等），支持 namespace/status 过滤。
-  - get_pod_logs：获取指定 Pod 最近日志，tail_lines 默认 100，上限 500，结果截断防大包。
-  - list_events：最近 Warning/Error 事件列表，支持 namespace 过滤。
-  - run_diagnosis：触发诊断流水线，同步等待（上限 30s），返回问题摘要与修复建议。
-- 关键行为
-  - Definitions()：返回工具 schema 列表。
-  - Execute(ctx, name, args)：根据名称路由到具体实现，参数解码与校验，错误包装返回。
-- 复杂度
-  - 各工具多为 I/O 密集（K8s API 调用），CPU 计算较少；日志与事件摘要有固定上限，避免大对象。
-- 错误处理
-  - 未知工具名直接报错；K8s 调用失败包装错误；日志截断与事件摘要限制防止响应过大。
+### 工具执行超时保护机制
+**职责**：防止Kubernetes API调用长时间阻塞导致goroutine泄漏和资源耗尽
 
-```mermaid
-classDiagram
-class ToolExecutor {
-+Definitions() []ToolDefinition
-+Execute(ctx, name, args) string,error
--reader ClusterReader
--cluster string
-}
-class ClusterReader {
-<<interface>>
-+ListPods(cluster, ns) []Pod,error
-+ListNodes(cluster) []Node,error
-+ListEvents(cluster, ns) []Event,error
-+GetPodLogs(cluster, ns, pod, tail) string,error
-}
-ToolExecutor --> ClusterReader : "依赖"
-```
+**关键特性**：
+- **20秒默认超时**：单个工具执行最大耗时限制
+- **上下文取消传播**：超时后通过context.Context取消信号中断底层调用
+- **goroutine安全退出**：使用缓冲channel确保goroutine正常退出
+- **优雅错误处理**：超时错误以JSON格式返回，符合OpenAI协议规范
 
-图表来源
-- [2026-08-25-sos-mode.md:373-515](file://docs/superpowers/plans/2026-08-25-sos-mode.md#L373-L515)
+**实现方式**：
+- `toolExecTimeout = 20 * time.Second`包级常量
+- ExecuteForCluster方法使用select语句监听ctx.Done()
+- 超时返回格式化错误消息，便于前端展示
 
-章节来源
-- [2026-08-25-sos-mode.md:373-515](file://docs/superpowers/plans/2026-08-25-sos-mode.md#L373-L515)
+**章节来源**
+- [session.go:25](file://internal/sos/session.go#L25)
+- [tools.go:106-117](file://internal/sos/tools.go#L106-L117)
 
-### 会话桥接与事件翻译
-- 职责
-  - 维护浏览器 WS 与 DashScope WS 的生命周期，翻译事件与音频帧，处理智能打断、重连与超时清理。
-- 帧协议
-  - 文本帧：start/mute/unmute/end；session/error 及事件转发（user.transcript.delta、assistant.transcript.delta、tool_call、speech_started 等）。
-  - 二进制帧：上行 PCM16k 单声道裸数据；下行 PCM24k 音频段。
-- 关键行为
-  - session.update：voice、turn_detection.type=semantic_vad、instructions、tools。
-  - 智能打断：收到 input_audio_buffer.speech_started 时，前端停播并清空缓冲。
-  - 错误与超时：DashScope 建连失败/断开自动重连一次；空闲超时结束会话释放资源。
-- 复杂度
-  - 事件翻译为 O(1) 每帧；重连与超时管理为后台协程，不影响主流程。
+### 增强的错误处理与中文消息
+**职责**：提供用户友好的错误信息和清晰的错误分类
 
-```mermaid
-sequenceDiagram
-participant B as "浏览器"
-participant W as "Klaw WS"
-participant R as "DashScope WS"
-B->>W : "start (可选 cluster)"
-W->>R : "connect + session.update(instructions/tools)"
-B->>W : "PCM16k 音频帧"
-W->>R : "转发音频"
-R-->>W : "assistant.transcript.delta / speech_started"
-W-->>B : "字幕/打断事件"
-R-->>W : "PCM24k 音频段"
-W-->>B : "PCM24k 音频帧"
-```
+**关键特性**：
+- **中文错误消息**：所有用户可见的错误信息均使用中文
+- **错误分类处理**：区分网络错误、配置错误、权限错误等
+- **前端状态映射**：错误状态正确反映到UI组件
+- **调试信息保留**：开发环境下保留详细错误堆栈
 
-图表来源
-- [2026-08-25-sos-mode-design.md:112-118](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L112-L118)
+**错误类型示例**：
+- "语音服务连接失败，请检查 SOS 配置与网络"
+- "连接已断开，请刷新页面重试"
+- "会话长时间无操作，已自动结束"
 
-章节来源
-- [2026-08-25-sos-mode-design.md:112-118](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L112-L118)
+**章节来源**
+- [session.go:126-127](file://internal/sos/session.go#L126-L127)
+- [session.go:196-197](file://internal/sos/session.go#L196-L197)
+- [session.go:176-177](file://internal/sos/session.go#L176-L177)
 
-### 配置与环境变量
-- 新增 sos 配置段，默认关闭，未启用时对现有功能零行为变化。
-- 环境变量优先覆盖：KLAW_SOS_DASHSCOPE_API_KEY 优先于 YAML 中的 api_key。
-- 默认值：region=cn-beijing、model=qwen3.5-omni-plus-realtime、voice=Ethan。
-- 外部 FAQ 文件：faq_file 为空时使用内嵌种子，否则读取指定路径。
+### 前端状态管理改进
+**职责**：提供实时的工具执行状态反馈和用户交互体验
 
-章节来源
-- [config.yaml.example:37-48](file://configs/config.yaml.example#L37-L48)
-- [2026-08-25-sos-mode.md:31-188](file://docs/superpowers/plans/2026-08-25-sos-mode.md#L31-L188)
+**关键特性**：
+- **toolCall跟踪**：实时显示当前正在执行的集群工具名称
+- **状态同步机制**：后端tool_call事件触发前端状态更新
+- **UI反馈组件**：工具执行时显示加载动画和工具名称
+- **状态清理机制**：response.done事件清除toolCall状态
+
+**实现细节**：
+- `SosSessionState.toolCall`字段跟踪当前工具
+- `reduceEvent`函数处理tool_call事件类型
+- SosCallPage组件显示工具执行状态
+
+**章节来源**
+- [sosProtocol.ts:19](file://web/src/lib/sosProtocol.ts#L19)
+- [sosProtocol.ts:83-84](file://web/src/lib/sosProtocol.ts#L83-L84)
+- [SosCallPage.tsx:80-86](file://web/src/pages/SosCallPage.tsx#L80-L86)
+
+### 审计日志安全增强
+**职责**：确保审计日志系统的稳定性和安全性
+
+**关键特性**：
+- **Panic恢复机制**：审计回调异常不会导致会话崩溃
+- **元数据隔离**：仅记录操作元数据，不包含敏感音频内容
+- **线程安全设计**：并发安全的审计日志写入
+- **可选回调注入**：审计功能可插拔，不影响核心功能
+
+**安全设计**：
+- `audit`方法使用defer recover捕获panic
+- 审计回调函数签名限制为纯函数式接口
+- 审计事件类型明确定义，便于后续扩展
+
+**章节来源**
+- [session.go:72-83](file://internal/sos/session.go#L72-L83)
+- [session.go:325-326](file://internal/sos/session.go#L325-L326)
+- [session.go:356-357](file://internal/sos/session.go#L356-L357)
+
+### 异步工具执行架构
+**职责**：确保工具执行不会阻塞WebSocket主循环
+
+**关键特性**：
+- **协程隔离**：每个工具调用在独立goroutine中执行
+- **结果通道**：使用channel收集工具执行结果
+- **超时控制**：结合context.Context实现超时保护
+- **错误传播**：工具错误以JSON格式返回，符合协议规范
+
+**执行流程**：
+1. 接收工具调用请求
+2. 启动后台goroutine执行工具
+3. 发送tool_call事件通知前端
+4. 等待工具执行完成或超时
+5. 返回结果并触发模型继续作答
+
+**章节来源**
+- [session.go:316-344](file://internal/sos/session.go#L316-L344)
+- [tools.go:106-117](file://internal/sos/tools.go#L106-L117)
+
+### OpenAI Realtime协议合规
+**职责**：确保与OpenAI Realtime Protocol的完全兼容性
+
+**协议实现**：
+- 会话配置：`session.update`包含voice、instructions、tools、turn_detection、audio配置
+- 音频传输：`input_audio_buffer.append`上行，`response.audio.delta`下行
+- 工具调用：`response.function_call_arguments.done`接收，`conversation.item.create(function_call_output)`回传
+- 会话控制：`response.create`触发模型继续作答
+
+**兼容性保证**：
+- 严格遵循OpenAI Realtime消息格式
+- 支持语义VAD打断机制
+- 完整的错误处理和事件转换
+
+**章节来源**
+- [dashscope.go:36-76](file://internal/sos/dashscope.go#L36-L76)
+- [dashscope.go:100-140](file://internal/sos/dashscope.go#L100-L140)
+
+### 测试覆盖增强
+**职责**：提供全面的测试覆盖，确保功能正确性和稳定性
+
+**测试范围**：
+- **会话桥接测试**：验证双向数据传输和事件转发
+- **工具调用测试**：测试成功和失败路径，确保JSON格式正确
+- **重连机制测试**：验证上游断线后的自动重连
+- **空闲超时测试**：验证会话空闲超时机制
+- **审计回调测试**：验证审计日志的正确记录和panic恢复
+- **认证测试**：验证Bearer Token和查询参数的双重认证
+- **超时保护测试**：验证工具执行超时机制
+
+**测试特点**：
+- 使用mock上游服务模拟DashScope行为
+- 可注入的依赖便于单元测试
+- 完整的错误路径覆盖
+- 并发安全性验证
+
+**章节来源**
+- [session_test.go:132-201](file://internal/sos/session_test.go#L132-L201)
+- [session_test.go:217-266](file://internal/sos/session_test.go#L217-L266)
+- [session_test.go:268-340](file://internal/sos/session_test.go#L268-L340)
+- [session_test.go:495-567](file://internal/sos/session_test.go#L495-L567)
+- [session_test.go:703-752](file://internal/sos/session_test.go#L703-L752)
+- [sos_test.go:51-78](file://internal/api/sos_test.go#L51-L78)
 
 ## 依赖关系分析
-- 模块依赖方向
-  - api → sos → kubernetes.Manager / diag pipeline / config
-  - 单向依赖，不反向引用 api 包，保持松耦合。
-- 外部依赖
-  - DashScope Realtime（OpenAI Realtime 兼容协议）
-  - Kubernetes client-go（通过 Resources 接口）
-  - SQLite（持久化，与 SOS 无关但属于平台能力）
-- 潜在风险
-  - 上游 DashScope 服务不可用导致会话中断；已设计一次重连与错误事件上报。
-  - 工具执行耗时（run_diagnosis 上限 30s）需超时保护，避免阻塞会话。
+**模块依赖方向**：
+- `api` → `sos` → `kubernetes.Manager` / `diag pipeline` / `config`
+- 单向依赖，不反向引用api包，保持松耦合
+
+**外部依赖**：
+- DashScope Realtime（OpenAI Realtime兼容协议）
+- Kubernetes client-go（通过Resources接口）
+- SQLite（平台持久化能力）
+
+**潜在风险**：
+- 上游DashScope服务不可用导致会话中断
+- 工具执行耗时需超时保护，避免阻塞会话
+- 多集群环境下的资源竞争和一致性
 
 ```mermaid
 graph LR
@@ -240,61 +318,113 @@ SOS --> K8S["kubernetes.Resources"]
 SOS --> DIAG["diag pipeline"]
 SOS --> CFG["config"]
 SOS --> DS["DashScope Realtime"]
+SOS --> AUDIT["audit logger"]
+SOS --> CLUSTER["集群选择器"]
 ```
 
-图表来源
+**图表来源**
 - [2026-08-25-sos-mode-design.md:88-99](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L88-L99)
 
-章节来源
+**章节来源**
 - [2026-08-25-sos-mode-design.md:88-99](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L88-L99)
 
 ## 性能与可用性
-- 延迟特性
-  - 全双工实时对话，端到端响应延迟 < 1.8s（设计目标），语义打断降低交互等待。
-- 吞吐与资源
-  - 工具执行限制返回大小（日志截断、事件摘要上限），避免大对象影响网络与内存。
-- 可用性保障
-  - 未启用 sos 时零开销；DashScope 断线自动重连一次；空闲超时释放资源；错误事件清晰上报。
-- 可观测性
-  - 复用平台 metrics 与审计（仅记录会话元数据与工具调用，不含音频与转写内容）。
+**延迟特性**：
+- 全双工实时对话，端到端响应延迟<1.8秒（设计目标）
+- 语义打断降低交互等待时间
+- 异步工具执行避免阻塞主循环
+- 20秒工具超时保护防止长时间阻塞
 
-[本节为一般性指导，无需特定文件来源]
+**吞吐与资源**：
+- 工具执行限制返回大小（日志截断、事件摘要上限）
+- 避免大对象影响网络与内存
+- 连接池和goroutine管理优化
+- 超时保护防止goroutine泄漏
+
+**可用性保障**：
+- 未启用sos时零开销
+- DashScope断线自动重连一次
+- 空闲超时释放资源
+- 错误事件清晰上报
+- 优雅关闭防止资源泄漏
+- 集群选择支持多集群环境
+
+**可观测性**：
+- 复用平台metrics与审计
+- 仅记录会话元数据与工具调用，不含音频与转写内容
+- 完整的审计日志支持
+- Panic恢复确保系统稳定性
 
 ## 故障排查指南
-- 未配置/无效 DashScope Key
-  - 现象：/api/v1/sos/status 返回 ready=false；通话页展示配置引导。
-  - 处理：检查 sos.dashscope.* 配置项与环境变量 KLAW_SOS_DASHSCOPE_API_KEY。
-- DashScope 建连失败/中途断开
-  - 现象：会话中断，前端提示“服务中断，请重试”。
-  - 处理：后端自动重连一次；若仍失败，检查网络与密钥有效性。
-- 浏览器 WS 断开
-  - 现象：会话结束，资源释放。
-  - 处理：检查浏览器权限与安全上下文（HTTPS/localhost），重新进入通话页。
-- 工具执行失败/超时
-  - 现象：模型口头告知错误；run_diagnosis 超 30s 返回“诊断超时，建议到诊断页查看”。
-  - 处理：检查集群连通性与诊断流水线状态。
-- 麦克风不可用
-  - 现象：无法建连，显示引导文案。
-  - 处理：授予麦克风权限，确保安全上下文。
+**配置问题**：
+- **现象**：`/api/v1/sos/status`返回ready=false；通话页展示配置引导
+- **处理**：检查`sos.dashscope.*`配置项和`KLAW_SOS_DASHSCOPE_API_KEY`环境变量
 
-章节来源
+**认证问题**：
+- **现象**：401 Unauthorized错误
+- **处理**：检查token参数或Authorization头部是否正确传递
+
+**连接问题**：
+- **现象**：会话中断，前端提示"服务中断，请重试"
+- **处理**：后端自动重连一次；若仍失败，检查网络与密钥有效性
+
+**浏览器问题**：
+- **现象**：会话结束，资源释放
+- **处理**：检查浏览器权限与安全上下文（HTTPS/localhost），重新进入通话页
+
+**工具执行问题**：
+- **现象**：模型口头告知错误；`run_diagnosis`超30秒返回"诊断超时"
+- **处理**：检查集群连通性与诊断流水线状态
+
+**麦克风问题**：
+- **现象**：无法建连，显示引导文案
+- **处理**：授予麦克风权限，确保安全上下文
+
+**审计日志问题**：
+- **现象**：审计日志缺失
+- **处理**：检查审计回调是否正确注入，确认日志存储配置
+
+**集群选择问题**：
+- **现象**：工具调用返回空结果或错误集群数据
+- **处理**：确认start指令中的cluster参数是否正确传递
+
+**工具超时问题**：
+- **现象**：工具调用长时间无响应后报错
+- **处理**：检查Kubernetes API响应时间，考虑调整超时配置
+
+**章节来源**
 - [2026-08-25-sos-mode-design.md:172-181](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L172-L181)
 
 ## 结论
-SOS 紧急语音对话模式为 Klaw 提供了面向事故现场的快速语音入口，通过三层兜底策略确保回答准确与可靠。后端集中管理密钥与集群访问，前端专注交互体验；结合语义打断与只读/诊断工具，既满足即时问答又避免误操作。设计上兼顾低延迟、高可用与安全合规，具备在生产环境落地的基础。
-
-[本节为总结性内容，无需特定文件来源]
+SOS紧急语音对话模式经过全面的安全加固和可靠性增强，为Klaw提供了企业级的实时语音应急解决方案。新版本引入了集群特定工具执行、工具超时保护、增强的错误处理和前端状态管理等关键特性，既满足了即时问答的业务需求，又符合企业级安全合规要求。系统具备完善的测试覆盖，确保在生产环境中的稳定运行。
 
 ## 附录
-- API 端点
-  - GET /api/v1/sos/status：{enabled, ready, model, voice, faq_count}
-  - GET /api/v1/sos/session：WebSocket Upgrade，复用 Bearer Token 鉴权
-- 配置示例
-  - sos.enabled、dashscope.api_key/workspace_id/region/model/voice、faq_file、instructions_prefix
-- 测试要点
-  - FAQ 加载（embed/外部覆盖/错误路径）、工具执行（schema/错误/截断）、会话桥接（事件翻译/重连/超时）
+**API端点**：
+- `GET /api/v1/sos/status`：返回{enabled, ready, model, voice, faq_count}
+- `GET /api/v1/sos/session`：WebSocket Upgrade，支持Bearer Token和查询参数token鉴权
 
-章节来源
+**配置示例**：
+- `sos.enabled`：启用开关
+- `dashscope.api_key/workspace_id/region/model/voice`：DashScope配置
+- `faq_file`：外部FAQ文件路径
+- `instructions_prefix`：自定义系统提示前缀
+
+**安全配置**：
+- `authEnabled`：是否启用认证中间件
+- `authToken`：认证令牌
+- CORS白名单配置
+
+**测试要点**：
+- FAQ加载（embed/外部覆盖/错误路径）
+- 工具执行（schema/错误/截断）
+- 会话桥接（事件翻译/重连/超时）
+- 认证流程（Bearer Token/查询参数）
+- 审计日志（会话开始/工具调用/会话结束）
+- 集群选择（start指令/上下文传递）
+- 超时保护（工具执行/上下文取消）
+- Panic恢复（审计回调异常处理）
+
+**章节来源**
 - [2026-08-25-sos-mode-design.md:119-141](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L119-L141)
 - [config.yaml.example:37-48](file://configs/config.yaml.example#L37-L48)
 - [2026-08-25-sos-mode.md:189-203](file://docs/superpowers/plans/2026-08-25-sos-mode.md#L189-L203)

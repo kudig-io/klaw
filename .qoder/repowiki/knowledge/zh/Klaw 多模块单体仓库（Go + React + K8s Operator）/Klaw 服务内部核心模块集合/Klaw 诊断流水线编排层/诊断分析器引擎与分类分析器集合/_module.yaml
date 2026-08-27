@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: klaw_service/diag_pipeline/analyzer
+title: 诊断分析器引擎与分类分析器集合
+scope:
+    - internal/diag/analyzer/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/diag_pipeline/ebpf
