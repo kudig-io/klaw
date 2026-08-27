@@ -186,7 +186,7 @@ func TestSessionBridge(t *testing.T) {
 	defer func() { Dial = orig; retryDialDelay = origRetry }()
 	// 缩短重连延迟：上游收到音频后关闭触发的重连在本测试内完成，避免遗留 goroutine
 	retryDialDelay = 20 * time.Millisecond
-	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
 		return conn, err
 	}
@@ -270,7 +270,7 @@ func TestSessionToolCallFlow(t *testing.T) {
 
 	orig := Dial
 	defer func() { Dial = orig }()
-	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
 		return conn, err
 	}
@@ -348,7 +348,7 @@ func TestSessionUpstreamReconnect(t *testing.T) {
 	origDial, origRetry := Dial, retryDialDelay
 	defer func() { Dial = origDial; retryDialDelay = origRetry }()
 	retryDialDelay = 10 * time.Millisecond
-	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
 		return conn, err
 	}
@@ -410,7 +410,7 @@ func TestSessionIdleTimeout(t *testing.T) {
 		idleTimeout, idleCheckInterval = origIdle, origCheck
 	}()
 	idleTimeout, idleCheckInterval = 30*time.Millisecond, 30*time.Millisecond
-	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
 		return conn, err
 	}
@@ -567,7 +567,7 @@ func TestManagerAuditCallback(t *testing.T) {
 	m.SetAuditLog(record)
 	origDial := Dial
 	defer func() { Dial = origDial }()
-	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 		return nil, errors.New("dial refused")
 	}
 	srv := httptest.NewServer(http.HandlerFunc(m.HandleSessionWS))
@@ -589,7 +589,7 @@ func TestManagerAuditCallback(t *testing.T) {
 	upSrv := httptest.NewServer(http.HandlerFunc(up.serve))
 	defer upSrv.Close()
 	upURL := strings.Replace(upSrv.URL, "http://", "ws://", 1)
-	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 		conn, _, err := websocket.DefaultDialer.DialContext(ctx, upURL, nil)
 		return conn, err
 	}
@@ -641,7 +641,7 @@ func TestSessionStartClusterOverride(t *testing.T) {
 
 	orig := Dial
 	defer func() { Dial = orig }()
-	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
 		return conn, err
 	}
@@ -695,7 +695,7 @@ func TestDispatchToolExecutionTimeout(t *testing.T) {
 	origTimeout := toolExecTimeout
 	defer func() { Dial = origDial; toolExecTimeout = origTimeout }()
 	toolExecTimeout = 80 * time.Millisecond
-	Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
 		return conn, err
 	}
@@ -749,4 +749,56 @@ func TestAuditCallbackPanicSafe(t *testing.T) {
 	}
 	m.SetAuditLog(func(_, _ string) { panic("boom") })
 	m.audit("sos.session_start", "") // 不应 panic
+}
+
+// TestSessionBridgeGLM provider=glm 时桥接全链路（事件回放与 dashscope 路径一致）
+func TestSessionBridgeGLM(t *testing.T) {
+	up := &fakeUpstream{t: t}
+	upSrv := httptest.NewServer(http.HandlerFunc(up.serve))
+	defer upSrv.Close()
+	u := strings.Replace(upSrv.URL, "http://", "ws://", 1)
+
+	orig := Dial
+	defer func() { Dial = orig }()
+	Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
+		if c.Provider != "glm" {
+			t.Errorf("expected provider glm, got %q", c.Provider)
+		}
+		conn, _, err := websocket.DefaultDialer.DialContext(ctx, u, nil)
+		return conn, err
+	}
+
+	m, err := NewManager(glmBridgeConfig(), nopReader{}, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !m.Status().Ready {
+		t.Fatal("expected glm manager ready")
+	}
+	srv := httptest.NewServer(http.HandlerFunc(m.HandleSessionWS))
+	defer srv.Close()
+
+	browser, _, err := websocket.DefaultDialer.Dial(strings.Replace(srv.URL, "http://", "ws://", 1), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer browser.Close()
+	_ = browser.SetReadDeadline(time.Now().Add(5 * time.Second))
+
+	var ev ClientEvent
+	if err := browser.ReadJSON(&ev); err != nil || ev.Type != "session" {
+		t.Fatalf("first event = %+v err=%v", ev, err)
+	}
+	mt, data, err := browser.ReadMessage()
+	if err != nil || mt != websocket.BinaryMessage || len(data) != 2 {
+		t.Fatalf("audio frame mt=%d data=%v err=%v", mt, data, err)
+	}
+}
+
+func glmBridgeConfig() config.SOSConfig {
+	return config.SOSConfig{
+		Enabled:  true,
+		Provider: "glm",
+		GLM:      config.SOSGlmConfig{APIKey: "id.secret", Model: "glm-realtime"},
+	}
 }

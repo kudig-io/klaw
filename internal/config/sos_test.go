@@ -56,3 +56,44 @@ func TestSOSDisabledByDefault(t *testing.T) {
 		t.Fatal("expected sos disabled by default")
 	}
 }
+
+func TestSOSProviderNormalize(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "c.yaml")
+	yaml := "sos:\n  enabled: true\n  dashscope:\n    workspace_id: ws\n  glm:\n    model: glm-realtime\n"
+	if err := os.WriteFile(p, []byte(yaml), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SOS.Provider != "dashscope" {
+		t.Fatalf("empty provider should default to dashscope, got %q", cfg.SOS.Provider)
+	}
+	yaml = "sos:\n  enabled: true\n  provider: GLM\n  glm:\n    model: glm-realtime\n"
+	if err := os.WriteFile(p, []byte(yaml), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SOS.Provider != "glm" {
+		t.Fatalf("provider should be normalized to lowercase glm, got %q", cfg.SOS.Provider)
+	}
+}
+
+func TestSOSGlmApiKeyEnvOverride(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "c.yaml")
+	if err := os.WriteFile(p, []byte("sos:\n  enabled: true\n  provider: glm\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("KLAW_SOS_GLM_API_KEY", "id.secret")
+	cfg, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SOS.GLM.APIKey != "id.secret" {
+		t.Fatalf("expected env override for glm api key, got %q", cfg.SOS.GLM.APIKey)
+	}
+}

@@ -12,28 +12,86 @@ import (
 	"github.com/kudig-io/klaw/internal/config"
 )
 
+// GLMRealtimeURL 智谱 GLM-Realtime WebSocket 端点（OpenAI Realtime 兼容）
+const GLMRealtimeURL = "wss://open.bigmodel.cn/api/paas/v4/realtime"
+
 // BuildRealtimeURL 组装 DashScope Realtime WebSocket 地址（百炼专属端点）
 func BuildRealtimeURL(c config.SOSDashscopeConfig) string {
 	return fmt.Sprintf("wss://%s.%s.maas.aliyuncs.com/api-ws/v1/realtime?model=%s",
 		c.WorkspaceID, c.Region, c.Model)
 }
 
-// DialRealtime 建立与 DashScope 的 WebSocket 连接（Bearer 鉴权）
-func DialRealtime(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
-	if c.WorkspaceID == "" || c.APIKey == "" {
-		return nil, fmt.Errorf("sos.dashscope workspace_id/api_key not configured")
+// BuildUpstreamURL 按 provider 组装上游 WebSocket 地址
+func BuildUpstreamURL(cfg config.SOSConfig) (string, error) {
+	switch cfg.Provider {
+	case "glm":
+		return GLMRealtimeURL + "?model=" + cfg.GLM.Model, nil
+	case "", "dashscope":
+		return BuildRealtimeURL(cfg.Dashscope), nil
+	default:
+		return "", fmt.Errorf("unsupported sos provider: %s", cfg.Provider)
+	}
+}
+
+// DialRealtime 建立与上游 Realtime 服务的 WebSocket 连接（后端直连，Bearer 鉴权）
+func DialRealtime(ctx context.Context, cfg config.SOSConfig) (*websocket.Conn, error) {
+	var (
+		url    string
+		apiKey string
+		label  string
+		err    error
+	)
+	switch cfg.Provider {
+	case "glm":
+		if cfg.GLM.APIKey == "" {
+			return nil, fmt.Errorf("sos.glm.api_key not configured")
+		}
+		url = GLMRealtimeURL + "?model=" + cfg.GLM.Model
+		apiKey = cfg.GLM.APIKey
+		label = "glm"
+	case "", "dashscope":
+		if cfg.Dashscope.WorkspaceID == "" || cfg.Dashscope.APIKey == "" {
+			return nil, fmt.Errorf("sos.dashscope workspace_id/api_key not configured")
+		}
+		url = BuildRealtimeURL(cfg.Dashscope)
+		apiKey = cfg.Dashscope.APIKey
+		label = "dashscope"
+	default:
+		return nil, fmt.Errorf("unsupported sos provider: %s", cfg.Provider)
 	}
 	header := http.Header{}
-	header.Set("Authorization", "Bearer "+c.APIKey)
+	header.Set("Authorization", "Bearer "+apiKey)
 	d := &websocket.Dialer{HandshakeTimeout: 10 * time.Second}
-	conn, _, err := d.DialContext(ctx, BuildRealtimeURL(c), header)
+	conn, _, err := d.DialContext(ctx, url, header)
 	if err != nil {
-		return nil, fmt.Errorf("dial dashscope: %w", err)
+		return nil, fmt.Errorf("dial %s: %w", label, err)
 	}
 	return conn, nil
 }
 
-// BuildSessionUpdate 构造 session.update：音色/语义打断/音频格式/instructions/tools
+// BuildSessionUpdateFor 按 provider 构造 session.update（各厂商字段差异在此收敛）
+func BuildSessionUpdateFor(cfg config.SOSConfig, instructions string, tools []ToolDefinition) map[string]any {
+	switch cfg.Provider {
+	case "glm":
+		sess := map[string]any{
+			"instructions":        instructions,
+			"tools":               tools,
+			"input_audio_format":  "pcm", // 默认采样率 16000，与浏览器上行一致
+			"output_audio_format": "pcm", // 默认采样率 24000，与浏览器下行播放一致
+			"turn_detection": map[string]any{
+				"type": "server_vad",
+			},
+		}
+		if cfg.GLM.Voice != "" {
+			sess["voice"] = cfg.GLM.Voice
+		}
+		return map[string]any{"type": "session.update", "session": sess}
+	default:
+		return BuildSessionUpdate(cfg.Dashscope.Voice, instructions, tools)
+	}
+}
+
+// BuildSessionUpdate 构造 DashScope session.update：音色/语义打断/音频格式/instructions/tools
 // 注：input_audio_transcription 用于开启用户语音转写（双向字幕）；若上游报错可移除该字段，
 // 用户字幕会降级，其余功能不受影响。
 func BuildSessionUpdate(voice, instructions string, tools []ToolDefinition) map[string]any {

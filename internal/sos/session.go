@@ -25,8 +25,8 @@ var (
 	toolExecTimeout   = 20 * time.Second // 单个工具执行超时（避免 k8s API 挂起导致 goroutine 无界存活）
 )
 
-// Dial 可替换的上游建连函数（测试注入假 DashScope）
-var Dial = func(ctx context.Context, c config.SOSDashscopeConfig) (*websocket.Conn, error) {
+// Dial 可替换的上游建连函数（测试注入假上游）
+var Dial = func(ctx context.Context, c config.SOSConfig) (*websocket.Conn, error) {
 	return DialRealtime(ctx, c)
 }
 
@@ -100,19 +100,28 @@ func (m *Manager) checkWSOrigin(r *http.Request) bool {
 	return false
 }
 
-// Status 返回 SOS 可用性：enabled 且 DashScope 配置完整才 ready
+// Status 返回 SOS 可用性：enabled 且当前 provider 配置完整才 ready
 func (m *Manager) Status() StatusResponse {
-	ready := m.cfg.Enabled && m.cfg.Dashscope.APIKey != "" && m.cfg.Dashscope.WorkspaceID != ""
+	var ready bool
+	var model, voice string
+	switch m.cfg.Provider {
+	case "glm":
+		ready = m.cfg.Enabled && m.cfg.GLM.APIKey != ""
+		model, voice = m.cfg.GLM.Model, m.cfg.GLM.Voice
+	default:
+		ready = m.cfg.Enabled && m.cfg.Dashscope.APIKey != "" && m.cfg.Dashscope.WorkspaceID != ""
+		model, voice = m.cfg.Dashscope.Model, m.cfg.Dashscope.Voice
+	}
 	return StatusResponse{
 		Enabled: m.cfg.Enabled, Ready: ready,
-		Model: m.cfg.Dashscope.Model, Voice: m.cfg.Dashscope.Voice,
+		Model: model, Voice: voice,
 		FAQCount: len(m.faqs),
 	}
 }
 
 // HandleSessionWS 升级浏览器连接并启动桥接会话
 func (m *Manager) HandleSessionWS(w http.ResponseWriter, r *http.Request) {
-	if !m.cfg.Enabled || m.cfg.Dashscope.APIKey == "" || m.cfg.Dashscope.WorkspaceID == "" {
+	if !m.Status().Ready {
 		http.Error(w, `{"error":"sos not configured"}`, http.StatusServiceUnavailable)
 		return
 	}
@@ -120,14 +129,14 @@ func (m *Manager) HandleSessionWS(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	upstream, err := Dial(r.Context(), m.cfg.Dashscope)
+	upstream, err := Dial(r.Context(), m.cfg)
 	if err != nil {
-		log.Printf("sos: connect dashscope failed: %v", err)
+		log.Printf("sos: connect upstream (%s) failed: %v", m.cfg.Provider, err)
 		_ = browser.WriteJSON(ClientEvent{Type: "error", Message: "语音服务连接失败，请检查 SOS 配置与网络"})
 		_ = browser.Close()
 		return
 	}
-	m.audit("sos.session_start", fmt.Sprintf("model=%s", m.cfg.Dashscope.Model))
+	m.audit("sos.session_start", fmt.Sprintf("provider=%s model=%s", m.cfg.Provider, m.Status().Model))
 	s := &session{m: m, browser: browser, upstream: upstream,
 		lastAudio: time.Now(), closed: make(chan struct{})}
 	s.run(r.Context())
@@ -151,8 +160,8 @@ type session struct {
 
 func (s *session) run(ctx context.Context) {
 	defer s.closeAll()
-	// 下发会话配置（三层兜底：instructions 含语料 + tools）
-	_ = s.upstream.WriteJSON(BuildSessionUpdate(s.m.cfg.Dashscope.Voice, s.m.instr, s.m.tools.Definitions()))
+	// 下发会话配置（三层兜底：instructions 含语料 + tools；按 provider 组装）
+	_ = s.upstream.WriteJSON(BuildSessionUpdateFor(s.m.cfg, s.m.instr, s.m.tools.Definitions()))
 
 	errCh := make(chan error, 2)
 	// 上游正常关闭也视为链路中断（spec 要求自动重连一次），用哨兵错误与浏览器侧的 nil 区分
@@ -221,14 +230,14 @@ func (s *session) reconnectUpstream(ctx context.Context) bool {
 	_ = s.upstream.Close()
 	s.wmuU.Unlock()
 	time.Sleep(retryDialDelay)
-	conn, err := Dial(ctx, s.m.cfg.Dashscope)
+	conn, err := Dial(ctx, s.m.cfg)
 	if err != nil {
 		return false
 	}
 	// 替换连接与下发 session.update 必须持写锁：readBrowser 并发读写该字段
 	s.wmuU.Lock()
 	s.upstream = conn
-	_ = conn.WriteJSON(BuildSessionUpdate(s.m.cfg.Dashscope.Voice, s.m.instr, s.m.tools.Definitions()))
+	_ = conn.WriteJSON(BuildSessionUpdateFor(s.m.cfg, s.m.instr, s.m.tools.Definitions()))
 	s.wmuU.Unlock()
 	return true
 }

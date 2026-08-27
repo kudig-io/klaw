@@ -37,8 +37,13 @@ Klaw 把「集群管理控制台」「深度诊断引擎」「ChatOps 机器人�
 
 ### 🚨 SOS 模式（语音应急快速对话）
 
-全屏语音通话页（悬浮按钮 / 导航 SOS 进入），经 Klaw 后端代理对接阿里云百炼
-Qwen-Omni-Realtime，全双工实时对话、语义智能打断、双向字幕。
+全屏语音通话页（悬浮按钮 / 导航 SOS 进入），经 Klaw 后端代理对接实时全双工语音模型，
+支持智能打断、双向字幕。上游服务通过 `sos.provider` 切换：
+
+| provider | 上游模型 | 说明 |
+|---|---|---|
+| `dashscope`（默认） | 阿里云百炼 Qwen-Omni-Realtime | semantic_vad 语义打断，双向字幕 |
+| `glm` | 智谱 GLM-Realtime | server_vad 打断，OpenAI Realtime 兼容事件协议 |
 
 回答采用三层兜底：**预置语料**（`configs/sos-faq.yaml`，命中按标准口径回答）→
 **集群工具**（function calling 查询实时状态/日志/事件/触发诊断）→ **模型通用知识**。
@@ -48,8 +53,12 @@ Qwen-Omni-Realtime，全双工实时对话、语义智能打断、双向字幕�
 ```yaml
 sos:
   enabled: true
+  provider: dashscope        # 或 glm
   dashscope:
     workspace_id: "<百炼 Workspace ID>"   # api_key 用环境变量 KLAW_SOS_DASHSCOPE_API_KEY 注入
+  # provider: glm 时：
+  # glm:
+  #   model: glm-realtime    # api_key 用环境变量 KLAW_SOS_GLM_API_KEY 注入（形如 {id}.{secret}）
 ```
 
 ### 🖥️ Web 管理控制台
@@ -328,6 +337,67 @@ openclaw:
   skills: ./skills
 ```
 
+### 阿里云运维环境（Skills 与 ACS 接入）
+
+用 AI 助手（Qoder 等）维护 klaw 并纳管阿里云集群时，有两个相互依赖的准备动作，
+建议按顺序完成：
+
+1. **安装阿里云 Skills** —— 解决"怎么做云上操作"。通过 AI 助手的插件市场安装
+   `alibabacloud-core` 技能包，入口是 `alibabacloud-find-skills`：需要某种云上能力时
+   （ECS / RDS / OSS 管理、CLI 指南、Terraform 等）由它检索并按需安装对应技能；
+   也可从官网分发地址直接下载单个技能：
+   `https://skills.aliyun.com/api/public/skills/alibabacloud-find-skills/download`
+2. **接入 ACS 集群（kubeconfig）** —— 解决"对哪个集群操作"。见下一节
+   [接入外部集群（多集群）](#接入外部集群多集群)，把 ACS/ACK 的 kubeconfig 配置进
+   `kubernetes.clusters`。
+
+两者的依赖关系：**Skills 提供云上操作的方法论，kubeconfig 提供操作目标**。只装 Skills
+没有集群凭据则无处施展；只配 kubeconfig 不装 Skills，AI 助手对阿里云特有操作
+（安全组、SLB、NodePool 等非 K8s 标准资源）缺少工具支撑。完成两步后，AI 助手即可
+在 klaw 的诊断 / ChatOps 流程中调用阿里云技能处理集群相关任务。
+
+### 接入外部集群（多集群）
+
+`kubernetes.clusters` 数组中的每个条目都是一个独立纳管的集群，klaw 会对每个集群各建一个
+client-go 客户端，Web UI / API / 事件监控 / 诊断均可按集群名切换。
+
+**接入步骤**（以阿里云 ACS / ACK 为例，其他云或自建集群同理）：
+
+```bash
+# 1. 从云控制台下载 kubeconfig，存入 configs/ 并收紧权限
+#    .gitignore 已包含 *.kubeconfig 规则，证书私钥不会被提交
+cp ~/Downloads/acs-kubeconfig configs/acs.kubeconfig
+chmod 600 configs/acs.kubeconfig
+
+# 2. kubectl 先验证连通性（拿到 nodes 输出再进下一步）
+kubectl --kubeconfig configs/acs.kubeconfig get nodes
+
+# 3. 在 configs/config.yaml 的 kubernetes.clusters 下追加条目
+#    name 是 klaw 内的展示名，可自定义；context 必须与 kubeconfig 内的名称一致
+```
+
+```yaml
+kubernetes:
+  clusters:
+    - name: acs-hangzhou
+      kubeconfig: /absolute/path/to/klaw/configs/acs.kubeconfig   # 建议绝对路径（相对路径基于进程工作目录）
+      context: kubernetes-admin-xxxxxxxx                          # 与 acs.kubeconfig 内的 context 名一致
+```
+
+```bash
+# 4. 启动并验证多集群注册
+go run ./cmd/klaw server
+curl -s http://127.0.0.1:8080/api/v1/clusters     # 应列出全部已注册集群
+curl -s http://127.0.0.1:8080/api/v1/clusters/acs-hangzhou/nodes
+```
+
+安全提示：云厂商签发的 kubeconfig 通常是 cluster-admin 权限且长期有效，只在本机使用；
+泄露后需在云控制台重置（ACS/ACK 为「重置集群凭据」）。
+
+已知边界：**ACK Serverless（ECI）集群**的节点全部是 `virtual-kubelet`，基础管理
+（Pods/Deployments/Services/事件监控）完全可用，但依赖节点真实系统数据的诊断分析器
+（内核、网络、日志类）会拿不到原始数据，属于平台特性而非故障。
+
 ### 环境变量覆盖
 
 敏感项一律优先读环境变量，便于配合 Kubernetes Secret：
@@ -341,6 +411,8 @@ openclaw:
 | `KLAW_DINGTALK_SECRET` | `messaging.dingtalk.secret` |
 | `KLAW_FEISHU_APP_ID` | `messaging.feishu.app_id` |
 | `KLAW_FEISHU_APP_SECRET` | `messaging.feishu.app_secret` |
+| `KLAW_SOS_DASHSCOPE_API_KEY` | `sos.dashscope.api_key` |
+| `KLAW_SOS_GLM_API_KEY` | `sos.glm.api_key` |
 
 ### AI 诊断助手（可选）
 

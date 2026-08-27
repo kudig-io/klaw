@@ -1,6 +1,7 @@
 package sos
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
 
@@ -110,5 +111,69 @@ func TestBuildFunctionCallOutput(t *testing.T) {
 	item := ev["item"].(map[string]any)
 	if item["call_id"] != "c1" || item["output"] != `{"ok":true}` {
 		t.Fatalf("item = %v", item)
+	}
+}
+
+func glmTestConfig() config.SOSConfig {
+	return config.SOSConfig{
+		Enabled:  true,
+		Provider: "glm",
+		GLM:      config.SOSGlmConfig{APIKey: "id.secret", Model: "glm-realtime"},
+	}
+}
+
+func TestBuildUpstreamURL(t *testing.T) {
+	got, err := BuildUpstreamURL(glmTestConfig())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "wss://open.bigmodel.cn/api/paas/v4/realtime?model=glm-realtime"
+	if got != want {
+		t.Fatalf("got %s want %s", got, want)
+	}
+	ds, err := BuildUpstreamURL(config.SOSConfig{Dashscope: config.SOSDashscopeConfig{
+		WorkspaceID: "ws123", Region: "cn-beijing", Model: "m1",
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ds != "wss://ws123.cn-beijing.maas.aliyuncs.com/api-ws/v1/realtime?model=m1" {
+		t.Fatalf("dashscope url = %s", ds)
+	}
+}
+
+func TestBuildSessionUpdateForGLM(t *testing.T) {
+	ev := BuildSessionUpdateFor(glmTestConfig(), "instr", []ToolDefinition{{Type: "function", Name: "t1"}})
+	sess := ev["session"].(map[string]any)
+	if sess["turn_detection"].(map[string]any)["type"] != "server_vad" {
+		t.Fatal("glm should use server_vad")
+	}
+	if sess["input_audio_format"] != "pcm" || sess["output_audio_format"] != "pcm" {
+		t.Fatalf("glm audio formats = %v", sess)
+	}
+	if sess["instructions"] != "instr" {
+		t.Fatal("instructions missing")
+	}
+	if _, ok := sess["audio"]; ok {
+		t.Fatal("glm session.update should not contain dashscope-style audio object")
+	}
+	if _, ok := sess["input_audio_transcription"]; ok {
+		t.Fatal("glm session.update should not contain dashscope transcription model")
+	}
+}
+
+func TestDialRealtimeGLMMissingKey(t *testing.T) {
+	cfg := glmTestConfig()
+	cfg.GLM.APIKey = ""
+	if _, err := DialRealtime(context.Background(), cfg); err == nil {
+		t.Fatal("expected error for missing glm api key")
+	}
+}
+
+func TestTranslateUpstreamGLMHeartbeat(t *testing.T) {
+	// GLM-Realtime 心跳事件应静默忽略
+	evs, audio, calls := TranslateUpstream(map[string]any{"type": "heartbeat"})
+	if len(evs) != 0 || audio != nil || calls != nil {
+		t.Fatal("heartbeat should be dropped")
 	}
 }

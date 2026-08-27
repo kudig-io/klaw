@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -37,12 +38,12 @@ type MessagingConfig struct {
 
 // DingTalkConfig 钉钉配置
 type DingTalkConfig struct {
-	Enabled      bool   `yaml:"enabled"`
-	AppKey       string `yaml:"app_key"`
-	AppSecret    string `yaml:"app_secret"`
-	Webhook      string `yaml:"webhook"`
-	Secret       string `yaml:"secret"`
-	WebhookPort  int    `yaml:"webhook_port"`
+	Enabled     bool   `yaml:"enabled"`
+	AppKey      string `yaml:"app_key"`
+	AppSecret   string `yaml:"app_secret"`
+	Webhook     string `yaml:"webhook"`
+	Secret      string `yaml:"secret"`
+	WebhookPort int    `yaml:"webhook_port"`
 }
 
 // FeishuConfig 飞书配置
@@ -78,17 +79,17 @@ type CORSConfig struct {
 
 // EventConfig 事件监听配置
 type EventConfig struct {
-	Enabled        bool          `yaml:"enabled"`
-	WatchTypes     []string      `yaml:"watch_types"`     // 监听的资源类型: pod, deployment, service
-	Namespaces     []string      `yaml:"namespaces"`      // 监听的命名空间，为空表示所有
-	EventTypes     []string      `yaml:"event_types"`     // 监听的事件类型: Normal, Warning, Error
-	Reasons        []string      `yaml:"reasons"`         // 关注的原因
-	ExcludeReasons []string      `yaml:"exclude_reasons"` // 排除的原因
-	MinSeverity    string        `yaml:"min_severity"`    // 最小严重级别: info, warning, critical
-	RateLimit      int           `yaml:"rate_limit"`      // 每秒最大事件数
-	DedupWindow    int           `yaml:"dedup_window"`    // 去重窗口（秒）
-	MuteDuration   int           `yaml:"mute_duration"`   // 相同事件静音时长（分钟）
-	Channels       []string      `yaml:"channels"`        // 推送的频道列表
+	Enabled        bool     `yaml:"enabled"`
+	WatchTypes     []string `yaml:"watch_types"`     // 监听的资源类型: pod, deployment, service
+	Namespaces     []string `yaml:"namespaces"`      // 监听的命名空间，为空表示所有
+	EventTypes     []string `yaml:"event_types"`     // 监听的事件类型: Normal, Warning, Error
+	Reasons        []string `yaml:"reasons"`         // 关注的原因
+	ExcludeReasons []string `yaml:"exclude_reasons"` // 排除的原因
+	MinSeverity    string   `yaml:"min_severity"`    // 最小严重级别: info, warning, critical
+	RateLimit      int      `yaml:"rate_limit"`      // 每秒最大事件数
+	DedupWindow    int      `yaml:"dedup_window"`    // 去重窗口（秒）
+	MuteDuration   int      `yaml:"mute_duration"`   // 相同事件静音时长（分钟）
+	Channels       []string `yaml:"channels"`        // 推送的频道列表
 }
 
 // Load 加载配置文件
@@ -156,12 +157,27 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("KLAW_SOS_DASHSCOPE_API_KEY"); v != "" {
 		cfg.SOS.Dashscope.APIKey = v
 	}
+	if v := os.Getenv("KLAW_SOS_GLM_API_KEY"); v != "" {
+		cfg.SOS.GLM.APIKey = v
+	}
+	// provider 归一化：大小写不敏感，缺省为 dashscope
+	switch strings.ToLower(cfg.SOS.Provider) {
+	case "", "dashscope":
+		cfg.SOS.Provider = "dashscope"
+	case "glm":
+		cfg.SOS.Provider = "glm"
+	}
+	if cfg.SOS.Provider == "glm" && cfg.SOS.GLM.Model == "" {
+		cfg.SOS.GLM.Model = "glm-realtime"
+	}
 }
 
 // SOSConfig SOS 语音应急快速对话配置
 type SOSConfig struct {
 	Enabled            bool               `yaml:"enabled"`
+	Provider           string             `yaml:"provider"` // dashscope（默认）| glm
 	Dashscope          SOSDashscopeConfig `yaml:"dashscope"`
+	GLM                SOSGlmConfig       `yaml:"glm"`
 	FAQFile            string             `yaml:"faq_file"`            // 外部语料路径；为空时使用内嵌默认语料
 	InstructionsPrefix string             `yaml:"instructions_prefix"` // 追加在默认系统提示之前
 }
@@ -173,4 +189,11 @@ type SOSDashscopeConfig struct {
 	Region      string `yaml:"region"`       // cn-beijing / ap-southeast-1
 	Model       string `yaml:"model"`
 	Voice       string `yaml:"voice"`
+}
+
+// SOSGlmConfig 智谱 GLM-Realtime 配置
+type SOSGlmConfig struct {
+	APIKey string `yaml:"api_key"` // 形如 {id}.{secret}；建议通过环境变量 KLAW_SOS_GLM_API_KEY 注入
+	Model  string `yaml:"model"`
+	Voice  string `yaml:"voice"` // 可选；GLM-Realtime 无标准音色字段，非空时随会话下发
 }
