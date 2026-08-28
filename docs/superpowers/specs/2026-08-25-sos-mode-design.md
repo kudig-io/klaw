@@ -211,6 +211,14 @@ faqs:
 - ChatOps（钉钉/飞书）侧 SOS 文字秒回
 - 语料向量检索/RAG
 
+## 13.1 变更记录
+
+- 2026-08-25（实施后扩展）：新增实时上游 provider 抽象（`sos.provider: dashscope | glm`）。
+  上游地址、鉴权、`session.update` 字段差异收敛在 `internal/sos/dashscope.go` 的
+  `BuildUpstreamURL / DialRealtime / BuildSessionUpdateFor`；GLM-Realtime 使用
+  `server_vad`、`input_audio_format/output_audio_format` 平铺字段、`Authorization: Bearer`
+  服务端直连鉴权。各厂商事件名与现有翻译层一致，心跳事件静默忽略。
+
 ## 14. 验收标准
 
 1. 悬浮按钮与导航菜单均可进入 `/sos` 全屏通话页，未配置 Key 时展示配置引导。
