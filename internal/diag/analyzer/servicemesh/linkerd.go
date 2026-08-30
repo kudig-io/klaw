@@ -133,5 +133,5 @@ func (a *LinkerdAnalyzer) Analyze(ctx context.Context, data *types.DiagnosticDat
 }
 
 func init() {
-	_ = analyzer.Register(NewLinkerdAnalyzer())
+	analyzer.MustRegister(NewLinkerdAnalyzer())
 }

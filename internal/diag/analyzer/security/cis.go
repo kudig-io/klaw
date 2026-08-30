@@ -370,8 +370,8 @@ func (a *CISNetworkPolicyAnalyzer) Analyze(ctx context.Context, data *types.Diag
 
 	// Check for namespaces without network policies (excluding system namespaces)
 	systemNamespaces := map[string]bool{
-		"kube-system":   true,
-		"kube-public":   true,
+		"kube-system":     true,
+		"kube-public":     true,
 		"kube-node-lease": true,
 	}
 
@@ -448,10 +448,10 @@ func (a *CISSecretAnalyzer) Analyze(ctx context.Context, data *types.DiagnosticD
 }
 
 func init() {
-	_ = analyzer.Register(NewCISAPIServerAnalyzer())
-	_ = analyzer.Register(NewCISEtcdAnalyzer())
-	_ = analyzer.Register(NewCISKubeletAnalyzer())
-	_ = analyzer.Register(NewCISPodSecurityAnalyzer())
-	_ = analyzer.Register(NewCISNetworkPolicyAnalyzer())
-	_ = analyzer.Register(NewCISSecretAnalyzer())
+	analyzer.MustRegister(NewCISAPIServerAnalyzer())
+	analyzer.MustRegister(NewCISEtcdAnalyzer())
+	analyzer.MustRegister(NewCISKubeletAnalyzer())
+	analyzer.MustRegister(NewCISPodSecurityAnalyzer())
+	analyzer.MustRegister(NewCISNetworkPolicyAnalyzer())
+	analyzer.MustRegister(NewCISSecretAnalyzer())
 }

@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kudig-io/klaw/internal/diag/types"
@@ -63,12 +64,27 @@ func (a *Assistant) ExplainIssue(ctx context.Context, issue types.Issue) (string
 		return "", err
 	}
 
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "**%s**", result.Summary)
 	if result.RootCause != "" {
-		return fmt.Sprintf("**%s**\n\n**根因分析:**\n%s\n\n**修复建议:**\n",
-			result.Summary, result.RootCause), nil
+		fmt.Fprintf(&sb, "\n\n**根因分析:**\n%s", result.RootCause)
+	}
+	// 之前此处只输出"修复建议:"标题后即截断，现在把建议真正拼接出来
+	if len(result.Suggestions) > 0 {
+		sb.WriteString("\n\n**修复建议:**\n")
+		for i, s := range result.Suggestions {
+			fmt.Fprintf(&sb, "%d. %s", i+1, s.Title)
+			if s.Description != "" {
+				fmt.Fprintf(&sb, " — %s", s.Description)
+			}
+			if s.Command != "" {
+				fmt.Fprintf(&sb, "\n   命令: `%s`", s.Command)
+			}
+			sb.WriteString("\n")
+		}
 	}
 
-	return result.Summary, nil
+	return sb.String(), nil
 }
 
 // GetFixCommands gets fix commands for an issue

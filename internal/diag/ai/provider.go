@@ -194,6 +194,10 @@ func (p *OpenAIProvider) GenerateSummary(ctx context.Context, issues []types.Iss
 		return p.getLocalizedMessage("system_healthy"), nil
 	}
 
+	// 与 Analyze 保持一致：方法内部自带超时，不依赖调用方包裹
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout)*time.Second)
+	defer cancel()
+
 	prompt := p.buildSummaryPrompt(issues)
 
 	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
@@ -224,6 +228,10 @@ func (p *OpenAIProvider) GenerateSummary(ctx context.Context, issues []types.Iss
 
 // SuggestFixes suggests fixes for an issue
 func (p *OpenAIProvider) SuggestFixes(ctx context.Context, issue types.Issue) ([]FixSuggestion, error) {
+	// 与 Analyze 保持一致：方法内部自带超时，不依赖调用方包裹
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(p.config.Timeout)*time.Second)
+	defer cancel()
+
 	prompt := p.buildFixPrompt(issue)
 
 	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
@@ -325,6 +333,13 @@ Return the result directly as JSON (no Markdown code fences), with fields: summa
 
 func (p *OpenAIProvider) buildAnalysisPrompt(issues []types.Issue, hostname string) string {
 	var sb strings.Builder
+	// 英文 prompt 优先用英文标识符（ENName），避免中英混排
+	issueLabel := func(i types.Issue) string {
+		if p.config.Language == "en" && i.ENName != "" {
+			return i.ENName
+		}
+		return i.CNName
+	}
 	
 	if p.config.Language == "zh" {
 		sb.WriteString(fmt.Sprintf("主机: %s\n", hostname))
@@ -335,7 +350,7 @@ func (p *OpenAIProvider) buildAnalysisPrompt(issues []types.Issue, hostname stri
 	}
 
 	for i, issue := range issues {
-		sb.WriteString(fmt.Sprintf("%d. [%s] %s\n", i+1, issue.Severity, issue.CNName))
+		sb.WriteString(fmt.Sprintf("%d. [%s] %s\n", i+1, issue.Severity, issueLabel(issue)))
 		sb.WriteString(fmt.Sprintf("   %s\n", issue.Details))
 		if issue.Location != "" {
 			sb.WriteString(fmt.Sprintf("   Location: %s\n", issue.Location))
@@ -372,13 +387,17 @@ func (p *OpenAIProvider) buildSummaryPrompt(issues []types.Issue) string {
 
 func (p *OpenAIProvider) buildFixPrompt(issue types.Issue) string {
 	var sb strings.Builder
+	issueLabel := issue.CNName
+	if p.config.Language == "en" && issue.ENName != "" {
+		issueLabel = issue.ENName
+	}
 	if p.config.Language == "zh" {
 		sb.WriteString(fmt.Sprintf("问题: %s\n", issue.CNName))
 		sb.WriteString(fmt.Sprintf("详情: %s\n", issue.Details))
 		sb.WriteString(fmt.Sprintf("位置: %s\n", issue.Location))
 		sb.WriteString("请提供具体的修复命令和建议。")
 	} else {
-		sb.WriteString(fmt.Sprintf("Issue: %s\n", issue.CNName))
+		sb.WriteString(fmt.Sprintf("Issue: %s\n", issueLabel))
 		sb.WriteString(fmt.Sprintf("Details: %s\n", issue.Details))
 		sb.WriteString(fmt.Sprintf("Location: %s\n", issue.Location))
 		sb.WriteString("Please provide specific fix commands and suggestions.")

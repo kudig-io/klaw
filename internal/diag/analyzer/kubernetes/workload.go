@@ -379,8 +379,8 @@ func (a *PodDisruptionBudgetAnalyzer) Analyze(ctx context.Context, data *types.D
 
 func init() {
 	// Register workload analyzers
-	_ = analyzer.Register(NewDeploymentAnalyzer())
-	_ = analyzer.Register(NewStatefulSetAnalyzer())
-	_ = analyzer.Register(NewDaemonSetAnalyzer())
-	_ = analyzer.Register(NewPodDisruptionBudgetAnalyzer())
+	analyzer.MustRegister(NewDeploymentAnalyzer())
+	analyzer.MustRegister(NewStatefulSetAnalyzer())
+	analyzer.MustRegister(NewDaemonSetAnalyzer())
+	analyzer.MustRegister(NewPodDisruptionBudgetAnalyzer())
 }

@@ -197,5 +197,5 @@ func (a *IstioAnalyzer) Analyze(ctx context.Context, data *types.DiagnosticData)
 }
 
 func init() {
-	_ = analyzer.Register(NewIstioAnalyzer())
+	analyzer.MustRegister(NewIstioAnalyzer())
 }

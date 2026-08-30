@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "alibabacloud-aes-sysom-os-diagnosis": {
+      "source": "aliyun/alibabacloud-aiops-skills",
+      "sourceType": "github",
+      "skillPath": "skills/others/devopsimpl/alibabacloud-aes-sysom-os-diagnosis/SKILL.md",
+      "computedHash": "45b2b78d5be6efd3ef8d5dab8eaf69ece302f60c85710d76e55539f77283e05b"
+    }
+  }
+}

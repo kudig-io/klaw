@@ -176,10 +176,12 @@ func (f *FilterConfig) ShouldFilter(event *Event) bool {
 	}
 	
 	// 检查事件类型
+	// 兼容历史配置：K8s Event 只有 Normal/Warning 两类，
+	// 老版本文档中的 "Error" 类型实际不会出现，归一化映射到 Warning
 	if len(f.EventTypes) > 0 {
 		found := false
 		for _, et := range f.EventTypes {
-			if et == event.Type {
+			if et == event.Type || (et == EventTypeError && event.Type == EventTypeWarning) {
 				found = true
 				break
 			}
@@ -327,9 +329,16 @@ func (s *BaseSource) emit(event *Event) {
 		return
 	}
 	
-	// 发送到所有订阅者
+	// 发送到所有订阅者（异步；单个 handler 的 panic 不能拖垮进程）
 	for _, handler := range handlers {
-		go handler(event) // 异步处理，避免阻塞
+		go func(h EventHandler) {
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Printf("Event handler panic (recovered): %v\n", r)
+				}
+			}()
+			h(event)
+		}(handler)
 	}
 }
 

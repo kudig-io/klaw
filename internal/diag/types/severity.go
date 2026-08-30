@@ -47,8 +47,10 @@ func (s Severity) EnglishString() string {
 }
 
 // MarshalJSON implements json.Marshaler
+// 序列化为英文（critical/warning/info）：Web 前端按此映射图标与颜色，
+// CLI 文本输出需要中文时使用 String()
 func (s Severity) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.String())
+	return json.Marshal(s.EnglishString())
 }
 
 // UnmarshalJSON implements json.Unmarshaler

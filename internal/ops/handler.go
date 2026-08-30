@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kudig-io/klaw/internal/chart"
 	"github.com/kudig-io/klaw/internal/kubernetes"
 	"github.com/kudig-io/klaw/internal/loganalysis"
 	"github.com/kudig-io/klaw/internal/metrics"
@@ -18,11 +19,12 @@ import (
 
 // Handler 运维命令处理器
 type Handler struct {
-	k8sManager      *kubernetes.Manager
+	k8sManager        *kubernetes.Manager
 	monitoringService *monitoring.Service
-	dingtalkClient   *dingtalk.Client
-	feishuClient     *feishu.Client
-	resources        *kubernetes.Resources
+	dingtalkClient    *dingtalk.Client
+	feishuClient      *feishu.Client
+	resources         *kubernetes.Resources
+	allowDestructive  bool // 是否允许破坏性命令（pod delete 等），由配置注入
 }
 
 func (h *Handler) requireKubernetes() error {
@@ -40,6 +42,11 @@ func NewHandler(k8sManager *kubernetes.Manager, monitoringService *monitoring.Se
 		monitoringService: monitoringService,
 		resources:        kubernetes.NewResources(k8sManager),
 	}
+}
+
+// SetAllowDestructive 设置是否允许破坏性命令（默认关闭）
+func (h *Handler) SetAllowDestructive(allow bool) {
+	h.allowDestructive = allow
 }
 
 // SetDingTalkClient 设置钉钉客户端
@@ -337,32 +344,26 @@ func (h *Handler) getClusterMetrics(clusterName string) (string, error) {
 	return sb.String(), nil
 }
 
-// sendClusterChart 发送集群图表
+// sendClusterChart 生成集群资源图表（ASCII）直接返回到会话
 func (h *Handler) sendClusterChart(clusterName string) (string, error) {
-	if h.monitoringService == nil {
-		return "", fmt.Errorf("monitoring service not initialized")
+	if err := h.requireKubernetes(); err != nil {
+		return "", err
 	}
 
-	history := h.monitoringService.GetMetricsHistory(clusterName)
-	if len(history) == 0 {
-		return "", fmt.Errorf("no metrics history available for cluster %s", clusterName)
+	collector := metrics.NewCollector(h.k8sManager)
+	clusterMetrics, err := collector.CollectClusterMetrics(clusterName)
+	if err != nil {
+		return "", err
 	}
 
-	// 发送图表到钉钉
-	if h.dingtalkClient != nil {
-		if err := h.dingtalkClient.SendMessage(fmt.Sprintf("正在生成集群 %s 的监控图表...", clusterName)); err != nil {
-			return "", err
-		}
+	chartBytes, err := chart.NewGenerator(60, 15).GenerateClusterMetricsChart(clusterMetrics)
+	if err != nil {
+		return "", fmt.Errorf("生成图表失败: %w", err)
 	}
 
-	// 发送图表到飞书
-	if h.feishuClient != nil {
-		if err := h.feishuClient.SendMessage(fmt.Sprintf("正在生成集群 %s 的监控图表...", clusterName)); err != nil {
-			return "", err
-		}
-	}
-
-	return fmt.Sprintf("**Sent** monitoring chart for cluster `%s`", clusterName), nil
+	// 返回图表内容本身，由消息平台插件负责投递，
+	// 不再谎报 "Sent"（此前只发提示语、从不生成图表）
+	return fmt.Sprintf("## Resource Chart: `%s`\n\n```\n%s\n```", clusterName, chartBytes), nil
 }
 
 // listPods 列出Pod
@@ -424,7 +425,8 @@ func (h *Handler) getPodLogs(clusterName, namespace, podName string) (string, er
 		return "", err
 	}
 
-	return fmt.Sprintf("## Logs from `%s`\n\n```\n%s\n```", podName, logs), nil
+	// 四反引号围栏：日志正文含三反引号时不会破坏 Markdown 结构
+	return fmt.Sprintf("## Logs from `%s`\n\n````text\n%s\n````", podName, logs), nil
 }
 
 // analyzePodLogs 分析 Pod 日志
@@ -452,8 +454,11 @@ func (h *Handler) analyzePodLogs(clusterName, namespace, podName string) (string
 	return sb.String(), nil
 }
 
-// deletePod 删除Pod
+// deletePod 删除Pod（破坏性操作，需 server.ops.allow_destructive 开启）
 func (h *Handler) deletePod(clusterName, namespace, podName string) (string, error) {
+	if !h.allowDestructive {
+		return "", fmt.Errorf("破坏性操作已禁用：删除 Pod 需在配置 server.ops.allow_destructive: true 后重试")
+	}
 	if err := h.requireKubernetes(); err != nil {
 		return "", err
 	}

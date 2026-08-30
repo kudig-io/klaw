@@ -99,7 +99,7 @@ func TestSeverityMarshalJSON(t *testing.T) {
 		t.Fatalf("Failed to marshal: %v", err)
 	}
 
-	want := `"严重"`
+	want := `"critical"`
 	if string(data) != want {
 		t.Errorf("MarshalJSON() = %s, want %s", string(data), want)
 	}

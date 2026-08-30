@@ -20,39 +20,39 @@ describe('PodsPage', () => {
   it('应该显示集群和命名空间选择器', () => {
     render(<PodsPage />)
     expect(screen.getByText('Select Cluster')).toBeInTheDocument()
-    expect(screen.getByText('Select Namespace')).toBeInTheDocument()
+    expect(screen.getByText('All Namespaces')).toBeInTheDocument()
   })
 
   it('应该成功加载并显示 Pod 列表', async () => {
     render(<PodsPage />)
     
-    // 等待数据加载
+    // 等待数据加载（多副本同名前缀，用 getAllByText）
     await waitFor(() => {
-      expect(screen.getByText(/nginx-/)).toBeInTheDocument()
+      expect(screen.getAllByText(/nginx-/).length).toBeGreaterThan(0)
     }, { timeout: 3000 })
     
     // 验证 Pods 显示
-    expect(screen.getByText(/frontend-/)).toBeInTheDocument()
-    expect(screen.getByText(/httpbin-/)).toBeInTheDocument()
+    expect(screen.getAllByText(/frontend-/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/httpbin-/).length).toBeGreaterThan(0)
   })
 
   it('应该显示 Pod 状态', async () => {
     render(<PodsPage />)
     
     await waitFor(() => {
-      expect(screen.getByText(/nginx-/)).toBeInTheDocument()
+      expect(screen.getAllByText(/nginx-/).length).toBeGreaterThan(0)
     }, { timeout: 3000 })
     
-    // 验证状态标签
-    expect(screen.getByText('Running')).toBeInTheDocument()
-    expect(screen.getByText('Pending')).toBeInTheDocument()
+    // 验证状态标签（多个 Pod 共用同名状态）
+    expect(screen.getAllByText('Running').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Pending').length).toBeGreaterThan(0)
   })
 
   it('应该支持搜索过滤', async () => {
     render(<PodsPage />)
     
     await waitFor(() => {
-      expect(screen.getByText(/nginx-/)).toBeInTheDocument()
+      expect(screen.getAllByText(/nginx-/).length).toBeGreaterThan(0)
     }, { timeout: 3000 })
     
     // 输入搜索词
@@ -68,7 +68,7 @@ describe('PodsPage', () => {
     render(<PodsPage />)
     
     await waitFor(() => {
-      expect(screen.getByText(/nginx-/)).toBeInTheDocument()
+      expect(screen.getAllByText(/nginx-/).length).toBeGreaterThan(0)
     }, { timeout: 3000 })
     
     // 验证表头
@@ -88,7 +88,7 @@ describe('PodsPage', () => {
     render(<PodsPage />)
     
     await waitFor(() => {
-      expect(screen.getByText(/nginx-/)).toBeInTheDocument()
+      expect(screen.getAllByText(/nginx-/).length).toBeGreaterThan(0)
     }, { timeout: 3000 })
     
     // 查找展开按钮（向下箭头）

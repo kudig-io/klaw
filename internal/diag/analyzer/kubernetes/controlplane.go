@@ -354,8 +354,8 @@ func (a *APIServerLatencyAnalyzer) Analyze(ctx context.Context, data *types.Diag
 
 func init() {
 	// Register control plane analyzers
-	_ = analyzer.Register(NewEtcdAnalyzer())
-	_ = analyzer.Register(NewSchedulerAnalyzer())
-	_ = analyzer.Register(NewControllerManagerAnalyzer())
-	_ = analyzer.Register(NewAPIServerLatencyAnalyzer())
+	analyzer.MustRegister(NewEtcdAnalyzer())
+	analyzer.MustRegister(NewSchedulerAnalyzer())
+	analyzer.MustRegister(NewControllerManagerAnalyzer())
+	analyzer.MustRegister(NewAPIServerLatencyAnalyzer())
 }

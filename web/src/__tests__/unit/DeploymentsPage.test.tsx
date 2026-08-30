@@ -42,8 +42,8 @@ describe('DeploymentsPage', () => {
       expect(screen.getByText('nginx')).toBeInTheDocument()
     }, { timeout: 3000 })
     
-    // 验证状态标签
-    expect(screen.getByText('Available')).toBeInTheDocument()
+    // 验证状态标签（多 Deployment 共用同名状态，用 getAllByText）
+    expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
   })
 
   it('应该显示副本数量', async () => {
@@ -88,9 +88,9 @@ describe('DeploymentsPage', () => {
       expect(screen.getByText('nginx')).toBeInTheDocument()
     }, { timeout: 3000 })
     
-    // 点击展开按钮
+    // 点击展开按钮（展开控件是 ChevronDown 图标按钮，按 svg class 定位）
     const expandButtons = screen.getAllByRole('button').filter(
-      btn => btn.querySelector('svg') !== null
+      btn => btn.querySelector('svg.lucide-chevron-down') !== null
     )
     if (expandButtons.length > 0) {
       fireEvent.click(expandButtons[0])

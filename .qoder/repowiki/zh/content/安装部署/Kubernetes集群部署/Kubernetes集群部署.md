@@ -7,37 +7,27 @@
 - [deployment/kind/manage.sh](file://deployment/kind/manage.sh)
 - [helm/klaw/Chart.yaml](file://helm/klaw/Chart.yaml)
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
-- [operator/helm/kudig-operator/Chart.yaml](file://operator/helm/kudig-operator/Chart.yaml)
-- [operator/helm/kudig-operator/values.yaml](file://operator/helm/kudig-operator/values.yaml)
-- [operator/helm/kudig-operator/templates/deployment.yaml](file://operator/helm/kudig-operator/templates/deployment.yaml)
-- [operator/helm/kudig-operator/templates/rbac.yaml](file://operator/helm/kudig-operator/templates/rbac.yaml)
-- [operator/helm/kudig-operator/templates/crds.yaml](file://operator/helm/kudig-operator/templates/crds.yaml)
-- [operator/api/v1/groupversion_info.go](file://operator/api/v1/groupversion_info.go)
-- [operator/controllers/clusterdiagnostic_controller.go](file://operator/controllers/clusterdiagnostic_controller.go)
-- [operator/controllers/nodediagnostic_controller.go](file://operator/controllers/nodediagnostic_controller.go)
-- [operator/controllers/schedule_controller.go](file://operator/controllers/schedule_controller.go)
+- [helm/klaw/values-kind.yaml](file://helm/klaw/values-kind.yaml)
+- [helm/klaw/templates/deployment.yaml](file://helm/klaw/templates/deployment.yaml)
+- [helm/klaw/templates/rbac.yaml](file://helm/klaw/templates/rbac.yaml)
+- [helm/klaw/templates/configmap.yaml](file://helm/klaw/templates/configmap.yaml)
+- [helm/klaw/templates/secret.yaml](file://helm/klaw/templates/secret.yaml)
+- [helm/klaw/templates/service.yaml](file://helm/klaw/templates/service.yaml)
+- [helm/klaw/templates/pvc.yaml](file://helm/klaw/templates/pvc.yaml)
+- [helm/klaw/templates/serviceaccount.yaml](file://helm/klaw/templates/serviceaccount.yaml)
 - [configs/config.yaml.example](file://configs/config.yaml.example)
 - [Dockerfile](file://Dockerfile)
 - [Makefile](file://Makefile)
-- [modules/etcd-guardian/charts/etcdguardian/Chart.yaml](file://modules/etcd-guardian/charts/etcdguardian/Chart.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/values.yaml](file://modules/etcd-guardian/charts/etcdguardian/values.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/templates/deployment.yaml](file://modules/etcd-guardian/charts/etcdguardian/templates/deployment.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/templates/service.yaml](file://modules/etcd-guardian/charts/etcdguardian/templates/service.yaml)
-- [modules/etcd-guardian/Dockerfile](file://modules/etcd-guardian/Dockerfile)
-- [modules/etcd-guardian/Dockerfile.backend](file://modules/etcd-guardian/Dockerfile.backend)
-- [.github/workflows/ci.yml](file://.github/workflows/ci.yml)
-- [modules/etcd-guardian/pkg/metrics/metrics.go](file://modules/etcd-guardian/pkg/metrics/metrics.go)
-- [modules/etcd-guardian/config/prometheus/prometheus.yml](file://modules/etcd-guardian/config/prometheus/prometheus.yml)
-- [modules/etcd-guardian/config/grafana/provisioning/dashboards/dashboards.yml](file://modules/etcd-guardian/config/grafana/provisioning/dashboards/dashboards.yml)
 </cite>
 
 ## 更新摘要
 **变更内容**   
-- 新增 EtcdGuardian Helm Chart 部署章节，包含完整的部署配置和自定义选项
-- 更新 Docker 配置章节，涵盖 EtcdGuardian 的多阶段构建优化
-- 扩展 CI/CD 流程章节，增加 EtcdGuardian 模块的自动化测试和构建
-- 增强监控和可观测性章节，详细说明 Prometheus 指标收集和 Grafana 仪表板配置
-- 更新架构图表，反映 EtcdGuardian 组件在整体架构中的位置
+- 新增 Klaw Helm Chart 安全配置章节，详细说明非 root 执行、只读文件系统、能力丢弃等安全特性
+- 更新 In-cluster 与外部集群管理模式配置说明
+- 增强 RBAC 权限配置章节，包含最小权限原则和具体权限范围
+- 完善 Pod 安全上下文和容器安全上下文的配置选项
+- 更新存储类配置，支持现有 PVC 引用和自定义存储类
+- 增强 ConfigMap 和 Secret 管理，支持外部 Secret 引用
 
 ## 目录
 1. [简介](#简介)
@@ -52,87 +42,74 @@
 10. [附录：快速参考](#附录快速参考)
 
 ## 简介
-本指南面向在 Kubernetes 集群中部署 Klaw 平台，覆盖从环境准备、RBAC 权限、存储类、Ingress、ConfigMap/Secret 管理，到使用 Kind 本地集群与生产环境的完整步骤。同时提供 Helm Chart 自定义配置、资源限制、扩缩容策略等高级选项，并包含 Operator 部署与 CRD 管理的说明。**新增**了对 EtcdGuardian 的完整支持，包括其独立的 Helm Chart 部署、监控集成和 CI/CD 流水线。
+本指南面向在 Kubernetes 集群中部署 Klaw 平台，覆盖从环境准备、RBAC 权限、存储类、Ingress、ConfigMap/Secret 管理，到使用 Kind 本地集群与生产环境的完整步骤。同时提供 Helm Chart 自定义配置、资源限制、扩缩容策略等高级选项。**新增**了对安全配置的全面支持，包括非 root 执行、只读文件系统、能力丢弃等安全最佳实践，以及 in-cluster 与外部集群管理模式的灵活配置。
 
 ## 项目结构
 仓库中与部署相关的关键目录与文件如下：
 - deployment/kind：Kind 本地集群的配置文件与脚本
-- helm/klaw：Klaw 应用 Helm Chart（Chart.yaml、values.yaml）
-- operator/helm/kudig-operator：Operator Helm Chart（Chart.yaml、values.yaml、模板与 RBAC/CRD）
-- **modules/etcd-guardian/charts/etcdguardian**：**新增** EtcdGuardian 专用 Helm Chart
+- helm/klaw：Klaw 应用 Helm Chart（Chart.yaml、values.yaml、模板文件）
 - configs：应用配置示例
 - Dockerfile、Makefile：镜像构建与常用命令
-- **.github/workflows/ci.yml**：**更新** 包含 EtcdGuardian 模块的 CI/CD 流程
 
 ```mermaid
 graph TB
 A["部署入口<br/>deployment/README.md"] --> B["Kind 本地集群<br/>cluster-config.yaml / manage.sh"]
 A --> C["Helm 安装 Klaw<br/>helm/klaw/*"]
-A --> D["Operator 部署<br/>operator/helm/kudig-operator/*"]
-A --> E["EtcdGuardian 部署<br/>modules/etcd-guardian/charts/etcdguardian/*"]
-C --> F["应用配置<br/>configs/config.yaml.example"]
-C --> G["容器镜像构建<br/>Dockerfile / Makefile"]
-D --> H["CRD 与 RBAC<br/>templates/crds.yaml / rbac.yaml"]
-E --> I["监控集成<br/>Prometheus/Grafana"]
-E --> J["CI/CD 流水线<br/>.github/workflows/ci.yml"]
+C --> D["安全配置<br/>podSecurityContext / securityContext"]
+C --> E["RBAC 权限<br/>ClusterRole / ClusterRoleBinding"]
+C --> F["配置管理<br/>ConfigMap / Secret"]
+C --> G["存储配置<br/>PVC / StorageClass"]
+C --> H["服务暴露<br/>Service / Ingress"]
 ```
 
 **图表来源**
 - [deployment/README.md](file://deployment/README.md)
 - [deployment/kind/cluster-config.yaml](file://deployment/kind/cluster-config.yaml)
-- [deployment/kind/manage.sh](file://deployment/kind/manage.sh)
-- [helm/klaw/Chart.yaml](file://helm/klaw/Chart.yaml)
-- [operator/helm/kudig-operator/Chart.yaml](file://operator/helm/kudig-operator/Chart.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/Chart.yaml](file://modules/etcd-guardian/charts/etcdguardian/Chart.yaml)
-- [.github/workflows/ci.yml](file://.github/workflows/ci.yml)
+- [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
+- [helm/klaw/templates/deployment.yaml](file://helm/klaw/templates/deployment.yaml)
+- [helm/klaw/templates/rbac.yaml](file://helm/klaw/templates/rbac.yaml)
 
 **章节来源**
 - [deployment/README.md](file://deployment/README.md)
 - [deployment/kind/cluster-config.yaml](file://deployment/kind/cluster-config.yaml)
 - [deployment/kind/manage.sh](file://deployment/kind/manage.sh)
 - [helm/klaw/Chart.yaml](file://helm/klaw/Chart.yaml)
-- [operator/helm/kudig-operator/Chart.yaml](file://operator/helm/kudig-operator/Chart.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/Chart.yaml](file://modules/etcd-guardian/charts/etcdguardian/Chart.yaml)
-- [.github/workflows/ci.yml](file://.github/workflows/ci.yml)
+- [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 
 ## 核心组件
-- Klaw 应用服务：通过 Helm Chart 部署，支持 Ingress、ConfigMap/Secret、持久化存储、HPA/VPA 等能力。
-- Operator：用于管理自定义资源（如 ClusterDiagnostic、NodeDiagnostic、Schedule），由 Helm Chart 安装 CRD、RBAC 与控制器。
-- **EtcdGuardian**：**新增** etcd 备份与灾难恢复操作符，提供独立的 Helm Chart 部署和完整的监控集成。
+- Klaw 应用服务：通过 Helm Chart 部署，支持安全加固、RBAC 权限控制、持久化存储、健康检查等能力。
 - 本地开发环境：基于 Kind 的快速集群搭建与管理脚本。
+- **安全配置**：默认启用非 root 执行、只读文件系统、能力丢弃等安全最佳实践。
+- **集群管理模式**：支持 in-cluster 模式和外部 kubeconfig 模式。
 
 **章节来源**
 - [helm/klaw/Chart.yaml](file://helm/klaw/Chart.yaml)
-- [operator/helm/kudig-operator/Chart.yaml](file://operator/helm/kudig-operator/Chart.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/Chart.yaml](file://modules/etcd-guardian/charts/etcdguardian/Chart.yaml)
+- [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 - [deployment/kind/cluster-config.yaml](file://deployment/kind/cluster-config.yaml)
 
 ## 架构总览
-下图展示 Klaw 在 Kubernetes 中的整体部署架构，包括 Ingress、应用 Pod、Operator、EtcdGuardian 与外部存储的关系。
+下图展示 Klaw 在 Kubernetes 中的整体部署架构，包括安全上下文、RBAC 权限、配置管理和存储的关系。
 
 ```mermaid
 graph TB
 subgraph "Kubernetes 集群"
 I["Ingress 控制器"] --> S["Klaw Service"]
 S --> P["Klaw Pods"]
-O["Operator 控制器"] --> CRD["CRD: ClusterDiagnostic / NodeDiagnostic / Schedule"]
-EG["EtcdGuardian 操作符"] --> EGCRD["CRD: EtcdBackup / EtcdRestore / EtcdBackupSchedule"]
+P --> SA["ServiceAccount"]
+SA --> CRB["ClusterRoleBinding"]
+CRB --> CR["ClusterRole"]
 P --> CM["ConfigMap"]
 P --> SEC["Secret"]
 P --> PV["持久卷(PVC/PV)"]
-EG --> S3["对象存储<br/>S3/OSS/GCS/Azure"]
-EG --> ETCD["etcd 集群"]
 end
 EXT["外部系统<br/>数据库/消息队列"] --> P
-MON["监控栈<br/>Prometheus/Grafana"] --> EG
-MON --> P
+MON["监控栈<br/>Prometheus/Grafana"] --> P
 ```
 
 **图表来源**
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
-- [operator/helm/kudig-operator/templates/crds.yaml](file://operator/helm/kudig-operator/templates/crds.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/values.yaml](file://modules/etcd-guardian/charts/etcdguardian/values.yaml)
-- [modules/etcd-guardian/config/prometheus/prometheus.yml](file://modules/etcd-guardian/config/prometheus/prometheus.yml)
+- [helm/klaw/templates/rbac.yaml](file://helm/klaw/templates/rbac.yaml)
+- [helm/klaw/templates/deployment.yaml](file://helm/klaw/templates/deployment.yaml)
 
 ## 详细组件分析
 
@@ -149,10 +126,15 @@ MON --> P
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 
 ### RBAC 权限配置
-- Operator 需要访问 CRD、Deployment、Service、ConfigMap、Secret 等资源。
-- 建议为 Operator 创建独立的 ServiceAccount、Role/ClusterRole 与绑定。
-- 若仅允许操作特定命名空间，使用 Role；否则使用 ClusterRole。
+**更新** Klaw 采用最小权限原则，仅授予必要的集群资源访问权限。
 
+#### 权限范围
+- **只读权限**：nodes、namespaces、events、services、endpoints、configmaps、resourcequotas、persistentvolumeclaims、secrets
+- **Pod 管理**：pods、pods/log（查看、日志、删除）
+- **Deployment 管理**：deployments、deployments/scale、replicasets、daemonsets、statefulsets
+- **多租户管理**：namespaces、resourcequotas、networkpolicies、roles、rolebindings、clusterrolebindings、clusterroles
+
+#### 权限配置流程
 ```mermaid
 flowchart TD
 Start(["开始"]) --> CheckSA["检查 ServiceAccount 是否存在"]
@@ -169,15 +151,58 @@ Verify --> End(["完成"])
 ```
 
 **章节来源**
-- [operator/helm/kudig-operator/templates/rbac.yaml](file://operator/helm/kudig-operator/templates/rbac.yaml)
+- [helm/klaw/templates/rbac.yaml](file://helm/klaw/templates/rbac.yaml)
 
-### 存储类配置
-- 确认集群已启用默认 StorageClass，或通过 values 指定自定义 StorageClass。
-- 根据业务需求选择读写模式（ReadWriteOnce/ReadWriteMany）与容量大小。
-- 对于高可用与备份，建议启用快照与保留策略（由 CSI 驱动支持）。
+### 安全配置
+**新增** Klaw 默认启用多项安全最佳实践，确保容器运行安全。
+
+#### Pod 级安全上下文
+- **非 root 执行**：`runAsNonRoot: true`，`runAsUser: 65532`
+- **文件系统组**：`fsGroup: 65532`，确保文件访问权限正确
+- **用户组**：`runAsGroup: 65532`
+
+#### 容器级安全上下文
+- **禁用特权升级**：`allowPrivilegeEscalation: false`
+- **只读根文件系统**：`readOnlyRootFilesystem: true`
+- **能力丢弃**：`capabilities.drop: ALL`，移除所有 Linux 能力
+
+#### 安全配置示例
+```yaml
+# values.yaml 中的安全配置
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+```
 
 **章节来源**
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
+- [helm/klaw/templates/deployment.yaml](file://helm/klaw/templates/deployment.yaml)
+
+### 存储类配置
+**更新** 支持多种存储配置方式，包括现有 PVC 引用和自定义存储类。
+
+#### 存储配置选项
+- **现有 PVC 引用**：通过 `existingClaim` 指定已存在的 PVC
+- **自动创建 PVC**：通过 `size`、`accessMode`、`storageClass` 配置
+- **禁用持久化**：设置 `enabled: false` 使用 emptyDir
+
+#### 存储类选择
+- 确认集群已启用默认 StorageClass，或通过 values 指定自定义 StorageClass
+- 根据业务需求选择读写模式（ReadWriteOnce/ReadWriteMany）与容量大小
+- 对于高可用与备份，建议启用快照与保留策略（由 CSI 驱动支持）
+
+**章节来源**
+- [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
+- [helm/klaw/templates/pvc.yaml](file://helm/klaw/templates/pvc.yaml)
 
 ### Ingress 配置
 - 通过 values 配置 Ingress 主机名、路径、TLS、注解等。
@@ -188,18 +213,41 @@ Verify --> End(["完成"])
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 
 ### ConfigMap 与 Secret 管理
-- 应用配置通过 ConfigMap 注入，敏感信息通过 Secret 注入。
-- 建议在 values 中集中管理键值，或使用外部密钥管理（如 Vault、云厂商 KMS）。
-- 更新策略：滚动更新避免中断，注意配置热加载能力。
+**更新** 支持外部 Secret 引用和更灵活的配置管理。
+
+#### 配置管理
+- 应用配置通过 ConfigMap 注入，敏感信息通过 Secret 注入
+- 建议在 values 中集中管理键值，或使用外部密钥管理（如 Vault、云厂商 KMS）
+- 更新策略：滚动更新避免中断，注意配置热加载能力
+
+#### Secret 管理
+- **内置 Secret**：通过 `secrets` 字段直接配置
+- **外部 Secret**：通过 `existingSecret` 引用已存在的 Secret
+- **环境变量注入**：Secret 中的数据以环境变量形式注入到容器中
+
+#### 集群管理模式
+- **in-cluster 模式**：使用 Pod 的 ServiceAccount 凭据访问所在集群（无需挂载 kubeconfig）
+- **外部集群模式**：通过 kubeconfig 文件路径并自行挂载该文件
 
 **章节来源**
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
+- [helm/klaw/templates/configmap.yaml](file://helm/klaw/templates/configmap.yaml)
+- [helm/klaw/templates/secret.yaml](file://helm/klaw/templates/secret.yaml)
 - [configs/config.yaml.example](file://configs/config.yaml.example)
 
 ### 使用 Kind 本地集群部署
-- 使用 cluster-config.yaml 定义节点数、网络与附加组件。
-- 使用 manage.sh 脚本进行集群创建、删除、扩容等操作。
-- 本地部署适合开发与测试，便于快速迭代。
+**更新** 简化了本地部署流程，支持 in-cluster 模式。
+
+#### 本地部署步骤
+1. **创建 Kind 集群**：使用 cluster-config.yaml 定义节点数、网络与附加组件
+2. **构建并加载镜像**：将本地构建的镜像加载到 Kind 集群
+3. **部署应用**：使用 Helm 安装 Klaw，支持 values-kind.yaml 覆盖配置
+4. **访问应用**：通过 port-forward 或 Ingress 访问
+
+#### 本地配置特点
+- **镜像策略**：`pullPolicy: Never`，使用本地加载的镜像
+- **认证配置**：本地默认关闭 API 认证，便于开发调试
+- **存储配置**：使用 kind 自带的 local-path StorageClass
 
 ```mermaid
 sequenceDiagram
@@ -208,341 +256,174 @@ participant Kind as "Kind CLI"
 participant K8s as "本地集群"
 Dev->>Kind : 执行 create/stop/delete
 Kind->>K8s : 启动/停止/删除节点与网络
-Dev->>K8s : 安装 Helm Chart (Klaw/Operator/EtcdGuardian)
+Dev->>K8s : 安装 Helm Chart (Klaw)
 K8s-->>Dev : 输出状态与访问地址
 ```
 
 **章节来源**
 - [deployment/kind/cluster-config.yaml](file://deployment/kind/cluster-config.yaml)
 - [deployment/kind/manage.sh](file://deployment/kind/manage.sh)
+- [helm/klaw/values-kind.yaml](file://helm/klaw/values-kind.yaml)
 
 ### 生产环境集群部署
-- 规划命名空间、资源配额、网络策略与监控告警。
-- 使用 Helm values 管理多环境差异（dev/staging/prod）。
-- 配置 HPA/VPA、PodDisruptionBudget、健康探针与日志收集。
-- 引入 CI/CD 流水线进行自动化发布与回滚。
+**更新** 增强了生产环境的安全配置和资源管理。
+
+#### 生产环境最佳实践
+- 规划命名空间、资源配额、网络策略与监控告警
+- 使用 Helm values 管理多环境差异（dev/staging/prod）
+- 配置 HPA/VPA、PodDisruptionBudget、健康探针与日志收集
+- 引入 CI/CD 流水线进行自动化发布与回滚
+
+#### 安全加固建议
+- 启用 Pod 安全策略（Pod Security Policies 或 Pod Security Standards）
+- 使用网络策略限制 Pod 间通信
+- 配置资源限制防止资源耗尽
+- 启用审计日志和监控告警
 
 **章节来源**
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 - [Makefile](file://Makefile)
 
 ### Helm Chart 自定义配置
-- Chart 元数据与依赖：查看 Chart.yaml 获取版本与依赖信息。
-- 参数化配置：通过 values.yaml 调整副本数、资源限制、存储、Ingress、环境变量等。
-- 多环境管理：使用 values files 或 Helm 变量区分不同环境。
+**更新** 提供了更丰富的自定义配置选项。
+
+#### Chart 元数据与依赖
+- 查看 Chart.yaml 获取版本与依赖信息
+- 支持依赖管理和版本约束
+
+#### 参数化配置
+- 通过 values.yaml 调整副本数、资源限制、存储、Ingress、环境变量等
+- 支持多环境管理：使用 values files 或 Helm 变量区分不同环境
+- 支持现有资源引用：如 existingSecret、existingClaim
+
+#### 关键配置项
+- **部署配置**：replicaCount、image、resources
+- **安全配置**：podSecurityContext、securityContext
+- **服务配置**：service type、port
+- **健康检查**：livenessProbe、readinessProbe
+- **配置管理**：config、secrets、existingSecret
+- **存储配置**：persistence.enabled、size、accessMode、storageClass
 
 **章节来源**
 - [helm/klaw/Chart.yaml](file://helm/klaw/Chart.yaml)
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 
 ### 资源限制与扩缩容策略
-- 设置 CPU/内存请求与限制，确保调度合理与稳定性。
-- 启用 HPA 基于 CPU/内存或自定义指标自动扩缩容。
-- 结合 VPA 动态调整资源请求，优化利用率。
+**更新** 提供了更合理的默认资源限制配置。
+
+#### 资源限制
+- 设置 CPU/内存请求与限制，确保调度合理与稳定性
+- 默认限制：CPU 1000m，内存 1Gi；请求：CPU 500m，内存 512Mi
+
+#### 扩缩容策略
+- 启用 HPA 基于 CPU/内存或自定义指标自动扩缩容
+- 结合 VPA 动态调整资源请求，优化利用率
+- 配置 PodDisruptionBudget 确保高可用性
 
 **章节来源**
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 
-### Operator 部署与 CRD 管理
-- 安装 Operator Chart 将创建 CRD、RBAC 与控制器 Deployment。
-- 控制器监听 CRD 事件并协调资源状态。
-- 可通过 values 控制副本数、日志级别、资源限制等。
+### 服务账户与权限
+**更新** 支持独立的服务账户配置。
 
-```mermaid
-classDiagram
-class ClusterDiagnostic {
-+spec : object
-+status : object
-}
-class NodeDiagnostic {
-+spec : object
-+status : object
-}
-class Schedule {
-+spec : object
-+status : object
-}
-class ClusterDiagnosticController {
-+Reconcile()
-}
-class NodeDiagnosticController {
-+Reconcile()
-}
-class ScheduleController {
-+Reconcile()
-}
-ClusterDiagnosticController --> ClusterDiagnostic : "管理"
-NodeDiagnosticController --> NodeDiagnostic : "管理"
-ScheduleController --> Schedule : "管理"
-```
+#### 服务账户配置
+- 支持创建独立的服务账户用于权限隔离
+- 支持添加注解用于云提供商集成（如 AWS IAM Roles for Service Accounts）
+- 与服务账户绑定的 RBAC 权限自动生效
 
-**图表来源**
-- [operator/api/v1/groupversion_info.go](file://operator/api/v1/groupversion_info.go)
-- [operator/controllers/clusterdiagnostic_controller.go](file://operator/controllers/clusterdiagnostic_controller.go)
-- [operator/controllers/nodediagnostic_controller.go](file://operator/controllers/nodediagnostic_controller.go)
-- [operator/controllers/schedule_controller.go](file://operator/controllers/schedule_controller.go)
-- [operator/helm/kudig-operator/templates/crds.yaml](file://operator/helm/kudig-operator/templates/crds.yaml)
+#### 权限绑定
+- 自动创建 ClusterRole 和 ClusterRoleBinding
+- 遵循最小权限原则，仅授予必要权限
+- 支持跨命名空间的集群资源访问
 
 **章节来源**
-- [operator/helm/kudig-operator/Chart.yaml](file://operator/helm/kudig-operator/Chart.yaml)
-- [operator/helm/kudig-operator/values.yaml](file://operator/helm/kudig-operator/values.yaml)
-- [operator/helm/kudig-operator/templates/deployment.yaml](file://operator/helm/kudig-operator/templates/deployment.yaml)
-- [operator/helm/kudig-operator/templates/rbac.yaml](file://operator/helm/kudig-operator/templates/rbac.yaml)
-- [operator/helm/kudig-operator/templates/crds.yaml](file://operator/helm/kudig-operator/templates/crds.yaml)
-- [operator/api/v1/groupversion_info.go](file://operator/api/v1/groupversion_info.go)
-- [operator/controllers/clusterdiagnostic_controller.go](file://operator/controllers/clusterdiagnostic_controller.go)
-- [operator/controllers/nodediagnostic_controller.go](file://operator/controllers/nodediagnostic_controller.go)
-- [operator/controllers/schedule_controller.go](file://operator/controllers/schedule_controller.go)
+- [helm/klaw/templates/serviceaccount.yaml](file://helm/klaw/templates/serviceaccount.yaml)
+- [helm/klaw/templates/rbac.yaml](file://helm/klaw/templates/rbac.yaml)
 
-### **EtcdGuardian 部署与配置**
-**新增** EtcdGuardian 是专为 etcd 备份与灾难恢复设计的 Kubernetes 操作符，提供完整的 Helm Chart 部署支持。
+### 服务暴露与健康检查
+**更新** 提供了标准的服务暴露和健康检查配置。
 
-#### EtcdGuardian 核心功能
-- **多存储后端支持**：S3、阿里云 OSS、GCS、Azure Blob
-- **定时备份**：基于 CronJob 的自动化备份策略
-- **在线/离线恢复**：支持多种恢复模式
-- **完整监控**：内置 Prometheus 指标和 Grafana 仪表板
-- **高可用部署**：支持 leader election 和多副本部署
+#### 服务配置
+- 默认使用 ClusterIP 类型服务
+- 支持自定义服务类型（NodePort、LoadBalancer、Ingress）
+- 标准 HTTP 端口 8080
 
-#### EtcdGuardian Helm Chart 配置
-```yaml
-# 基本部署配置
-replicas: 1
-image:
-  repository: etcdguardian/operator
-  tag: "latest"
-  pullPolicy: IfNotPresent
-
-# 监控配置
-metrics:
-  enabled: true
-  port: 8080
-  serviceMonitor:
-    enabled: false
-    interval: 30s
-
-# 存储配置
-storage:
-  defaultProvider: s3
-  s3:
-    enabled: true
-    bucket: ""
-    region: us-east-1
-  
-  oss:
-    enabled: false
-    bucket: ""
-    region: cn-hangzhou
-  
-  gcs:
-    enabled: false
-    bucket: ""
-    region: us-central1
-  
-  azure:
-    enabled: false
-    storageAccount: ""
-    container: ""
-
-# 安全配置
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 65532
-
-securityContext:
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-    - ALL
-  readOnlyRootFilesystem: true
-```
-
-#### EtcdGuardian 部署步骤
-1. **添加 Helm Repository**：
-   ```bash
-   helm repo add etcdguardian https://charts.etcdguardian.io
-   helm repo update
-   ```
-
-2. **创建命名空间和配置**：
-   ```bash
-   kubectl create namespace etcd-guardian-system
-   kubectl apply -f modules/etcd-guardian/config/rbac/
-   ```
-
-3. **安装 EtcdGuardian**：
-   ```bash
-   helm install etcdguardian modules/etcd-guardian/charts/etcdguardian \
-     --namespace etcd-guardian-system \
-     --set storage.s3.bucket=my-backup-bucket \
-     --set metrics.enabled=true
-   ```
-
-4. **验证部署**：
-   ```bash
-   kubectl get pods -n etcd-guardian-system
-   kubectl get services -n etcd-guardian-system
-   ```
-
-#### EtcdGuardian 监控集成
-- **Prometheus 指标**：暴露 `/metrics` 端点，包含备份时长、大小、成功率等关键指标
-- **健康检查**：提供 `/healthz` 和 `/readyz` 健康检查端点
-- **Grafana 仪表板**：预配置的 etcd 备份监控仪表板
-- **告警规则**：支持自定义告警规则配置
+#### 健康检查
+- **存活探针**：HTTP GET `/healthz`，初始延迟 10 秒，周期 15 秒
+- **就绪探针**：HTTP GET `/readyz`，初始延迟 5 秒，周期 10 秒
+- 探针端点可用于负载均衡器健康检查和 Kubernetes 健康检查
 
 **章节来源**
-- [modules/etcd-guardian/charts/etcdguardian/Chart.yaml](file://modules/etcd-guardian/charts/etcdguardian/Chart.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/values.yaml](file://modules/etcd-guardian/charts/etcdguardian/values.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/templates/deployment.yaml](file://modules/etcd-guardian/charts/etcdguardian/templates/deployment.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/templates/service.yaml](file://modules/etcd-guardian/charts/etcdguardian/templates/service.yaml)
-- [modules/etcd-guardian/pkg/metrics/metrics.go](file://modules/etcd-guardian/pkg/metrics/metrics.go)
-- [modules/etcd-guardian/config/prometheus/prometheus.yml](file://modules/etcd-guardian/config/prometheus/prometheus.yml)
+- [helm/klaw/templates/service.yaml](file://helm/klaw/templates/service.yaml)
+- [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 
-### **Docker 配置优化**
-**更新** 项目采用多阶段 Docker 构建优化，提升镜像安全性和构建效率。
+### 镜像构建与安全
+**更新** 采用多阶段构建和安全镜像优化。
 
-#### Klaw 主应用镜像
-- **基础镜像**：使用 `golang:1.22-alpine` 作为构建环境
-- **最终镜像**：使用 `gcr.io/distroless/static:nonroot` 最小化运行时
-- **安全加固**：以非 root 用户运行，禁用特权升级
+#### 多阶段构建
+- **前端构建阶段**：使用 node:20-alpine 构建前端静态资源
+- **后端构建阶段**：使用 golang:1.24-alpine 编译 Go 二进制文件
+- **最终运行时镜像**：使用 alpine:3.20 最小化运行时环境
 
-#### EtcdGuardian 镜像配置
-- **双镜像支持**：提供 manager 和 backend 两个独立镜像
-- **静态编译**：使用 CGO_ENABLED=0 进行静态链接，减少依赖
-- **优化构建**：利用 Go module 缓存和多阶段构建
+#### 安全优化
+- **非 root 运行**：创建专用用户 klaw (UID 65532)
+- **静态链接**：CGO_ENABLED=0 确保二进制文件无外部依赖
+- **精简镜像**：移除不必要的工具和库文件
+- **依赖缓存**：利用 Docker 层缓存加速构建
 
 ```dockerfile
-# EtcdGuardian Manager 镜像
-FROM golang:1.22-alpine AS builder
-WORKDIR /workspace
-RUN apk add --no-cache git make gcc musl-dev
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags '-w -s -extldflags "-static"' -o bin/manager cmd/manager/main.go
-
-FROM gcr.io/distroless/static:nonroot
-WORKDIR /
-COPY --from=builder /workspace/bin/manager .
-COPY --from=builder /workspace/config/samples config/samples
-USER nonroot:nonroot
-ENTRYPOINT ["/manager"]
+# 最终镜像配置
+FROM alpine:3.20
+RUN apk --no-cache add ca-certificates \
+    && addgroup -g 65532 klaw \
+    && adduser -D -u 65532 -G klaw klaw
+USER 65532:65532
+EXPOSE 8080
+CMD ["./klaw"]
 ```
 
 **章节来源**
 - [Dockerfile](file://Dockerfile)
-- [modules/etcd-guardian/Dockerfile](file://modules/etcd-guardian/Dockerfile)
-- [modules/etcd-guardian/Dockerfile.backend](file://modules/etcd-guardian/Dockerfile.backend)
 
-### **CI/CD 流程增强**
-**更新** GitHub Actions 工作流现已包含完整的 EtcdGuardian 模块支持。
+### Makefile 工具链
+**更新** 提供了完整的开发和部署工具链。
 
-#### 新增的 CI/CD 作业
-- **etcd-guardian-module**：专门针对 EtcdGuardian 的构建和测试
-- **Helm 验证**：对所有 Helm Charts 进行 lint 和模板渲染检查
-- **Docker 构建**：集成 Docker 镜像构建和缓存优化
+#### 开发工具
+- **构建命令**：build、build-frontend、build-backend
+- **开发环境**：dev、dev-frontend、dev-backend
+- **测试命令**：test、test-go、test-frontend
+- **代码质量**：fmt、lint
 
-#### CI/CD 流程特点
-- **并行执行**：多个模块的构建和测试并行执行，提升效率
-- **Go 版本管理**：针对不同模块使用合适的 Go 版本
-- **缓存优化**：使用 GitHub Actions Cache 加速依赖下载
-- **安全扫描**：集成漏洞扫描和质量检查
+#### Docker 操作
+- **镜像构建**：docker-build
+- **容器运行**：docker-run（支持配置挂载）
+- **容器管理**：docker-stop、docker-clean
 
-```yaml
-# EtcdGuardian CI/CD 配置
-etcd-guardian-module:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5
-      with:
-        go-version: "1.26"
-    - name: Build operator module
-      working-directory: modules/etcd-guardian
-      run: go build ./...
-    - name: Test operator module
-      working-directory: modules/etcd-guardian
-      run: go test ./... -count=1
-    - name: Build backend module
-      working-directory: modules/etcd-guardian/backend
-      run: go build ./...
-    - name: Test backend module
-      working-directory: modules/etcd-guardian/backend
-      run: go test ./... -count=1
-```
+#### Helm 操作
+- **安装升级**：helm-install、helm-upgrade
+- **卸载清理**：helm-uninstall
+- **打包发布**：helm-package
 
 **章节来源**
-- [.github/workflows/ci.yml](file://.github/workflows/ci.yml)
-
-### **监控和可观测性增强**
-**更新** 项目提供了完整的监控和可观测性解决方案，特别是 EtcdGuardian 的监控集成。
-
-#### Prometheus 指标
-EtcdGuardian 暴露以下关键指标：
-- **备份指标**：`etcdguardian_backup_duration_seconds`、`etcdguardian_backup_size_bytes`、`etcdguardian_backup_total`
-- **etcd 状态指标**：`etcdguardian_etcd_db_size_bytes`、`etcdguardian_etcd_revision`
-- **操作指标**：`etcdguardian_restore_duration_seconds`、`etcdguardian_restore_total`
-- **错误指标**：`etcdguardian_validation_failures_total`
-
-#### 监控配置
-```yaml
-# Prometheus 配置
-scrape_configs:
-  - job_name: 'etcd-guardian-operator'
-    kubernetes_sd_configs:
-      - role: pod
-        namespaces:
-          names:
-            - etcd-guardian-system
-    relabel_configs:
-      - source_labels: [__meta_kubernetes_pod_label_app]
-        action: keep
-        regex: etcdguardian
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-        action: keep
-        regex: true
-
-  - job_name: 'etcd-guardian-backend'
-    static_configs:
-      - targets: ['backend:8080']
-
-  - job_name: 'etcd'
-    static_configs:
-      - targets: ['etcd:2379']
-```
-
-#### Grafana 仪表板
-- **预配置仪表板**：提供 etcd 备份和恢复的完整监控视图
-- **数据源配置**：自动配置 Prometheus 数据源连接
-- **实时更新**：支持仪表板的自动刷新和更新
-
-**章节来源**
-- [modules/etcd-guardian/pkg/metrics/metrics.go](file://modules/etcd-guardian/pkg/metrics/metrics.go)
-- [modules/etcd-guardian/config/prometheus/prometheus.yml](file://modules/etcd-guardian/config/prometheus/prometheus.yml)
-- [modules/etcd-guardian/config/grafana/provisioning/dashboards/dashboards.yml](file://modules/etcd-guardian/config/grafana/provisioning/dashboards/dashboards.yml)
-
-### 镜像构建与发布
-- 使用 Dockerfile 定义应用镜像构建流程。
-- Makefile 封装常用命令（构建、推送、清理等）。
-- 建议在 CI 中集成镜像扫描与安全校验。
-
-**章节来源**
-- [Dockerfile](file://Dockerfile)
 - [Makefile](file://Makefile)
 
 ## 依赖关系分析
-- Klaw 应用依赖：
+**更新** 明确了各组件间的依赖关系。
+
+### 主要依赖
+- **Klaw 应用依赖**：
   - Ingress 控制器（HTTP/HTTPS 路由）
   - StorageClass（持久化存储）
   - ConfigMap/Secret（配置与密钥）
   - 可选：外部数据库、对象存储、消息队列
-- Operator 依赖：
+- **RBAC 依赖**：
   - Kubernetes API Server（CRD、控制器逻辑）
-  - RBAC 权限（Role/ClusterRole）
-- **EtcdGuardian 依赖**：
-  - **对象存储服务**：S3、OSS、GCS、Azure Blob
-  - **etcd 集群**：用于备份和恢复操作
-  - **监控栈**：Prometheus 和 Grafana（可选）
+  - RBAC 权限（ClusterRole/ClusterRoleBinding）
+
+### 安全依赖
+- **Pod 安全策略**：需要集群支持 Pod Security Standards 或 Pod Security Policies
+- **网络策略**：可选的网络隔离功能
+- **存储策略**：CSI 驱动的快照和备份能力
 
 ```mermaid
 graph LR
@@ -550,67 +431,76 @@ Klaw["Klaw 应用"] --> Ingress["Ingress 控制器"]
 Klaw --> Storage["StorageClass"]
 Klaw --> Config["ConfigMap/Secret"]
 Klaw --> Ext["外部系统"]
-Operator["Operator 控制器"] --> API["K8s API Server"]
-Operator --> RBAC["RBAC 权限"]
-EtcdGuardian["EtcdGuardian"] --> ObjectStore["对象存储"]
-EtcdGuardian --> Etcd["etcd 集群"]
-EtcdGuardian --> Monitoring["监控栈"]
+Klaw --> RBAC["RBAC 权限"]
+Klaw --> Security["Pod 安全策略"]
 ```
 
 **图表来源**
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
-- [operator/helm/kudig-operator/templates/rbac.yaml](file://operator/helm/kudig-operator/templates/rbac.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/values.yaml](file://modules/etcd-guardian/charts/etcdguardian/values.yaml)
+- [helm/klaw/templates/rbac.yaml](file://helm/klaw/templates/rbac.yaml)
 
 **章节来源**
 - [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
-- [operator/helm/kudig-operator/templates/rbac.yaml](file://operator/helm/kudig-operator/templates/rbac.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/values.yaml](file://modules/etcd-guardian/charts/etcdguardian/values.yaml)
+- [helm/klaw/templates/rbac.yaml](file://helm/klaw/templates/rbac.yaml)
 
 ## 性能与扩缩容
-- 资源规划：根据 QPS、延迟与数据量估算 CPU/内存需求。
-- 水平扩展：HPA 基于指标自动扩缩容，结合负载均衡器提升吞吐。
-- 垂直扩展：VPA 动态调整资源请求，减少碎片与浪费。
-- 存储性能：选择高性能 StorageClass，必要时使用本地盘或 SSD。
-- 缓存与连接池：合理配置应用层缓存与数据库连接池。
-- **EtcdGuardian 性能优化**：
-  - **并发备份**：支持并行备份多个 etcd 实例
-  - **增量备份**：减少网络传输和存储空间占用
-  - **压缩存储**：自动压缩备份数据，节省存储空间
+**更新** 提供了更优化的默认资源配置。
+
+### 性能优化
+- **资源规划**：根据 QPS、延迟与数据量估算 CPU/内存需求
+- **水平扩展**：HPA 基于指标自动扩缩容，结合负载均衡器提升吞吐
+- **垂直扩展**：VPA 动态调整资源请求，减少碎片与浪费
+- **存储性能**：选择高性能 StorageClass，必要时使用本地盘或 SSD
+- **缓存与连接池**：合理配置应用层缓存与数据库连接池
+
+### 默认资源配置
+- **生产环境**：CPU 限制 1000m，内存限制 1Gi
+- **开发环境**：CPU 限制 500m，内存限制 512Mi
+- **资源请求**：CPU 500m，内存 512Mi（生产），CPU 100m，内存 128Mi（开发）
 
 [本节为通用指导，不直接分析具体文件]
 
 ## 故障排查指南
-- 常见问题定位：
-  - Ingress 无法访问：检查域名解析、TLS 证书、Ingress 控制器日志。
-  - Pod 启动失败：查看事件与日志，检查镜像拉取、配置挂载、权限问题。
-  - 存储挂载失败：确认 StorageClass、PVC/PV 状态、CSI 驱动可用性。
-  - Operator 未生效：检查 CRD 是否安装、RBAC 权限、控制器日志。
-  - **EtcdGuardian 问题**：检查 etcd 连接、对象存储配置、备份任务状态。
-- 诊断工具：kubectl describe/get/logs、事件查看、Prometheus/Grafana 监控。
-- **EtcdGuardian 诊断**：
-  - 使用 `kubectl get etcdbackups` 查看备份状态
-  - 检查 `/metrics` 端点获取性能指标
-  - 查看备份日志和错误信息
+**更新** 增加了安全相关的故障排查方法。
+
+### 常见问题定位
+- **Ingress 无法访问**：检查域名解析、TLS 证书、Ingress 控制器日志
+- **Pod 启动失败**：查看事件与日志，检查镜像拉取、配置挂载、权限问题
+- **存储挂载失败**：确认 StorageClass、PVC/PV 状态、CSI 驱动可用性
+- **RBAC 权限错误**：检查 ClusterRole、ClusterRoleBinding 配置
+- **安全上下文错误**：验证 podSecurityContext 和 securityContext 配置
+
+### 安全相关问题
+- **权限不足**：检查 ServiceAccount 和 RBAC 权限配置
+- **文件访问错误**：确认 fsGroup 和用户权限设置
+- **只读文件系统错误**：检查需要写入的目录是否正确挂载
+- **能力不足**：确认是否需要特定的 Linux 能力
+
+### 诊断工具
+- **kubectl 命令**：describe/get/logs 查看资源状态和日志
+- **事件查看**：kubectl get events 查看集群事件
+- **权限验证**：kubectl auth can-i 验证权限
+- **安全上下文**：kubectl describe pod 查看安全配置
 
 **章节来源**
-- [operator/helm/kudig-operator/templates/rbac.yaml](file://operator/helm/kudig-operator/templates/rbac.yaml)
-- [operator/helm/kudig-operator/templates/crds.yaml](file://operator/helm/kudig-operator/templates/crds.yaml)
-- [modules/etcd-guardian/charts/etcdguardian/values.yaml](file://modules/etcd-guardian/charts/etcdguardian/values.yaml)
+- [helm/klaw/templates/rbac.yaml](file://helm/klaw/templates/rbac.yaml)
+- [helm/klaw/values.yaml](file://helm/klaw/values.yaml)
 
 ## 结论
-通过本指南，您可以在 Kind 本地集群与生产环境中完成 Klaw 平台的部署与运维。借助 Helm 与 Operator，实现可配置、可扩展与可治理的集群管理能力。**新增的 EtcdGuardian 组件**为 etcd 数据提供了企业级的备份与灾难恢复能力，配合完善的监控和 CI/CD 流水线，确保了系统的稳定性和可维护性。建议结合 CI/CD 与监控体系，持续提升交付效率与系统稳定性。
+通过本指南，您可以在 Kind 本地集群与生产环境中完成 Klaw 平台的部署与运维。借助 Helm Chart 和安全加固配置，实现了可配置、可扩展、安全可靠的集群管理能力。**新增的安全配置**确保了容器运行的安全性，包括非 root 执行、只读文件系统、能力丢弃等最佳实践。**增强的集群管理模式**支持 in-cluster 和外部 kubeconfig 两种模式，满足不同场景需求。建议结合 CI/CD 与监控体系，持续提升交付效率与系统稳定性。
 
 [本节为总结性内容，不直接分析具体文件]
 
 ## 附录：快速参考
-- 本地部署：使用 Kind 快速创建集群，安装 Klaw 与 Operator。
-- 生产部署：规划命名空间、资源配额、Ingress、存储与监控。
-- 自定义配置：通过 Helm values 管理多环境差异。
-- 扩缩容：启用 HPA/VPA，结合指标与策略自动调整。
-- Operator：安装 CRD 与控制器，管理自定义资源。
-- **EtcdGuardian**：独立部署 etcd 备份操作符，支持多种存储后端和完整监控。
-- **监控集成**：配置 Prometheus 和 Grafana，实现全面的可观测性。
-- **CI/CD**：利用 GitHub Actions 实现自动化构建、测试和部署。
+- **本地部署**：使用 Kind 快速创建集群，安装 Klaw 与 Operator
+- **生产部署**：规划命名空间、资源配额、Ingress、存储与监控
+- **安全配置**：启用非 root 执行、只读文件系统、能力丢弃
+- **集群管理**：支持 in-cluster 和外部 kubeconfig 模式
+- **RBAC 权限**：最小权限原则，仅授予必要权限
+- **存储配置**：支持现有 PVC 引用和自定义存储类
+- **配置管理**：ConfigMap 和 Secret 管理，支持外部 Secret 引用
+- **健康检查**：标准 HTTP 探针端点，支持负载均衡器集成
+- **镜像构建**：多阶段构建，安全最小化运行时镜像
+- **工具链**：Makefile 提供完整的开发和部署工具
 
 [本节为概览性内容，不直接分析具体文件]

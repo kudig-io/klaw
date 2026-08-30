@@ -33,6 +33,11 @@ server:
     allowed_origins: []
     # allowed_origins:
     #   - https://klaw.example.com
+  ops:
+    # ChatOps 破坏性命令（如 pod delete）总开关，默认关闭；
+    # 群聊中任何人 @ 机器人都能发命令，删除类操作需显式开启
+    # 也可用环境变量 KLAW_OPS_ALLOW_DESTRUCTIVE=true 注入
+    allow_destructive: false
 
 # SOS 语音应急快速对话
 sos:

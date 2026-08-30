@@ -7,7 +7,19 @@ import (
 	"github.com/kudig-io/klaw/internal/diag"
 )
 
+// diagRunSem 限制同时运行的诊断数量：全量诊断耗时长且对目标集群有采集压力，
+// 不允许多个请求并发触发
+var diagRunSem = make(chan struct{}, 1)
+
 func (s *Server) handleRunDiagnostics(w http.ResponseWriter, r *http.Request) {
+	select {
+	case diagRunSem <- struct{}{}:
+		defer func() { <-diagRunSem }()
+	default:
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "another diagnosis is already running, retry later"})
+		return
+	}
+
 	req := diag.DiagnosisRequest{
 		Kubeconfig: r.URL.Query().Get("kubeconfig"),
 		Context:    r.URL.Query().Get("context"),

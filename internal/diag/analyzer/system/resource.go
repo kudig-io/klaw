@@ -393,11 +393,11 @@ func (a *ProcessStateAnalyzer) Analyze(ctx context.Context, data *types.Diagnost
 
 // init registers all system analyzers.
 func init() {
-	_ = analyzer.Register(NewCPUAnalyzer())
-	_ = analyzer.Register(NewMemoryAnalyzer())
-	_ = analyzer.Register(NewDiskAnalyzer())
-	_ = analyzer.Register(NewSwapAnalyzer())
-	_ = analyzer.Register(NewConntrackAnalyzer())
-	_ = analyzer.Register(NewFileHandleAnalyzer())
-	_ = analyzer.Register(NewProcessStateAnalyzer())
+	analyzer.MustRegister(NewCPUAnalyzer())
+	analyzer.MustRegister(NewMemoryAnalyzer())
+	analyzer.MustRegister(NewDiskAnalyzer())
+	analyzer.MustRegister(NewSwapAnalyzer())
+	analyzer.MustRegister(NewConntrackAnalyzer())
+	analyzer.MustRegister(NewFileHandleAnalyzer())
+	analyzer.MustRegister(NewProcessStateAnalyzer())
 }

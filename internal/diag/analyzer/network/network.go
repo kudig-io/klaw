@@ -41,7 +41,8 @@ func (a *InterfaceAnalyzer) Analyze(_ context.Context, data *types.DiagnosticDat
 	content := string(networkInfo)
 
 	// Find interfaces in DOWN state (excluding lo and veth*)
-	downRe := regexp.MustCompile(`(\w+):\s+<[^>]*>\s+.*state DOWN`)
+	// 接口名可能含 . - @ :（如 vxlan.calico、vethxxx@if5、br-xxxx），不能用 \w+
+	downRe := regexp.MustCompile(`([\w.@:-]+):\s+<[^>]*>\s+.*state DOWN`)
 	matches := downRe.FindAllStringSubmatch(content, -1)
 
 	var downInterfaces []string
@@ -141,21 +142,19 @@ func (a *PortAnalyzer) Analyze(_ context.Context, data *types.DiagnosticData) ([
 
 	content := string(systemStatus)
 
-	// Check kubelet port 10250
-	if !strings.Contains(content, ":10250") || !strings.Contains(content, "LISTEN") {
-		// More flexible check
-		kubeletListening := regexp.MustCompile(`:10250\s+.*LISTEN`).MatchString(content)
-		if !kubeletListening {
-			issue := types.NewIssue(
-				types.SeverityCritical,
-				"Kubelet端口未监听",
-				"KUBELET_PORT_NOT_LISTENING",
-				"10250端口未处于监听状态",
-				"system_status",
-			).WithRemediation("检查kubelet服务: systemctl status kubelet; journalctl -u kubelet")
-			issue.AnalyzerName = a.Name()
-			issues = append(issues, *issue)
-		}
+	// Check kubelet port 10250：以行内精确匹配为准，
+	// 不能用「全文包含 :10250 且包含 LISTEN」预判（两串在不同行出现时会漏报）
+	kubeletListening := regexp.MustCompile(`:10250\s+.*LISTEN`).MatchString(content)
+	if !kubeletListening {
+		issue := types.NewIssue(
+			types.SeverityCritical,
+			"Kubelet端口未监听",
+			"KUBELET_PORT_NOT_LISTENING",
+			"10250端口未处于监听状态",
+			"system_status",
+		).WithRemediation("检查kubelet服务: systemctl status kubelet; journalctl -u kubelet")
+		issue.AnalyzerName = a.Name()
+		issues = append(issues, *issue)
 	}
 
 	return issues, nil
@@ -271,9 +270,9 @@ func (a *InodeAnalyzer) Analyze(_ context.Context, data *types.DiagnosticData) (
 
 // init registers all network analyzers
 func init() {
-	_ = analyzer.Register(NewInterfaceAnalyzer())
-	_ = analyzer.Register(NewRouteAnalyzer())
-	_ = analyzer.Register(NewPortAnalyzer())
-	_ = analyzer.Register(NewIptablesAnalyzer())
-	_ = analyzer.Register(NewInodeAnalyzer())
+	analyzer.MustRegister(NewInterfaceAnalyzer())
+	analyzer.MustRegister(NewRouteAnalyzer())
+	analyzer.MustRegister(NewPortAnalyzer())
+	analyzer.MustRegister(NewIptablesAnalyzer())
+	analyzer.MustRegister(NewInodeAnalyzer())
 }

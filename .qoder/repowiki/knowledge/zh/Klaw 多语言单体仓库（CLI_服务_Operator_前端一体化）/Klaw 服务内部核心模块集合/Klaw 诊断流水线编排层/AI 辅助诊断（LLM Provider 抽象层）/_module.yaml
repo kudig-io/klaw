@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: klaw_service/diag_pipeline/ai_assistant
+title: AI 辅助诊断（LLM Provider 抽象层）
+scope:
+    - internal/diag/ai/
+source_files: []
+depends_on: []
+related_to: []

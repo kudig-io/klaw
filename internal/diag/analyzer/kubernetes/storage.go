@@ -469,10 +469,10 @@ func (a *StoragePodAnalyzer) Analyze(ctx context.Context, data *types.Diagnostic
 
 func init() {
 	// 注册所有存储分析器
-	_ = analyzer.Register(NewPVCAnalyzer())
-	_ = analyzer.Register(NewPVAnalyzer())
-	_ = analyzer.Register(NewStorageClassAnalyzer())
-	_ = analyzer.Register(NewVolumeAttachmentAnalyzer())
-	_ = analyzer.Register(NewCSIDriverAnalyzer())
-	_ = analyzer.Register(NewStoragePodAnalyzer())
+	analyzer.MustRegister(NewPVCAnalyzer())
+	analyzer.MustRegister(NewPVAnalyzer())
+	analyzer.MustRegister(NewStorageClassAnalyzer())
+	analyzer.MustRegister(NewVolumeAttachmentAnalyzer())
+	analyzer.MustRegister(NewCSIDriverAnalyzer())
+	analyzer.MustRegister(NewStoragePodAnalyzer())
 }

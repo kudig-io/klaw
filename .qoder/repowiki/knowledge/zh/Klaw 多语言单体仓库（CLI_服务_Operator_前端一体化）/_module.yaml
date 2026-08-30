@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: ""
+title: Klaw 多语言单体仓库（CLI/服务/Operator/前端一体化）
+scope:
+    - Dockerfile
+    - Makefile
+    - .gitignore
+    - go.mod
+    - go.sum
+    - CHANGELOG.md
+    - DEVELOPMENT_PLAN.md
+    - README.md
+source_files: []
+depends_on: []
+related_to: []

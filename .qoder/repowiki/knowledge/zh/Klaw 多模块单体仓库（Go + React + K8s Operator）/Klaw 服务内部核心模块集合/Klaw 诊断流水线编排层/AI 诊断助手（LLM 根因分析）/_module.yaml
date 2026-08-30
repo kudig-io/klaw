@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: klaw_service/diag_pipeline/ai_assistant
-title: AI 诊断助手（LLM 根因分析）
-scope:
-    - internal/diag/ai/
-source_files: []
-depends_on: []
-related_to: []

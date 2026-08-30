@@ -54,6 +54,7 @@ func runServer(_ context.Context) error {
 
 	monitoringService := monitoring.NewService(k8sManager)
 	opsHandler := ops.NewHandler(k8sManager, monitoringService)
+	opsHandler.SetAllowDestructive(cfg.Server.Ops.AllowDestructive)
 	commandRouter := ops.NewCommandRouter(opsHandler)
 
 	commRegistry := messaging.NewCommunicatorRegistry()
@@ -96,7 +97,21 @@ func runServer(_ context.Context) error {
 
 	if cfg.Events.Enabled {
 		eventManager = events.NewManager()
-		eventNotifier = events.NewNotifier(commManager, eventManager)
+		// 去重窗口：dedup_window（秒）与 mute_duration（分钟）语义相同，取较大者；
+		// 聚合窗口同去重窗口，同类事件每 5 条合并推送一次
+		var dedupWindow time.Duration
+		if cfg.Events.DedupWindow > 0 {
+			dedupWindow = time.Duration(cfg.Events.DedupWindow) * time.Second
+		}
+		if mute := time.Duration(cfg.Events.MuteDuration) * time.Minute; mute > dedupWindow {
+			dedupWindow = mute
+		}
+		eventNotifier = events.NewNotifier(commManager, eventManager, events.NotifierOptions{
+			RateLimit:          cfg.Events.RateLimit,
+			DedupWindow:        dedupWindow,
+			AggregateWindow:    dedupWindow,
+			AggregateThreshold: 5,
+		})
 		for _, cluster := range cfg.Kubernetes.Clusters {
 			source, err := events.NewKubernetesSource(cluster.Name, k8sManager)
 			if err != nil {

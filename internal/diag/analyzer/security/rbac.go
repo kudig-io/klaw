@@ -357,9 +357,9 @@ func (a *RBACTokenAnalyzer) Analyze(ctx context.Context, data *types.DiagnosticD
 }
 
 func init() {
-	_ = analyzer.Register(NewRBACAdminAnalyzer())
-	_ = analyzer.Register(NewRBACServiceAccountAnalyzer())
-	_ = analyzer.Register(NewRBACDangerousPermissionsAnalyzer())
-	_ = analyzer.Register(NewRBACUnusedRolesAnalyzer())
-	_ = analyzer.Register(NewRBACTokenAnalyzer())
+	analyzer.MustRegister(NewRBACAdminAnalyzer())
+	analyzer.MustRegister(NewRBACServiceAccountAnalyzer())
+	analyzer.MustRegister(NewRBACDangerousPermissionsAnalyzer())
+	analyzer.MustRegister(NewRBACUnusedRolesAnalyzer())
+	analyzer.MustRegister(NewRBACTokenAnalyzer())
 }

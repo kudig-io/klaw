@@ -64,6 +64,15 @@ type ServerConfig struct {
 	Port int        `yaml:"port"`
 	Auth AuthConfig `yaml:"auth"`
 	CORS CORSConfig `yaml:"cors"`
+	Ops  OpsConfig  `yaml:"ops"`
+}
+
+// OpsConfig ChatOps 运维命令约束
+// AllowDestructive 控制破坏性命令（如 pod delete）是否可用，默认关闭：
+// 群聊场景任何人 @ 机器人即可触发命令，删除类操作需显式开启
+// （也可用环境变量 KLAW_OPS_ALLOW_DESTRUCTIVE=true 注入）
+type OpsConfig struct {
+	AllowDestructive bool `yaml:"allow_destructive"`
 }
 
 // AuthConfig API 认证配置
@@ -159,6 +168,9 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("KLAW_SOS_GLM_API_KEY"); v != "" {
 		cfg.SOS.GLM.APIKey = v
+	}
+	if v := os.Getenv("KLAW_OPS_ALLOW_DESTRUCTIVE"); v != "" {
+		cfg.Server.Ops.AllowDestructive = strings.EqualFold(v, "true") || v == "1"
 	}
 	// provider 归一化：大小写不敏感，缺省为 dashscope
 	switch strings.ToLower(cfg.SOS.Provider) {

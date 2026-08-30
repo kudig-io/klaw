@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: helm_klaw
+title: Klaw Helm Chart（Kubernetes 应用部署包）
+scope:
+    - helm/klaw/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service

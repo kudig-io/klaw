@@ -232,6 +232,16 @@ func Register(analyzer Analyzer) error {
 	return DefaultRegistry.Register(analyzer)
 }
 
+// MustRegister registers analyzers and panics on error.
+// 供 init() 使用：重名等错误属于程序缺陷，应快速失败而非静默丢弃。
+func MustRegister(analyzers ...Analyzer) {
+	for _, a := range analyzers {
+		if err := DefaultRegistry.Register(a); err != nil {
+			panic(err)
+		}
+	}
+}
+
 // CollectIssues extracts all issues from analyzer results
 func CollectIssues(results []Result) []types.Issue {
 	var issues []types.Issue

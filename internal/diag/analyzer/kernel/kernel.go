@@ -268,9 +268,9 @@ func (a *NMIWatchdogAnalyzer) Analyze(ctx context.Context, data *types.Diagnosti
 
 // init registers all kernel analyzers.
 func init() {
-	_ = analyzer.Register(NewPanicAnalyzer())
-	_ = analyzer.Register(NewOOMAnalyzer())
-	_ = analyzer.Register(NewFilesystemAnalyzer())
-	_ = analyzer.Register(NewModuleAnalyzer())
-	_ = analyzer.Register(NewNMIWatchdogAnalyzer())
+	analyzer.MustRegister(NewPanicAnalyzer())
+	analyzer.MustRegister(NewOOMAnalyzer())
+	analyzer.MustRegister(NewFilesystemAnalyzer())
+	analyzer.MustRegister(NewModuleAnalyzer())
+	analyzer.MustRegister(NewNMIWatchdogAnalyzer())
 }

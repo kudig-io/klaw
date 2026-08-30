@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: klaw_service/sos
+title: SOS 语音应急对话会话桥接
+scope:
+    - internal/sos/
+source_files: []
+depends_on: []
+related_to:
+    - path: docs
+    - path: klaw_service/api

@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	NvidiaGPUResource     = "nvidia.com/gpu"
-	NvidiaGPUMemory       = "nvidia.com/gpu-memory"
-	AMDGPUResource        = "amd.com/gpu"
-	HUAWEINPUResource     = "huawei.com/Ascend910"
+	NvidiaGPUResource = "nvidia.com/gpu"
+	NvidiaGPUMemory   = "nvidia.com/gpu-memory"
+	AMDGPUResource    = "amd.com/gpu"
+	HUAWEINPUResource = "huawei.com/Ascend910"
 )
 
 // GPUNodeAnalyzer 检查 GPU 节点状态
@@ -455,8 +455,8 @@ func (a *NPUAnalyzer) Analyze(ctx context.Context, data *types.DiagnosticData) (
 
 func init() {
 	// 注册所有 GPU 分析器
-	_ = analyzer.Register(NewGPUNodeAnalyzer())
-	_ = analyzer.Register(NewGPUPodAnalyzer())
-	_ = analyzer.Register(NewGPUShareAnalyzer())
-	_ = analyzer.Register(NewNPUAnalyzer())
+	analyzer.MustRegister(NewGPUNodeAnalyzer())
+	analyzer.MustRegister(NewGPUPodAnalyzer())
+	analyzer.MustRegister(NewGPUShareAnalyzer())
+	analyzer.MustRegister(NewNPUAnalyzer())
 }

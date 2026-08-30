@@ -3,7 +3,6 @@ package events
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/kudig-io/klaw/internal/kubernetes"
@@ -14,15 +13,15 @@ import (
 )
 
 // KubernetesSource Kubernetes 事件源
+// 注意：锁统一使用嵌入的 BaseSource.mu；不要再声明同名字段遮蔽，
+// 否则 Start/Stop 写 running 与 IsHealthy()（BaseSource 方法）读 running 会分属两把锁，构成数据竞争
 type KubernetesSource struct {
 	BaseSource
 	k8sManager  *kubernetes.Manager
 	clusterName string
 	client      *k8sclient.Clientset
 	stopCh      chan struct{}
-	mu          sync.RWMutex
 	watchers    map[string]watch.Interface
-	informers   map[string]interface{}
 }
 
 // NewKubernetesSource 创建 Kubernetes 事件源
@@ -39,30 +38,36 @@ func NewKubernetesSource(clusterName string, k8sManager *kubernetes.Manager) (*K
 		client:      client,
 		stopCh:      make(chan struct{}),
 		watchers:    make(map[string]watch.Interface),
-		informers:   make(map[string]interface{}),
 	}, nil
 }
 
-// Start 启动 Kubernetes 事件监听
+// Start 启动 Kubernetes 事件监听（Stop 之后可再次 Start）
 func (s *KubernetesSource) Start(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if s.running {
 		return nil
 	}
-	
+
+	// 上一次 Stop 已关闭 stopCh，重启前必须重建，否则所有 watch goroutine 会立即退出
+	select {
+	case <-s.stopCh:
+		s.stopCh = make(chan struct{})
+	default:
+	}
+
 	s.ctx, s.cancel = context.WithCancel(ctx)
 	s.running = true
-	
+
 	// 启动事件 Watch
-	go s.watchEvents()
-	
+	go s.watchEvents(s.ctx)
+
 	// 启动 Pod Watch（用于获取更详细的 Pod 事件）
-	go s.watchPods()
-	
+	go s.watchPods(s.ctx)
+
 	// 启动 Deployment Watch
-	go s.watchDeployments()
+	go s.watchDeployments(s.ctx)
 	
 	fmt.Printf("Kubernetes event source started for cluster: %s\n", s.clusterName)
 	return nil
@@ -80,9 +85,10 @@ func (s *KubernetesSource) Stop() error {
 	s.running = false
 	close(s.stopCh)
 	
-	// 停止所有 watchers
-	for _, w := range s.watchers {
+	// 停止所有 watchers 并清空，避免重启后对已停接口重复 Stop
+	for name, w := range s.watchers {
 		w.Stop()
+		delete(s.watchers, name)
 	}
 	
 	if s.cancel != nil {
@@ -93,20 +99,21 @@ func (s *KubernetesSource) Stop() error {
 	return nil
 }
 
-// watchEvents 监听 K8s Events
-func (s *KubernetesSource) watchEvents() {
-	client := s.client
-	
+// watchEvents 监听 K8s Events；ctx 由 Start 传入，避免与 Stop 并发读写字段
+func (s *KubernetesSource) watchEvents(ctx context.Context) {
 	// 创建 Watch
-	watchInterface, err := client.CoreV1().Events("").Watch(s.ctx, metav1.ListOptions{
+	watchInterface, err := s.client.CoreV1().Events("").Watch(ctx, metav1.ListOptions{
 		Watch: true,
 	})
 	if err != nil {
 		fmt.Printf("Failed to watch events: %v\n", err)
 		return
 	}
-	
+
 	s.mu.Lock()
+	if old := s.watchers["events"]; old != nil {
+		old.Stop() // 重连场景：先释放旧 watch，避免泄漏
+	}
 	s.watchers["events"] = watchInterface
 	s.mu.Unlock()
 	
@@ -117,9 +124,9 @@ func (s *KubernetesSource) watchEvents() {
 			return
 		case event, ok := <-watchInterface.ResultChan():
 			if !ok {
-				// 重新连接
+				// 断线重连（ctx 已取消时 Watch 会失败并退出）
 				time.Sleep(5 * time.Second)
-				go s.watchEvents()
+				go s.watchEvents(ctx)
 				return
 			}
 			
@@ -146,11 +153,9 @@ func (s *KubernetesSource) watchEvents() {
 }
 
 // watchPods 监听 Pod 变化
-func (s *KubernetesSource) watchPods() {
-	client := s.client
-	
+func (s *KubernetesSource) watchPods(ctx context.Context) {
 	// 创建 Watch
-	watchInterface, err := client.CoreV1().Pods("").Watch(s.ctx, metav1.ListOptions{
+	watchInterface, err := s.client.CoreV1().Pods("").Watch(ctx, metav1.ListOptions{
 		Watch: true,
 	})
 	if err != nil {
@@ -159,6 +164,9 @@ func (s *KubernetesSource) watchPods() {
 	}
 	
 	s.mu.Lock()
+	if old := s.watchers["pods"]; old != nil {
+		old.Stop()
+	}
 	s.watchers["pods"] = watchInterface
 	s.mu.Unlock()
 	
@@ -169,7 +177,7 @@ func (s *KubernetesSource) watchPods() {
 		case event, ok := <-watchInterface.ResultChan():
 			if !ok {
 				time.Sleep(5 * time.Second)
-				go s.watchPods()
+				go s.watchPods(ctx)
 				return
 			}
 			
@@ -207,12 +215,10 @@ func (s *KubernetesSource) watchPods() {
 	}
 }
 
-// watchDeployments 监听 Deployment 变化
-func (s *KubernetesSource) watchDeployments() {
-	client := s.client
-	
+// watchDeployments 监听 Deployment 变化（保活连接；详细 Deployment 事件经 Event Watch 获取）
+func (s *KubernetesSource) watchDeployments(ctx context.Context) {
 	// 创建 Watch
-	watchInterface, err := client.AppsV1().Deployments("").Watch(s.ctx, metav1.ListOptions{
+	watchInterface, err := s.client.AppsV1().Deployments("").Watch(ctx, metav1.ListOptions{
 		Watch: true,
 	})
 	if err != nil {
@@ -221,6 +227,9 @@ func (s *KubernetesSource) watchDeployments() {
 	}
 	
 	s.mu.Lock()
+	if old := s.watchers["deployments"]; old != nil {
+		old.Stop()
+	}
 	s.watchers["deployments"] = watchInterface
 	s.mu.Unlock()
 	
@@ -231,7 +240,7 @@ func (s *KubernetesSource) watchDeployments() {
 		case event, ok := <-watchInterface.ResultChan():
 			if !ok {
 				time.Sleep(5 * time.Second)
-				go s.watchDeployments()
+				go s.watchDeployments(ctx)
 				return
 			}
 			

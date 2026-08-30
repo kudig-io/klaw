@@ -319,6 +319,6 @@ func (a *DNSPodConfigAnalyzer) Analyze(ctx context.Context, data *types.Diagnost
 
 func init() {
 	// 注册所有 DNS 分析器
-	_ = analyzer.Register(NewCoreDNSAnalyzer())
-	_ = analyzer.Register(NewDNSPodConfigAnalyzer())
+	analyzer.MustRegister(NewCoreDNSAnalyzer())
+	analyzer.MustRegister(NewDNSPodConfigAnalyzer())
 }

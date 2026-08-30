@@ -1,6 +1,9 @@
 package messaging
 
-import "context"
+import (
+	"context"
+	"sync"
+)
 
 // Message 表示收到的消息
 type Message struct {
@@ -121,11 +124,12 @@ func (r *CommunicatorRegistry) Get(platformType string) (CommunicatorFactory, bo
 	return factory, ok
 }
 
-// Manager 通信平台管理器
+// Manager 通信平台管理器（并发安全：注册与发送可在不同 goroutine 进行）
 type Manager struct {
-	registry     *CommunicatorRegistry
+	mu            sync.RWMutex
+	registry      *CommunicatorRegistry
 	communicators map[string]Communicator
-	handlers     []MessageHandler
+	handlers      []MessageHandler
 }
 
 // NewManager 创建管理器
@@ -139,28 +143,47 @@ func NewManager(registry *CommunicatorRegistry) *Manager {
 
 // RegisterCommunicator 注册通信平台
 func (m *Manager) RegisterCommunicator(name string, comm Communicator) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.communicators[name] = comm
 }
 
 // GetCommunicator 获取通信平台
 func (m *Manager) GetCommunicator(name string) (Communicator, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	comm, ok := m.communicators[name]
 	return comm, ok
 }
 
 // RegisterGlobalHandler 注册全局消息处理器
 func (m *Manager) RegisterGlobalHandler(handler MessageHandler) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.handlers = append(m.handlers, handler)
+}
+
+// snapshot 复制当前平台与 handler 列表，避免持锁调用外部代码
+func (m *Manager) snapshot() (map[string]Communicator, []MessageHandler) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	comms := make(map[string]Communicator, len(m.communicators))
+	for name, comm := range m.communicators {
+		comms[name] = comm
+	}
+	handlers := make([]MessageHandler, len(m.handlers))
+	copy(handlers, m.handlers)
+	return comms, handlers
 }
 
 // StartAll 启动所有通信平台
 func (m *Manager) StartAll() error {
-	for name, comm := range m.communicators {
-		// 注册全局处理器
-		for _, handler := range m.handlers {
+	comms, handlers := m.snapshot()
+	for name, comm := range comms {
+		for _, handler := range handlers {
 			comm.RegisterHandler(handler)
 		}
-		
+
 		if err := comm.Start(); err != nil {
 			return &StartError{Platform: name, Err: err}
 		}
@@ -170,8 +193,9 @@ func (m *Manager) StartAll() error {
 
 // StopAll 停止所有通信平台
 func (m *Manager) StopAll() error {
+	comms, _ := m.snapshot()
 	var errs []error
-	for name, comm := range m.communicators {
+	for name, comm := range comms {
 		if err := comm.Stop(); err != nil {
 			errs = append(errs, &StopError{Platform: name, Err: err})
 		}
@@ -184,8 +208,9 @@ func (m *Manager) StopAll() error {
 
 // SendToAll 发送消息到所有平台
 func (m *Manager) SendToAll(channelID string, response *Response) error {
+	comms, _ := m.snapshot()
 	var errs []error
-	for name, comm := range m.communicators {
+	for name, comm := range comms {
 		if err := comm.SendMessage(channelID, response); err != nil {
 			errs = append(errs, &SendError{Platform: name, Err: err})
 		}

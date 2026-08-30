@@ -21,12 +21,11 @@
 
 ## 更新摘要
 **变更内容**
-- **集群特定工具执行**：新增会话级集群选择能力，支持在多集群环境中精确查询指定集群资源
-- **工具执行超时保护**：实现20秒默认超时机制，防止Kubernetes API调用阻塞导致goroutine泄漏
-- **增强错误处理**：提供中文用户友好的错误消息，改善用户体验
-- **前端状态管理优化**：新增toolCall跟踪功能，实时显示当前执行的集群工具
-- **审计日志安全加固**：添加panic恢复机制，确保审计回调异常不影响会话生命周期
-- **异步工具执行架构**：工具调用在独立协程中执行，避免阻塞WebSocket主循环
+- **多提供商支持**：新增智谱 GLM-Realtime 提供商支持，与现有阿里云 DashScope 提供商并存
+- **提供商抽象层**：实现统一的提供商接口，支持动态路由到不同的上游服务
+- **配置管理增强**：支持通过 provider 字段切换不同语音服务提供商
+- **会话配置适配**：针对不同提供商的 session.update 配置差异进行自动适配
+- **测试覆盖扩展**：新增多提供商场景的完整测试覆盖
 
 ## 目录
 1. [简介](#简介)
@@ -41,11 +40,11 @@
 10. [附录](#附录)
 
 ## 简介
-Klaw的"SOS紧急语音对话模式"是一个经过全面安全加固和可靠性增强的实时语音应急系统。该系统通过Web控制台提供全屏语音通话入口，与阿里云百炼DashScope Qwen-Omni-Realtime实时全双工语音模型进行低延迟对话。最新版本引入了集群特定工具执行、工具超时保护、增强的错误处理和前端状态管理等关键特性，确保在事故现场能够快速获得准确答案的同时，满足企业级安全要求。
+Klaw的"SOS紧急语音对话模式"是一个经过全面安全加固和可靠性增强的实时语音应急系统。该系统通过Web控制台提供全屏语音通话入口，现已支持多家AI语音服务提供商，包括阿里云百炼DashScope Qwen-Omni-Realtime和智谱AI GLM-Realtime。最新版本引入了多提供商支持、提供商抽象层、智能路由等关键特性，确保在不同供应商环境下都能获得稳定可靠的语音对话能力，同时满足企业级安全要求。
 
 ## 项目结构
 SOS相关代码分布在以下关键位置：
-- **后端核心**：`internal/sos/` - DashScope集成、会话管理、工具执行器
+- **后端核心**：`internal/sos/` - 多提供商集成、会话管理、工具执行器
 - **API层**：`internal/api/sos.go` - HTTP路由和WebSocket升级
 - **配置管理**：`internal/config/config.go` - SOS配置结构和环境变量覆盖
 - **前端界面**：`web/src/pages/SosCallPage.tsx` - 全屏语音通话页面
@@ -57,53 +56,59 @@ graph TB
 A["浏览器 SosCallPage"] --> B["useSosSession Hook"]
 B --> C["WebSocket /api/v1/sos/session"]
 C --> D["Klaw 后端 Manager"]
-D --> E["DashScope Realtime (wss)"]
-D --> F["集群工具执行器"]
-F --> G["Kubernetes Resources"]
-D --> H["FAQ加载与指令组装"]
-D --> I["审计日志记录"]
-F --> J["集群选择器"]
-J --> K["指定集群查询"]
+D --> E["提供商抽象层"]
+E --> F["DashScope Realtime (wss)"]
+E --> G["GLM-Realtime (wss)"]
+D --> H["集群工具执行器"]
+H --> I["Kubernetes Resources"]
+D --> J["FAQ加载与指令组装"]
+D --> K["审计日志记录"]
 ```
 
 **图表来源**
 - [SosCallPage.tsx:17-127](file://web/src/pages/SosCallPage.tsx#L17-L127)
 - [useSosSession.ts:12-124](file://web/src/hooks/useSosSession.ts#L12-L124)
 - [session.go:37-110](file://internal/sos/session.go#L37-L110)
+- [dashscope.go:24-70](file://internal/sos/dashscope.go#L24-L70)
 
 **章节来源**
 - [README.md:92-134](file://README.md#L92-L134)
 - [2026-08-25-sos-mode-design.md:60-78](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L60-L78)
 
 ## 核心组件
-- **DashScope集成模块**：负责建立WebSocket连接、构建会话配置、事件翻译和音频编码
-- **会话管理器**：维护浏览器WS与DashScope WS的双向桥接，处理智能打断、重连和超时清理，具备完整的审计日志功能
+- **多提供商集成模块**：支持DashScope和GLM-Realtime两种语音服务提供商，提供统一的连接建立和事件处理接口
+- **提供商抽象层**：实现BuildUpstreamURL、DialRealtime、BuildSessionUpdateFor等统一接口，屏蔽底层提供商差异
+- **会话管理器**：维护浏览器WS与上游WS的双向桥接，处理智能打断、重连和超时清理，具备完整的审计日志功能
 - **集群工具执行器**：注册5个只读/诊断工具，封装Kubernetes资源查询和诊断流水线调用，支持异步执行和集群选择
 - **FAQ语料系统**：加载内嵌或外部FAQ文件，构建系统提示和标准问答语料
 - **前端会话Hook**：管理AudioWorklet采集、PCM编解码、播放队列和状态管理，包含toolCall跟踪
 - **安全认证模块**：实现Bearer Token和查询参数双重认证，防止认证绕过攻击
 
 **章节来源**
-- [dashscope.go:15-140](file://internal/sos/dashscope.go#L15-L140)
+- [dashscope.go:15-198](file://internal/sos/dashscope.go#L15-L198)
 - [session.go:37-291](file://internal/sos/session.go#L37-L291)
 - [tools.go:14-322](file://internal/sos/tools.go#L14-L322)
 - [useSosSession.ts:12-124](file://web/src/hooks/useSosSession.ts#L12-L124)
 - [sos.go:25-49](file://internal/api/sos.go#L25-L49)
 
 ## 架构总览
-SOS采用"浏览器 ↔ Klaw后端 ↔ DashScope Realtime"的双WebSocket链路架构，经过全面的安全加固和可靠性增强：
+SOS采用"浏览器 ↔ Klaw后端 ↔ 多提供商Realtime"的多路复用架构，通过提供商抽象层实现动态路由：
 
 ### 通信协议
 - **浏览器 ↔ Klaw**：同源WebSocket `/api/v1/sos/session`，复用Bearer Token鉴权中间件，支持查询参数token传递
-- **Klaw ↔ DashScope**：`wss://{workspace-id}.{region}.maas.aliyuncs.com/api-ws/v1/realtime?model={model}`
+- **Klaw ↔ 提供商**：根据配置动态选择DashScope或GLM-Realtime WebSocket端点
 
-### 会话配置
-- 语音设置：voice、turn_detection.type=semantic_vad
-- 音频格式：输入pcm/16000，输出pcm/24000
-- 功能开关：instructions（系统提示+语料）、tools（集群工具schema）
+### 提供商配置
+- **DashScope**：`wss://{workspace-id}.{region}.maas.aliyuncs.com/api-ws/v1/realtime?model={model}`
+- **GLM-Realtime**：`wss://open.bigmodel.cn/api/paas/v4/realtime?model=glm-realtime`
+
+### 会话配置适配
+- **DashScope设置**：voice、turn_detection.type=semantic_vad、audio.input/output格式配置
+- **GLM设置**：input_audio_format、output_audio_format、turn_detection.type=server_vad
+- **通用配置**：instructions（系统提示+语料）、tools（集群工具schema）
 
 ### 智能打断机制
-服务端semantic_vad检测到用户开口即下发`input_audio_buffer.speech_started`，后端转发给浏览器立即停播本地音频队列并清空缓冲。
+根据不同提供商的VAD类型自动适配：DashScope使用semantic_vad，GLM使用server_vad，均能实现用户开口即中断的功能。
 
 ### 安全认证流程
 ```mermaid
@@ -112,7 +117,8 @@ participant U as "浏览器"
 participant A as "认证中间件"
 participant S as "SOS Handler"
 participant M as "Manager"
-participant DS as "DashScope"
+participant P as "提供商抽象层"
+participant DS as "DashScope/GLM"
 U->>A : "GET /api/v1/sos/session?token=xxx"
 A->>A : "检查authEnabled"
 alt authEnabled=true
@@ -124,8 +130,10 @@ A->>S : "请求转发"
 S->>S : "checkToken(token)"
 alt token有效
 S->>M : "HandleSessionWS()"
-M->>DS : "建立WebSocket连接"
-DS-->>M : "session.update确认"
+M->>P : "DialRealtime(cfg)"
+P->>DS : "建立WebSocket连接"
+DS-->>P : "session.update确认"
+P-->>M : "连接成功"
 M-->>U : "session事件"
 else token无效
 S-->>U : "401 Unauthorized"
@@ -134,10 +142,83 @@ end
 
 **图表来源**
 - [session.go:127-169](file://internal/sos/session.go#L127-L169)
-- [dashscope.go:100-140](file://internal/sos/dashscope.go#L100-L140)
+- [dashscope.go:36-70](file://internal/sos/dashscope.go#L36-L70)
 - [sos.go:25-49](file://internal/api/sos.go#L25-L49)
 
 ## 详细组件分析
+
+### 多提供商支持架构
+**职责**：提供统一的提供商抽象层，支持动态路由到不同的语音服务提供商
+
+**关键特性**：
+- **提供商枚举**：支持"dashscope"（默认）和"glm"两种提供商
+- **URL构建抽象**：BuildUpstreamURL函数根据provider生成对应的WebSocket地址
+- **连接建立抽象**：DialRealtime函数统一处理不同提供商的连接建立和认证
+- **会话配置适配**：BuildSessionUpdateFor函数为不同提供商生成合适的session.update配置
+
+**实现方式**：
+- 配置文件中的`provider`字段指定目标提供商
+- 环境变量`KLAW_SOS_DASHSCOPE_API_KEY`和`KLAW_SOS_GLM_API_KEY`分别注入对应密钥
+- 提供商归一化处理支持大小写不敏感的配置
+
+**章节来源**
+- [dashscope.go:24-70](file://internal/sos/dashscope.go#L24-L70)
+- [config.go:163-173](file://internal/config/config.go#L163-L173)
+
+### DashScope提供商实现
+**职责**：实现阿里云百炼DashScope Realtime服务的完整集成
+
+**关键特性**：
+- **端点构建**：BuildRealtimeURL函数生成百炼专属WebSocket地址
+- **语义VAD**：使用semantic_vad实现智能打断
+- **音频转写**：支持input_audio_transcription开启用户语音转写
+- **音色支持**：支持多种预设音色如"Ethan"
+
+**配置要求**：
+- workspace_id：百炼Workspace ID（端点子域名）
+- api_key：通过环境变量KLAW_SOS_DASHSCOPE_API_KEY注入
+- region：区域配置，默认cn-beijing
+- model：模型版本，默认qwen3.5-omni-plus-realtime
+
+**章节来源**
+- [dashscope.go:18-22](file://internal/sos/dashscope.go#L18-L22)
+- [dashscope.go:94-114](file://internal/sos/dashscope.go#L94-L114)
+
+### GLM-Realtime提供商实现
+**职责**：实现智谱AI GLM-Realtime服务的完整集成
+
+**关键特性**：
+- **标准端点**：使用固定的wss://open.bigmodel.cn/api/paas/v4/realtime端点
+- **服务器VAD**：使用server_vad实现打断机制
+- **简化配置**：仅需API Key和Model配置
+- **心跳处理**：静默忽略heartbeat事件
+
+**配置要求**：
+- api_key：形如{id}.{secret}，通过环境变量KLAW_SOS_GLM_API_KEY注入
+- model：模型版本，默认glm-realtime
+- voice：可选音色配置
+
+**章节来源**
+- [dashscope.go:15-16](file://internal/sos/dashscope.go#L15-L16)
+- [dashscope.go:72-92](file://internal/sos/dashscope.go#L72-L92)
+
+### 会话配置动态适配
+**职责**：根据目标提供商自动生成合适的会话配置
+
+**关键特性**：
+- **DashScope配置**：包含voice、semantic_vad、audio.input/output、input_audio_transcription
+- **GLM配置**：包含input_audio_format、output_audio_format、server_vad
+- **工具支持**：两种提供商都支持function call工具调用
+- **指令系统**：统一的instructions格式
+
+**配置差异处理**：
+- DashScope使用audio对象嵌套格式
+- GLM使用扁平的input_audio_format和output_audio_format字段
+- VAD类型根据提供商自动选择semantic_vad或server_vad
+
+**章节来源**
+- [dashscope.go:72-92](file://internal/sos/dashscope.go#L72-L92)
+- [dashscope.go:94-114](file://internal/sos/dashscope.go#L94-L114)
 
 ### 集群特定工具执行能力
 **职责**：支持在多集群环境中精确查询指定集群的资源信息
@@ -154,7 +235,7 @@ end
 - ToolExecutor.ExecuteForCluster方法支持集群参数传递
 
 **章节来源**
-- [session.go:253-265](file://internal/sos/session.go#L253-L265)
+- [session.go:155](file://internal/sos/session.go#L155)
 - [tools.go:93-117](file://internal/sos/tools.go#L93-L117)
 
 ### 工具执行超时保护机制
@@ -281,12 +362,14 @@ end
 - **审计回调测试**：验证审计日志的正确记录和panic恢复
 - **认证测试**：验证Bearer Token和查询参数的双重认证
 - **超时保护测试**：验证工具执行超时机制
+- **多提供商测试**：验证DashScope和GLM-Realtime的完整功能
 
 **测试特点**：
 - 使用mock上游服务模拟DashScope行为
 - 可注入的依赖便于单元测试
 - 完整的错误路径覆盖
 - 并发安全性验证
+- 多提供商场景覆盖
 
 **章节来源**
 - [session_test.go:132-201](file://internal/sos/session_test.go#L132-L201)
@@ -295,6 +378,7 @@ end
 - [session_test.go:495-567](file://internal/sos/session_test.go#L495-L567)
 - [session_test.go:703-752](file://internal/sos/session_test.go#L703-L752)
 - [sos_test.go:51-78](file://internal/api/sos_test.go#L51-L78)
+- [dashscope_test.go:125-180](file://internal/sos/dashscope_test.go#L125-L180)
 
 ## 依赖关系分析
 **模块依赖方向**：
@@ -303,13 +387,15 @@ end
 
 **外部依赖**：
 - DashScope Realtime（OpenAI Realtime兼容协议）
+- GLM-Realtime（OpenAI Realtime兼容协议）
 - Kubernetes client-go（通过Resources接口）
 - SQLite（平台持久化能力）
 
 **潜在风险**：
-- 上游DashScope服务不可用导致会话中断
+- 上游服务不可用导致会话中断
 - 工具执行耗时需超时保护，避免阻塞会话
 - 多集群环境下的资源竞争和一致性
+- 多提供商配置复杂性增加
 
 ```mermaid
 graph LR
@@ -318,6 +404,7 @@ SOS --> K8S["kubernetes.Resources"]
 SOS --> DIAG["diag pipeline"]
 SOS --> CFG["config"]
 SOS --> DS["DashScope Realtime"]
+SOS --> GLM["GLM-Realtime"]
 SOS --> AUDIT["audit logger"]
 SOS --> CLUSTER["集群选择器"]
 ```
@@ -343,11 +430,12 @@ SOS --> CLUSTER["集群选择器"]
 
 **可用性保障**：
 - 未启用sos时零开销
-- DashScope断线自动重连一次
+- 上游断线自动重连一次
 - 空闲超时释放资源
 - 错误事件清晰上报
 - 优雅关闭防止资源泄漏
 - 集群选择支持多集群环境
+- 多提供商冗余支持
 
 **可观测性**：
 - 复用平台metrics与审计
@@ -358,7 +446,7 @@ SOS --> CLUSTER["集群选择器"]
 ## 故障排查指南
 **配置问题**：
 - **现象**：`/api/v1/sos/status`返回ready=false；通话页展示配置引导
-- **处理**：检查`sos.dashscope.*`配置项和`KLAW_SOS_DASHSCOPE_API_KEY`环境变量
+- **处理**：检查`sos.enabled`和`sos.provider`配置，确认对应提供商的API Key已正确配置
 
 **认证问题**：
 - **现象**：401 Unauthorized错误
@@ -392,11 +480,15 @@ SOS --> CLUSTER["集群选择器"]
 - **现象**：工具调用长时间无响应后报错
 - **处理**：检查Kubernetes API响应时间，考虑调整超时配置
 
+**提供商切换问题**：
+- **现象**：切换到新提供商后连接失败
+- **处理**：检查对应提供商的API Key配置和网络连通性
+
 **章节来源**
 - [2026-08-25-sos-mode-design.md:172-181](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L172-L181)
 
 ## 结论
-SOS紧急语音对话模式经过全面的安全加固和可靠性增强，为Klaw提供了企业级的实时语音应急解决方案。新版本引入了集群特定工具执行、工具超时保护、增强的错误处理和前端状态管理等关键特性，既满足了即时问答的业务需求，又符合企业级安全合规要求。系统具备完善的测试覆盖，确保在生产环境中的稳定运行。
+SOS紧急语音对话模式经过全面的安全加固和可靠性增强，现已支持多家AI语音服务提供商，为Klaw提供了灵活的企业级实时语音应急解决方案。新版本引入的多提供商支持、提供商抽象层、智能路由等关键特性，既满足了即时问答的业务需求，又符合企业级安全合规要求。系统具备完善的测试覆盖，确保在生产环境中的稳定运行。
 
 ## 附录
 **API端点**：
@@ -405,7 +497,9 @@ SOS紧急语音对话模式经过全面的安全加固和可靠性增强，为Kl
 
 **配置示例**：
 - `sos.enabled`：启用开关
+- `sos.provider`：提供商选择（dashscope | glm）
 - `dashscope.api_key/workspace_id/region/model/voice`：DashScope配置
+- `glm.api_key/model/voice`：GLM-Realtime配置
 - `faq_file`：外部FAQ文件路径
 - `instructions_prefix`：自定义系统提示前缀
 
@@ -423,8 +517,9 @@ SOS紧急语音对话模式经过全面的安全加固和可靠性增强，为Kl
 - 集群选择（start指令/上下文传递）
 - 超时保护（工具执行/上下文取消）
 - Panic恢复（审计回调异常处理）
+- 多提供商支持（DashScope/GLM-Realtime切换）
 
 **章节来源**
 - [2026-08-25-sos-mode-design.md:119-141](file://docs/superpowers/specs/2026-08-25-sos-mode-design.md#L119-L141)
-- [config.yaml.example:37-48](file://configs/config.yaml.example#L37-L48)
+- [config.yaml.example:37-53](file://configs/config.yaml.example#L37-L53)
 - [2026-08-25-sos-mode.md:189-203](file://docs/superpowers/plans/2026-08-25-sos-mode.md#L189-L203)

@@ -24,7 +24,15 @@ const severityColors: Record<string, string> = {
   INFO: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400',
 }
 
-function severityIcon(sev: string) {
+// 后端 Severity.MarshalJSON 序列化为英文小写；同时兼容数字与历史中文值
+function normalizeSeverity(raw: unknown): 'CRITICAL' | 'WARNING' | 'INFO' {
+  const s = String(raw ?? '').trim().toLowerCase()
+  if (s === 'critical' || s === '严重' || s === '1') return 'CRITICAL'
+  if (s === 'warning' || s === '警告' || s === '2') return 'WARNING'
+  return 'INFO'
+}
+
+function severityIcon(sev: 'CRITICAL' | 'WARNING' | 'INFO') {
   if (sev === 'CRITICAL') return <AlertCircle className="h-5 w-5 text-red-500" />
   if (sev === 'WARNING') return <AlertTriangle className="h-5 w-5 text-yellow-500" />
   return <Info className="h-5 w-5 text-blue-500" />
@@ -53,9 +61,9 @@ export default function DiagnosticsPage() {
   }
 
   const issues = result?.issues ?? []
-  const critical = issues.filter((i) => i.severity === 'CRITICAL' || i.severity === '1').length
-  const warning = issues.filter((i) => i.severity === 'WARNING' || i.severity === '2').length
-  const info = issues.filter((i) => i.severity === 'INFO' || i.severity === '3').length
+  const critical = issues.filter((i) => normalizeSeverity(i.severity) === 'CRITICAL').length
+  const warning = issues.filter((i) => normalizeSeverity(i.severity) === 'WARNING').length
+  const info = issues.filter((i) => normalizeSeverity(i.severity) === 'INFO').length
 
   return (
     <div className="space-y-6">
@@ -126,11 +134,7 @@ export default function DiagnosticsPage() {
             ) : (
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {issues.map((issue, i) => {
-                  const sev = String(issue.severity).includes('1') || issue.severity === 'CRITICAL'
-                    ? 'CRITICAL'
-                    : String(issue.severity).includes('2') || issue.severity === 'WARNING'
-                    ? 'WARNING'
-                    : 'INFO'
+                  const sev = normalizeSeverity(issue.severity)
                   return (
                     <div key={i} className="p-4 flex items-start space-x-3">
                       <div className="mt-0.5">{severityIcon(sev)}</div>

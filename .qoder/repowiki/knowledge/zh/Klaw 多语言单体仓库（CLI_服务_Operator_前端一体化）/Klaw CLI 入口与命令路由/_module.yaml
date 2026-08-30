@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: cmd_klaw
+title: Klaw CLI 入口与命令路由
+scope:
+    - cmd/klaw/
+source_files: []
+depends_on: []
+related_to:
+    - path: klaw_service/api
+    - path: klaw_service/diag_pipeline
+    - path: klaw_service/ops
