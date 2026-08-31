@@ -1,0 +1,99 @@
+name: 🐛 Bug Report
+description: Report a bug in Klaw (Web UI, ChatOps, diagnostics engine, deployment, etc.).
+title: "[bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Please fill in the
+        template below — the more detail you can share, the faster we can
+        reproduce and fix it.
+
+        **Note:** For security issues, please use
+        [GitHub Security Advisories](https://github.com/kudig-io/klaw/security/advisories/new)
+        instead of opening a public issue.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A clear one-sentence description of the bug.
+      placeholder: e.g. `klaw diag` crashes when `--exclude-analyzer` is empty.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps to reproduce the bug. Include the exact command, config, or UI clicks.
+      placeholder: |
+        1. Set `server.auth.enabled: true` in `configs/config.yaml`.
+        2. Run `./klaw server`.
+        3. Open the Web UI in a browser.
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What actually happened. Include error messages, stack traces, or screenshots.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Klaw version, OS, Go / Node versions, Kubernetes version and distribution,
+        deploy mode (binary / Docker / Helm).
+      placeholder: |
+        - Klaw: `klaw version` output
+        - OS: e.g. Ubuntu 22.04 / macOS 14
+        - Go: 1.24.2
+        - Node.js: 18.20.0
+        - Kubernetes: v1.30, ACK managed
+        - Deploy: `helm upgrade --install klaw helm/klaw`
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        Paste any relevant logs from `klaw diag`, the HTTP server, or the browser console.
+        **Redact** tokens, kubeconfigs, and webhook URLs.
+      render: shell
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / recordings
+      description: Optional — drop images into the issue or paste Markdown links.
+      render: plain
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Self-check
+      options:
+        - label: I've searched [existing issues](https://github.com/kudig-io/klaw/issues?q=is%3Aissue) for this bug.
+          required: true
+        - label: I've checked the [Known Limitations](https://github.com/kudig-io/klaw/blob/main/README.md#已知限制) and confirmed this isn't one of them.
+          required: true
+        - label: I'm willing to help reproduce or test a fix.

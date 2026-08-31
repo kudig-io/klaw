@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/kudig-io/klaw/discussions
+    about: Ask questions, share ideas, and discuss with the community.
+  - name: 🔒 Security Advisory
+    url: https://github.com/kudig-io/klaw/security/advisories/new
+    about: Report a security vulnerability privately (see SECURITY.md).

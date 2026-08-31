@@ -1,0 +1,66 @@
+name: ✨ Feature Request
+description: Suggest a new feature for Klaw.
+title: "[feat]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Please describe the problem you're solving
+        and the proposed solution. We may already have a related discussion —
+        please search first.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What pain point are you hitting today? What workflow does it block?
+      placeholder: |
+        When I'm triaging a node failure, I have to ssh into the node, run
+        `kubectl debug`, then come back to Klaw to record the result. I want
+        a one-click "open debug shell" button from the Nodes page.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you solve it? Sketch the UI flow, the API surface, or the analyzer/config change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you considered and why you'd prefer the proposed one.
+      placeholder: |
+        - Use Lens Desktop's node-shell plugin instead — but then I leave Klaw's UI.
+        - Extend `kubectl` with a wrapper script — works, but doesn't integrate with Klaw's audit log.
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case & scale
+      description: How often, by whom, and at what scale? Helps us prioritize.
+      placeholder: |
+        Used 2-3 times per week by on-call engineers across a 50-developer
+        team. Should work for clusters up to 200 nodes.
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Screenshots / diagrams
+      description: Optional — sketches, ASCII diagrams, or links to existing screens.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Self-check
+      options:
+        - label: I've checked the [Roadmap](https://github.com/kudig-io/klaw/blob/main/README.md#roadmap) and [open issues](https://github.com/kudig-io/klaw/issues) — this isn't already planned or filed.
+          required: true
+        - label: I'm willing to send a PR or help test this feature.
