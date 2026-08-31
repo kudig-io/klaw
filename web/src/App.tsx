@@ -22,7 +22,7 @@ function App() {
 
   // 检查是否启用了 Mock 模式
   useEffect(() => {
-    const mockEnabled = localStorage.getItem('USE_MOCK') === 'true'
+    const mockEnabled = import.meta.env.VITE_USE_MOCK === 'true' || localStorage.getItem('USE_MOCK') === 'true'
     setIsMockMode(mockEnabled)
   }, [location]) // 路由变化时重新检查
 
