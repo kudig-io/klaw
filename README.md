@@ -1,25 +1,57 @@
 # 🦞 Klaw — Kubernetes 智能运维与诊断平台
 
+**[简体中文](./README.md)** | [English](./README.en.md)
+
+[![CI](https://github.com/kudig-io/klaw/actions/workflows/ci.yml/badge.svg)](https://github.com/kudig-io/klaw/actions/workflows/ci.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.24.2-blue.svg)](https://golang.org)
 [![React Version](https://img.shields.io/badge/React-18-blue.svg)](https://reactjs.org)
 [![Helm Chart](https://img.shields.io/badge/Helm-1.0.0-0f1689.svg)](./helm/klaw)
+[![Image Size](https://img.shields.io/badge/image-~127MB-2496ED.svg)](./Dockerfile)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 
 Klaw 把「集群管理控制台」「深度诊断引擎」「ChatOps 机器人」「实时事件告警」四件事装进一个二进制里。
 一份配置、一次部署，既能在浏览器里点，也能在钉钉/飞书群里喊，还能在终端里 `klaw diag` 一把梭。
 
+**30 秒上手：**
+
+```bash
+git clone https://github.com/kudig-io/klaw.git && cd klaw
+make build && ./klaw        # 打开 http://localhost:8080
+```
+
+<p align="center">
+  <img src="docs/images/dashboard-dark.png" alt="Klaw Dashboard（暗色模式，多集群概览）" width="840">
+</p>
+<p align="center"><sub>Dashboard：多集群概览 · 节点 / Pod 统计 · RBAC 摘要（截图来自 MSW mock 数据渲染的真实 UI）</sub></p>
+
 ---
 
 ## 目录
 
+- [为什么是 Klaw](#为什么是-klaw)
 - [核心能力](#核心能力)
+  - [SOS 模式（语音应急快速对话）](#-sos-模式语音应急快速对话)
+  - [Web 管理控制台](#-web-管理控制台)
+  - [诊断引擎](#-诊断引擎internaldiag)
+  - [ChatOps（钉钉 / 飞书）](#-chatops钉钉--飞书)
+  - [实时事件监控](#-实时事件监控)
+  - [平台能力](#-平台能力)
+- [界面预览](#界面预览)
 - [仓库结构](#仓库结构)
 - [架构](#架构)
+  - [诊断流水线](#诊断流水线)
+  - [ChatOps 时序](#chatops-时序)
+  - [事件管道](#事件管道)
 - [快速开始](#快速开始)
+  - [环境要求](#环境要求)
   - [本地二进制](#方式一本地二进制)
   - [Docker](#方式二docker)
   - [kind + Helm（in-cluster）](#方式三kind--helmin-cluster推荐用于验证)
 - [配置](#配置)
+  - [阿里云运维环境（Skills 与 ACS 接入）](#阿里云运维环境skills-与-acs-接入)
+  - [接入外部集群（多集群）](#接入外部集群多集群)
+  - [环境变量覆盖](#环境变量覆盖)
+  - [AI 诊断助手（可选）](#ai-诊断助手可选)
 - [CLI](#cli)
 - [HTTP API](#http-api)
 - [ChatOps](#chatops)
@@ -27,9 +59,45 @@ Klaw 把「集群管理控制台」「深度诊断引擎」「ChatOps 机器人�
 - [前端开发](#前端开发)
 - [测试](#测试)
 - [Makefile 目标](#makefile-目标)
+- [Roadmap](#roadmap)
 - [子项目](#子项目)
 - [已知限制](#已知限制)
+- [FAQ](#faq)
 - [文档索引](#文档索引)
+- [贡献](#贡献)
+- [安全](#安全)
+- [行为准则](#行为准则)
+- [许可证](#许可证)
+- [链接](#链接)
+
+---
+
+## 为什么是 Klaw
+
+凌晨三点告警响了：你想在手机群里直接看状态、在笔记本上 `kubectl` 排查、最好还能有人（或 AI）告诉你根因是什么。Klaw 的答案是把这整条工作流装进一个二进制——
+
+- **一个二进制，五种能力**：Web 控制台 + 深度诊断引擎（9 大类 73 个分析器）+ ChatOps（钉钉/飞书）+ 秒级实时事件告警 + SOS 语音应急对话，一次部署全部拿到。
+- **三种入口，同一套能力**：浏览器里点、群里 @ 机器人喊、终端里 `klaw diag`，背后是同一套诊断流水线与集群客户端。
+- **部署即用**：内嵌 SQLite（纯 Go、无 CGO），无外部数据库依赖；镜像约 127MB、非 root 运行；本地二进制 / Docker / Helm 三种交付形态。
+- **可核验的差异事实**：73 个注册分析器、Watch 模式事件延迟 < 1 秒（轮询 30–60 秒）、API 调用下降约 90%。
+
+### 同类工具对比
+
+与常见 Kubernetes 管理工具的能力对比（基于各项目公开文档，截至 2026-08；各项目都在快速演进，欢迎[纠错](https://github.com/kudig-io/klaw/issues)）：
+
+| 能力 | Klaw | [Kubernetes Dashboard](https://github.com/kubernetes/dashboard) | [k9s](https://github.com/derailed/k9s) | [Headlamp](https://github.com/headlamp-k8s/headlamp) |
+|---|---|---|---|---|
+| 形态 | 单二进制（Web + CLI + ChatOps） | Web UI（集群内部署） | 终端 TUI | Web UI（桌面 / 集群内） |
+| 深度诊断引擎（73 分析器 / RCA / 修复建议） | ✅ | ❌ | ❌（资源浏览为主） | ❌（插件扩展） |
+| ChatOps（钉钉 / 飞书） | ✅ | ❌ | ❌ | ❌ |
+| 秒级事件推送（Watch + 去重 / 聚合 / 静音） | ✅ | ❌（事件页面查看） | 手动刷新 | ❌ |
+| 多集群 | ✅（一份配置多 kubecontext） | 单实例单集群 | context 切换 | ✅ |
+| 多租户 + 审计日志 | ✅ | 依赖 K8s RBAC | ❌ | ❌ |
+| 集群 / etcd 备份恢复 | ✅ | ❌ | ❌ | ❌ |
+| AI 辅助（诊断摘要 / 语音 SOS） | ✅ | ❌ | ❌ | ❌ |
+| 许可证 | MIT | Apache-2.0 | Apache-2.0 | Apache-2.0 |
+
+> 对比不意味着替代：k9s 的终端交互、Dashboard 的官方血统、Headlamp 的插件生态各有擅长。Klaw 的差异化在于把「管理 + 诊断 + 告警 + ChatOps」整合为单二进制交付。
 
 ---
 
@@ -115,6 +183,24 @@ React 18 + Vite + Tailwind 构建的单页应用，与后端二进制打包在�
 
 ---
 
+## 界面预览
+
+以下截图均来自真实 Web UI（`npm run dev:mock` + MSW mock 数据渲染，不含任何真实集群信息）：
+
+| Dashboard（暗色） | Dashboard（浅色） |
+|:---:|:---:|
+| <img src="docs/images/dashboard-dark.png" width="410" alt="Dashboard 暗色"> | <img src="docs/images/dashboard-light.png" width="410" alt="Dashboard 浅色"> |
+
+| Pods（暗色） | Deployments（暗色） |
+|:---:|:---:|
+| <img src="docs/images/pods-dark.png" width="410" alt="Pods 页面"> | <img src="docs/images/deployments-dark.png" width="410" alt="Deployments 页面"> |
+
+| Diagnostics（暗色） | Nodes（浅色） |
+|:---:|:---:|
+| <img src="docs/images/diagnostics-dark.png" width="410" alt="诊断页面"> | <img src="docs/images/nodes-light.png" width="410" alt="节点页面"> |
+
+---
+
 ## 仓库结构
 
 这是一个 monorepo，包含 5 个独立的 Go module：
@@ -184,6 +270,47 @@ klaw/
 ```
 
 终端侧独立于 HTTP 服务：`klaw diag` 直接驱动同一套诊断流水线，输出 Text/JSON/TUI。
+
+### 诊断流水线
+
+```mermaid
+flowchart LR
+    A[采集<br/>节点/Pod/日志/事件] --> B[分析<br/>73 个分析器 + YAML 规则引擎]
+    B --> C[根因分析 RCA<br/>告警收敛为因果链]
+    C --> D[报告<br/>HTML / JSON / Text / TUI]
+    C --> E[自动修复建议<br/>可执行动作]
+    B -.可选.-> F[AI 助手<br/>LLM 自然语言归纳]
+    B -.仅 Linux.-> G[eBPF 探针<br/>TCP / DNS / 文件 I/O]
+```
+
+### ChatOps 时序
+
+```mermaid
+sequenceDiagram
+    actor U as 运维（钉钉/飞书群）
+    participant M as 消息平台
+    participant K as Klaw（:8081 webhook）
+    participant O as Ops Router
+    participant K8s as Kubernetes API
+
+    U->>M: @Klaw klaw pod logs prod default
+    M->>K: 回调（加签校验）
+    K->>O: 命令解析 + 缩写展开
+    O->>K8s: 查询 Pod 日志
+    K8s-->>O: 日志数据
+    O-->>M: Markdown 富文本回复
+    M-->>U: 群内消息
+```
+
+### 事件管道
+
+```mermaid
+flowchart LR
+    W[Watch API<br/>长连接事件流] --> F[过滤<br/>类型/命名空间/原因/级别]
+    F --> R[速率限制]
+    R --> D[去重 + 聚合 + 静音窗口]
+    D --> N[钉钉 / 飞书推送]
+```
 
 ---
 
@@ -845,6 +972,36 @@ make help             # 查看全部目标
 
 ---
 
+## Roadmap
+
+### ✅ 已交付
+
+- Web 控制台：Dashboard / Pods / Nodes / Deployments / Services / Monitoring / Backups / Tenants / 诊断页 / SOS 页，深色模式
+- 诊断引擎融合：9 大类 73 个分析器、YAML 规则引擎、RCA、自动修复建议、多格式报告、eBPF 探针、AI 摘要、trivy 镜像扫描、成本分析、TUI
+- 钉钉双向通信 + ChatOps 命令路由与缩写
+- 实时事件推送（Watch 模式：过滤 / 限速 / 去重 / 聚合 / 静音）
+- 多集群、多租户 + 审计日志、集群备份、自动化脚本、告警规则引擎
+- etcd 备份恢复体系（`etcd-backup` 库 + `etcd-guardian` Operator）
+- SOS 语音应急对话（百炼 Qwen-Omni-Realtime / 智谱 GLM-Realtime 双上游）
+
+### 🚧 规划中
+
+完整清单与进度见 [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md)：
+
+- [ ] 图表生成增强：真实图表库输出 PNG/SVG 图片消息（替代 ASCII 图表）
+- [ ] ConfigMap / Secret 管理（Web UI / API / ChatOps 命令）
+- [ ] 资源配额查看（`klaw cluster resources quota`）
+- [ ] 独立 Events 页面（按类型 / 命名空间 / 时间范围筛选）
+- [ ] 集群安全审计与安全策略命令
+- [ ] RBAC 管理（ServiceAccount / Role / RoleBinding 的 UI 与 API）
+- [ ] Prometheus 指标集成与更丰富的监控图表
+- [ ] 集群生命周期管理（create / delete / upgrade）
+- [ ] OpenClaw 技能完整执行（`ExecuteSkill` 落地）
+- [ ] 日志增强（多容器 Pod 日志选择、日志下载、更强的过滤搜索）
+- [ ] Web UI Bearer Token 注入（修复[已知限制](#已知限制) #1）
+
+---
+
 ## 子项目
 
 ### Kudig Operator（`operator/`）
@@ -884,11 +1041,47 @@ CRD 驱动的声明式诊断编排，基于 controller-runtime 0.16.3。
 
 ---
 
+## FAQ
+
+**Q：打开 Web UI 全是 `401 Unauthorized: missing bearer token`？**
+A：见[已知限制 #1](#已知限制)——前端尚未自动注入 token。本地开发可设 `server.auth.enabled: false`（`values-kind.yaml` 已默认关闭）；生产环境请置于反向代理 / Ingress 认证之后。
+
+**Q：eBPF 相关分析器为什么没有运行结果？**
+A：eBPF 探针仅在 Linux 可用，通过 build tag 隔离；macOS / Windows 上编译不会失败，但探针不会注册（[已知限制 #2](#已知限制)）。
+
+**Q：接入 ACK Serverless（ECI）后，节点类诊断拿不到数据？**
+A：Serverless 集群的节点全部是 `virtual-kubelet`，基础管理完全可用，但依赖节点真实系统数据的分析器（内核 / 网络 / 日志类）拿不到原始数据，属于平台特性而非故障。详见[接入外部集群](#接入外部集群多集群)。
+
+**Q：如何接入第二个集群？**
+A：在 `kubernetes.clusters` 数组追加条目（name + kubeconfig 绝对路径 + context），先用 `kubectl --kubeconfig` 验证连通性，再启动并访问 `/api/v1/clusters` 验证注册。详见[接入外部集群（多集群）](#接入外部集群多集群)。
+
+**Q：`/api/*` 旧版路由还能用多久？**
+A：响应已带 `Deprecation: true` 与 `Sunset: 2026-12-31` 头，请迁移到 `/api/v1/*`。
+
+**Q：如何临时关闭某次诊断的 AI 分析？**
+A：`klaw diag --no-ai`；未设置 `KUDIG_AI_API_KEY` 时 AI 分析整体自动禁用，不影响诊断主流程。详见 [AI 诊断助手](#ai-诊断助手可选)。
+
+**Q：内网 / 网络受限环境怎么构建镜像？**
+A：`docker build --build-arg GOPROXY=https://goproxy.cn,direct -t kudig-io/klaw:dev .`（前端依赖同理可在构建机上预置 npm 缓存）。
+
+**Q：SOS 语音的上游模型怎么切换？**
+A：`sos.provider` 支持 `dashscope`（百炼 Qwen-Omni-Realtime，默认）与 `glm`（智谱 GLM-Realtime），API Key 分别用 `KLAW_SOS_DASHSCOPE_API_KEY` / `KLAW_SOS_GLM_API_KEY` 注入。见 [SOS 模式](#-sos-模式语音应急快速对话)。
+
+**Q：敏感配置（token / app secret）怎么注入更安全？**
+A：环境变量优先级高于配置文件（见[环境变量覆盖](#环境变量覆盖)）；集群内部署用 Helm `secrets.*` 写入 K8s Secret 经 `envFrom` 生效。
+
+---
+
 ## 文档索引
 
 | 文档 | 内容 |
 |---|---|
+| [README.en.md](./README.en.md) | 英文版说明（与中文版对齐） |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | 贡献指南：开发环境、提交规范、PR 流程 |
+| [SECURITY.md](./SECURITY.md) | 安全策略与漏洞报告方式 |
+| [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) | 社区行为准则 |
 | [deployment/README.md](./deployment/README.md) | kind 本地集群、in-cluster 部署、镜像预拉取、故障排查 |
+| [operator/README.md](./operator/README.md) | Kudig Operator 与 CRD 说明 |
 | [docs/technical-assessment-report.md](./docs/technical-assessment-report.md) | 8 维度生产就绪度评估与修复记录 |
 | [docs/dingtalk-integration.md](./docs/dingtalk-integration.md) | 钉钉集成完整指南 |
 | [docs/phase1-implementation-summary.md](./docs/phase1-implementation-summary.md) | 钉钉双向通信实现 |
@@ -902,11 +1095,29 @@ CRD 驱动的声明式诊断编排，基于 controller-runtime 0.16.3。
 
 ## 贡献
 
+欢迎 issue、PR 与反馈！详细流程见 [CONTRIBUTING.md](./CONTRIBUTING.md)，速览：
+
 1. Fork 本仓库
 2. 创建特性分支：`git checkout -b feature/AmazingFeature`
 3. 确保 `make lint && make test` 通过
 4. 提交：`git commit -m 'feat: add AmazingFeature'`
 5. 推送并开启 Pull Request
+
+---
+
+## 安全
+
+- Bearer Token 认证（恒定时间比较）、CORS 白名单、非 root 容器（UID 65532）
+- 敏感配置优先读环境变量，配合 Kubernetes Secret 注入
+- 云厂商 kubeconfig 建议 `chmod 600` 且仅本机使用，泄露后在云控制台重置
+
+漏洞报告与支持版本见 [SECURITY.md](./SECURITY.md)。
+
+---
+
+## 行为准则
+
+参与本社区请遵守 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)（Contributor Covenant v2.1）。
 
 ---
 
