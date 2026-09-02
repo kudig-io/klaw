@@ -6,7 +6,9 @@ import { ToastProvider } from './contexts/ToastContext.tsx'
 import './index.css'
 
 async function bootstrap() {
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
+  // 环境变量 OR localStorage 开关均可触发 Mock（让顶栏 Mock 按钮在常规 dev 模式也能用）
+  const mockEnabled = import.meta.env.VITE_USE_MOCK === 'true' || localStorage.getItem('USE_MOCK') === 'true'
+  if (mockEnabled) {
     const { startMockService } = await import('./__tests__/mocks/browser')
     await startMockService()
   }

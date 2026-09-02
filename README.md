@@ -8,6 +8,7 @@
 [![Helm Chart](https://img.shields.io/badge/Helm-1.0.0-0f1689.svg)](./helm/klaw)
 [![Image Size](https://img.shields.io/badge/image-~127MB-2496ED.svg)](./Dockerfile)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![Live Demo](https://img.shields.io/badge/在线体验-GTM%20页面-brightgreen.svg)](https://bs7klknl29np.meoo.fun)
 
 Klaw 把「集群管理控制台」「深度诊断引擎」「ChatOps 机器人」「实时事件告警」四件事装进一个二进制里。
 一份配置、一次部署，既能在浏览器里点，也能在钉钉/飞书群里喊，还能在终端里 `klaw diag` 一把梭。
@@ -1128,4 +1129,5 @@ A：环境变量优先级高于配置文件（见[环境变量覆盖](#环境变
 ## 链接
 
 - 项目主页：<https://github.com/kudig-io/klaw>
+- 在线体验：<https://bs7klknl29np.meoo.fun>
 - 问题反馈：<https://github.com/kudig-io/klaw/issues>

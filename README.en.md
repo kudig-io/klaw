@@ -8,6 +8,7 @@
 [![Helm Chart](https://img.shields.io/badge/Helm-1.0.0-0f1689.svg)](./helm/klaw)
 [![Image Size](https://img.shields.io/badge/image-~127MB-2496ED.svg)](./Dockerfile)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GTM%20Page-brightgreen.svg)](https://bs7klknl29np.meoo.fun)
 
 Klaw packs four things into a single binary: a **cluster management console**, a **deep diagnostics engine**, a **ChatOps bot**, and **real-time event alerting**.
 One config, one deploy — click in the browser, shout in a DingTalk/Feishu group, or run `klaw diag` in your terminal.
@@ -1129,4 +1130,5 @@ Participation in this community is governed by [CODE_OF_CONDUCT.md](./CODE_OF_CO
 ## Links
 
 - Project home: <https://github.com/kudig-io/klaw>
+- Live demo: <https://bs7klknl29np.meoo.fun>
 - Issue tracker: <https://github.com/kudig-io/klaw/issues>

@@ -3,7 +3,7 @@ schema_version: 1
 locale: zh-CN
 branch: main
 nodes_managed: true
-exported_at: "2026-08-28T06:18:16Z"
+exported_at: "2026-08-30T02:11:34Z"
 modules:
     "":
         dir_name: Klaw 多语言单体仓库（CLI_服务_Operator_前端一体化）
