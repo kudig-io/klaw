@@ -15,7 +15,7 @@ describe('ClusterDashboard', () => {
   it('应该显示页面标题', async () => {
     render(<ClusterDashboard />)
     // 标题在数据加载完成后随主界面渲染，需异步查找
-    expect(await screen.findByText('Cluster Overview')).toBeInTheDocument()
+    expect(await screen.findByText('集群概览')).toBeInTheDocument()
   })
 
   it('应该显示加载状态', () => {
@@ -44,8 +44,8 @@ describe('ClusterDashboard', () => {
     }, { timeout: 3000 })
     
     // 验证节点和 Pod 统计（多集群卡片均有同名标题，用 getAllByText）
-    expect(screen.getAllByText('Nodes').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Pods').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('节点（Node）').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('容器组（Pod）').length).toBeGreaterThan(0)
     
     // 验证状态数字（mock 两集群均为 3/3 ready）
     expect(screen.getAllByText('3/3').length).toBeGreaterThan(0)
@@ -55,7 +55,7 @@ describe('ClusterDashboard', () => {
     render(<ClusterDashboard />)
     
     await waitFor(() => {
-      expect(screen.getByText('Refresh')).toBeInTheDocument()
+      expect(screen.getByText('刷新')).toBeInTheDocument()
     })
   })
 
@@ -63,8 +63,8 @@ describe('ClusterDashboard', () => {
     render(<ClusterDashboard />)
     
     await waitFor(() => {
-      expect(screen.getAllByText('View Details').length).toBeGreaterThan(0)
-      expect(screen.getAllByText('View Metrics').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('查看详情').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('查看指标').length).toBeGreaterThan(0)
     })
   })
 })

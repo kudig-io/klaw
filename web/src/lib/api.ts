@@ -67,6 +67,25 @@ export interface Node {
     capacity: {
       cpu: string
       memory: string
+      pods?: string
+    }
+    allocatable?: {
+      cpu: string
+      memory: string
+      pods: string
+    }
+    addresses?: Array<{
+      type: string
+      address: string
+    }>
+    nodeInfo?: {
+      machineID: string
+      osImage: string
+      containerRuntimeVersion: string
+      kubeletVersion: string
+      kubeProxyVersion: string
+      architecture: string
+      operatingSystem: string
     }
     conditions: Array<{
       type: string
@@ -79,6 +98,11 @@ export interface NodeMetrics {
   name: string
   cpu: string
   memory: string
+  usage?: {
+    cpuPercent: number
+    memoryPercent: number
+    pods: number
+  }
 }
 
 export interface Event {
@@ -109,6 +133,10 @@ export interface Deployment {
         containers: Array<{
           name: string
           image: string
+          resources?: {
+            requests?: Record<string, string>
+            limits?: Record<string, string>
+          }
         }>
       }
     }
@@ -229,6 +257,8 @@ export interface Service {
       nodePort?: number
     }>
     selector?: Record<string, string>
+    sessionAffinity?: string
+    externalTrafficPolicy?: string
   }
   status: {
     loadBalancer?: {
@@ -605,6 +635,233 @@ export const auditApi = {
   listLogs: (params?: { eventType?: string; category?: string; severity?: string; user?: string; limit?: number }) =>
     v1Api.get<AuditLog[]>('/audit/logs', { params }),
   stats: () => v1Api.get<AuditStatistics>('/audit/stats'),
+}
+
+export interface Ingress {
+  metadata: {
+    name: string
+    namespace: string
+    creationTimestamp: string
+    labels?: Record<string, string>
+    annotations?: Record<string, string>
+  }
+  spec: {
+    ingressClassName?: string
+    defaultBackend?: {
+      service?: { name: string; port?: { number?: number; name?: string } }
+      resource?: { apiGroup?: string; kind: string; name: string }
+    }
+    tls?: Array<{
+      hosts?: string[]
+      secretName?: string
+    }>
+    rules: Array<{
+      host?: string
+      http?: {
+        paths: Array<{
+          path: string
+          pathType: 'Exact' | 'Prefix' | 'ImplementationSpecific'
+          backend: {
+            service?: { name: string; port?: { number?: number; name?: string } }
+            resource?: { apiGroup?: string; kind: string; name: string }
+          }
+        }>
+      }
+    }>
+  }
+  status: {
+    loadBalancer?: {
+      ingress?: Array<{ ip?: string; hostname?: string }>
+    }
+  }
+}
+
+export interface NetworkPolicyPeer {
+  podSelector?: {
+    matchLabels?: Record<string, string>
+    matchExpressions?: Array<{ key: string; operator: string; values?: string[] }>
+  }
+  namespaceSelector?: {
+    matchLabels?: Record<string, string>
+    matchExpressions?: Array<{ key: string; operator: string; values?: string[] }>
+  }
+  ipBlock?: {
+    cidr: string
+    except?: string[]
+  }
+}
+
+export interface NetworkPolicyPort {
+  protocol: string
+  port: number | string
+  endPort?: number
+}
+
+export interface NetworkPolicy {
+  metadata: {
+    name: string
+    namespace: string
+    creationTimestamp: string
+    labels?: Record<string, string>
+  }
+  spec: {
+    podSelector: {
+      matchLabels?: Record<string, string>
+      matchExpressions?: Array<{ key: string; operator: string; values?: string[] }>
+    }
+    policyTypes: Array<'Ingress' | 'Egress'>
+    ingress?: Array<{
+      from?: NetworkPolicyPeer[]
+      ports?: NetworkPolicyPort[]
+    }>
+    egress?: Array<{
+      to?: NetworkPolicyPeer[]
+      ports?: NetworkPolicyPort[]
+    }>
+  }
+}
+
+export interface PersistentVolumeClaim {
+  metadata: {
+    name: string
+    namespace: string
+    creationTimestamp: string
+    labels?: Record<string, string>
+    annotations?: Record<string, string>
+    finalizers?: string[]
+    deletionTimestamp?: string
+  }
+  spec: {
+    accessModes: string[]
+    storageClassName?: string
+    volumeName?: string
+    volumeMode?: 'Filesystem' | 'Block'
+    resources: {
+      requests: { storage: string }
+      limits?: { storage: string }
+    }
+    dataSource?: { apiGroup?: string; kind: string; name: string }
+    selector?: { matchLabels?: Record<string, string> }
+  }
+  status: {
+    phase: 'Pending' | 'Bound' | 'Lost' | 'Terminating'
+    capacity?: { storage: string }
+    accessModes?: string[]
+  }
+}
+
+export interface PersistentVolume {
+  metadata: {
+    name: string
+    creationTimestamp: string
+    labels?: Record<string, string>
+    annotations?: Record<string, string>
+    finalizers?: string[]
+  }
+  spec: {
+    capacity: { storage: string }
+    accessModes: string[]
+    storageClassName?: string
+    persistentVolumeReclaimPolicy?: 'Retain' | 'Delete' | 'Recycle'
+    volumeMode?: 'Filesystem' | 'Block'
+    claimRef?: { kind?: string; namespace: string; name: string; apiVersion?: string }
+    hostPath?: { path: string; type?: string }
+    nfs?: { server: string; path: string; readOnly?: boolean }
+    csi?: {
+      driver: string
+      volumeHandle: string
+      fsType?: string
+      readOnly?: boolean
+      volumeAttributes?: Record<string, string>
+    }
+    local?: { path: string }
+  }
+  status: {
+    phase: 'Available' | 'Bound' | 'Released' | 'Failed'
+    reason?: string
+    message?: string
+  }
+}
+
+export interface StorageClass {
+  metadata: {
+    name: string
+    creationTimestamp: string
+    labels?: Record<string, string>
+    annotations?: Record<string, string>
+  }
+  provisioner: string
+  parameters?: Record<string, string>
+  reclaimPolicy?: 'Delete' | 'Retain'
+  volumeBindingMode?: 'Immediate' | 'WaitForFirstConsumer'
+  allowVolumeExpansion?: boolean
+  mountOptions?: string[]
+}
+
+export interface NetworkAnalysis {
+  totalNetworkPolicies: number
+  totalServices: number
+  totalIngresses: number
+  policiesByNamespace: Record<string, string[]>
+  servicesByType: Record<string, number>
+  ingressesByHost: Record<string, string[]>
+  exposedServices: Array<{
+    name: string
+    namespace: string
+    type: string
+    ports: Array<{
+      name?: string
+      port: number
+      targetPort: number
+      protocol: string
+      nodePort?: number
+    }>
+  }>
+  timestamp: string
+}
+
+export interface StorageAnalysis {
+  totalPVs: number
+  totalPVCs: number
+  totalStorageClasses: number
+  pvByStatus: Record<string, number>
+  pvcByStatus: Record<string, number>
+  pvByStorageClass: Record<string, number>
+  storageCapacity: {
+    totalBytes: number
+    usedBytes: number
+    availableBytes: number
+  }
+  scByProvisioner: Record<string, number>
+  timestamp: string
+}
+
+export const networkApi = {
+  listIngresses: (cluster: string, namespace: string) => {
+    if (!namespace) {
+      return v1Api.get<Ingress[]>(`/clusters/${cluster}/ingresses`)
+    }
+    return v1Api.get<Ingress[]>(`/clusters/${cluster}/namespaces/${namespace}/ingresses`)
+  },
+  listNetworkPolicies: (cluster: string, namespace: string) => {
+    if (!namespace) {
+      return v1Api.get<NetworkPolicy[]>(`/clusters/${cluster}/networkpolicies`)
+    }
+    return v1Api.get<NetworkPolicy[]>(`/clusters/${cluster}/namespaces/${namespace}/networkpolicies`)
+  },
+  getNetworkAnalysis: () => v1Api.get<NetworkAnalysis>('/analysis/network'),
+}
+
+export const storageApi = {
+  listPVCs: (cluster: string, namespace: string) => {
+    if (!namespace) {
+      return v1Api.get<PersistentVolumeClaim[]>(`/clusters/${cluster}/persistentvolumeclaims`)
+    }
+    return v1Api.get<PersistentVolumeClaim[]>(`/clusters/${cluster}/namespaces/${namespace}/persistentvolumeclaims`)
+  },
+  listPVs: (cluster: string) => v1Api.get<PersistentVolume[]>(`/clusters/${cluster}/persistentvolumes`),
+  listStorageClasses: (cluster: string) => v1Api.get<StorageClass[]>(`/clusters/${cluster}/storageclasses`),
+  getStorageAnalysis: () => v1Api.get<StorageAnalysis>('/analysis/storage'),
 }
 
 export default api

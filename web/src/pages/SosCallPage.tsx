@@ -45,7 +45,7 @@ export default function SosCallPage() {
       {/* 主体 */}
       <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6">
         {statusInfo && !statusInfo.ready ? (
-          <div className="max-w-md space-y-3 rounded-xl bg-white/5 p-6 text-center text-sm leading-6 text-gray-300">
+          <div className="max-w-md space-y-3 rounded-lg bg-white/5 p-6 text-center text-sm leading-6 text-gray-300">
             <p className="text-base font-medium text-white">SOS 未就绪，请检查配置：</p>
             <p>
               在 <code className="rounded bg-black/40 px-1">config.yaml</code> 开启
@@ -61,8 +61,8 @@ export default function SosCallPage() {
             {/* 头像 + 呼吸动画 */}
             <div
               className={cn(
-                'flex h-32 w-32 items-center justify-center rounded-full',
-                'bg-gradient-to-br from-red-500 to-red-700 shadow-2xl shadow-red-900/50',
+                'flex h-32 w-32 items-center justify-center rounded-full ring-1 ring-white/10',
+                'bg-red-500',
                 state.status === 'connected' && 'animate-pulse',
               )}
             >
@@ -123,7 +123,7 @@ export default function SosCallPage() {
           <button
             onClick={hangup}
             aria-label="挂断"
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600 transition-transform hover:scale-105 active:scale-95"
+            className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600 transition-colors hover:bg-red-700 active:bg-red-800"
           >
             <PhoneOff className="h-7 w-7" />
           </button>

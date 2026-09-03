@@ -17,6 +17,8 @@ export const tenancyHandlers = [
     if (ns) list = list.filter((t) => t.namespaces.includes(ns))
     return HttpResponse.json(list)
   }),
+  // stats 必须先于 :id 注册：MSW 按顺序首次匹配，否则 "stats" 会被当作 id 返回 404
+  http.get('/api/v1/tenants/stats', () => HttpResponse.json(derive.tenantStats())),
   http.get('/api/v1/tenants/:id', ({ params }) => {
     const t = store.tenants.find((t) => t.id === params.id)
     return t ? HttpResponse.json(t) : new HttpResponse(null, { status: 404 })
@@ -65,7 +67,6 @@ export const tenancyHandlers = [
     })
     return HttpResponse.json({ message: `Tenant ${removed.name} deleted` })
   }),
-  http.get('/api/v1/tenants/stats', () => HttpResponse.json(derive.tenantStats())),
 
   // Users
   http.get('/api/v1/tenant-users', ({ request }) => {

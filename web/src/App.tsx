@@ -9,10 +9,12 @@ import MonitoringPage from './pages/MonitoringPage'
 import DeploymentsPage from './pages/DeploymentsPage'
 import TenantsPage from './pages/TenantsPage'
 import { ServicesPage } from './pages/ServicesPage'
+import { NetworkPage } from './pages/NetworkPage'
+import { StoragePage } from './pages/StoragePage'
 import DiagnosticsPage from './pages/DiagnosticsPage'
 import SosCallPage from './pages/SosCallPage'
 import SosFloatingButton from './components/SosFloatingButton'
-import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe, DatabaseBackup, Shield, Stethoscope, Siren, ExternalLink } from 'lucide-react'
+import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe, Network, HardDrive, DatabaseBackup, Shield, Stethoscope, Siren, ExternalLink } from 'lucide-react'
 
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 
@@ -20,28 +22,30 @@ const GTM_URL = 'https://bs7klknl29np.meoo.fun'
 
 const navGroups = [
   {
-    label: 'Overview',
+    label: '总览',
     items: [
-      { path: '/', label: 'Dashboard', icon: Database },
-      { path: '/monitoring', label: 'Monitoring', icon: AlertCircle },
+      { path: '/', label: '仪表盘', icon: Database },
+      { path: '/monitoring', label: '监控告警', icon: AlertCircle },
     ],
   },
   {
-    label: 'Workloads',
+    label: '工作负载',
     items: [
-      { path: '/deployments', label: 'Deployments', icon: Boxes },
-      { path: '/pods', label: 'Pods', icon: Server },
-      { path: '/services', label: 'Services', icon: Globe },
-      { path: '/nodes', label: 'Nodes', icon: Activity },
+      { path: '/deployments', label: '部署管理', icon: Boxes },
+      { path: '/pods', label: '容器组（Pod）', icon: Server },
+      { path: '/services', label: '服务（Service）', icon: Globe },
+      { path: '/network', label: '网络（Network）', icon: Network },
+      { path: '/nodes', label: '节点（Node）', icon: Activity },
     ],
   },
   {
-    label: 'Platform',
+    label: '平台能力',
     items: [
-      { path: '/backups', label: 'Backups', icon: DatabaseBackup },
-      { path: '/tenants', label: 'Tenants', icon: Shield },
-      { path: '/diagnostics', label: 'Diagnostics', icon: Stethoscope },
-      { path: '/sos', label: 'SOS', icon: Siren },
+      { path: '/backups', label: '备份恢复', icon: DatabaseBackup },
+      { path: '/storage', label: '存储（Storage）', icon: HardDrive },
+      { path: '/tenants', label: '多租户', icon: Shield },
+      { path: '/diagnostics', label: '智能诊断', icon: Stethoscope },
+      { path: '/sos', label: '紧急求救（SOS）', icon: Siren },
     ],
   },
 ]
@@ -49,7 +53,7 @@ const navGroups = [
 const navItems = navGroups.flatMap((group) => group.items)
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(() => document.documentElement.classList.contains('dark'))
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMockMode, setIsMockMode] = useState(false)
   const location = useLocation()
@@ -61,8 +65,9 @@ function App() {
   }, [location]) // 路由变化时重新检查
 
   const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode)
-    document.documentElement.classList.toggle('dark')
+    const next = !isDarkMode
+    document.documentElement.classList.toggle('dark', next)
+    setIsDarkMode(next)
   }
 
   const toggleMockMode = () => {
@@ -73,7 +78,7 @@ function App() {
     window.location.reload()
   }
 
-  const currentLabel = navItems.find((item) => item.path === location.pathname)?.label ?? 'Dashboard'
+  const currentLabel = navItems.find((item) => item.path === location.pathname)?.label ?? '仪表盘'
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) => cn(
     'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150',
@@ -83,7 +88,7 @@ function App() {
   )
 
   return (
-    <div className={cn('min-h-screen transition-colors duration-200', isDarkMode ? 'dark' : '')}>
+    <div className="min-h-screen">
       <div className="flex min-h-screen">
         {/* 左侧 Workbench 导航栏 */}
         <aside className="hidden md:flex md:flex-col w-60 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -128,7 +133,7 @@ function App() {
               <span>产品介绍 · GTM</span>
             </a>
             <div className="px-3 pt-2 text-xs text-gray-400 dark:text-gray-500">
-              © 2024 Klaw · Kubernetes Ops
+              © 2024 Klaw · Kubernetes（K8s）智能运维
             </div>
           </div>
         </aside>
@@ -228,6 +233,8 @@ function App() {
               <Route path="/tenants" element={<TenantsPage />} />
               <Route path="/deployments" element={<DeploymentsPage />} />
               <Route path="/services" element={<ServicesPage />} />
+              <Route path="/network" element={<NetworkPage />} />
+              <Route path="/storage" element={<StoragePage />} />
               <Route path="/pods" element={<PodsPage />} />
               <Route path="/nodes" element={<NodesPage />} />
               <Route path="/monitoring" element={<MonitoringPage />} />

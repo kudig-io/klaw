@@ -46,17 +46,17 @@ export function NamespaceSelector({
 
   return (
     <div className="flex items-center gap-2">
-      <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-        Namespace:
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        命名空间：
       </label>
       <select
         value={selected || ALL_NAMESPACES}
         onChange={(e) => handleChange(e.target.value)}
         disabled={isLoading || !cluster}
-        className="px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+        className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
       >
         {showAllNamespaces && (
-          <option value={ALL_NAMESPACES}>All Namespaces</option>
+          <option value={ALL_NAMESPACES}>全部命名空间</option>
         )}
         {namespaces.map((ns) => (
           <option key={ns} value={ns}>

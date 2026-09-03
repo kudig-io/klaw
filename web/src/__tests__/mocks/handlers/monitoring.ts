@@ -7,10 +7,16 @@ import { store, appendAudit, nextAlertId, now } from '../store'
 export const monitorHandlers = [
   http.get('/api/v1/clusters/:cluster/monitor/status', ({ params }) => {
     const history = mockMetricsHistory.filter((h) => h.clusterName === params.cluster)
+    const rules = mockAlertRules.filter((r) => r.cluster === 'kind-test' || r.cluster === undefined)
     return HttpResponse.json({
       cluster: params.cluster,
       active: true,
       dataPoints: history.length,
+      interval: '5m',
+      evalInterval: '1m',
+      rulesEnabled: rules.filter((r) => r.enabled).length,
+      rulesTotal: rules.length,
+      lastEvaluation: now(),
       timestamp: now(),
     })
   }),

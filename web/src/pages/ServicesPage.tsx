@@ -49,7 +49,7 @@ export function ServicesPage() {
       }
     } catch (error) {
       console.error('Failed to load clusters:', error)
-      showToast('Failed to load clusters', 'error')
+      showToast('加载集群列表失败', 'error')
     }
   }
 
@@ -63,7 +63,7 @@ export function ServicesPage() {
       setServices(response.data || [])
     } catch (error) {
       console.error('Failed to load services:', error)
-      showToast('Failed to load services', 'error')
+      showToast('加载服务列表失败', 'error')
       setServices([])
     } finally {
       setIsLoading(false)
@@ -73,7 +73,7 @@ export function ServicesPage() {
   async function handleDeleteService(service: Service) {
     if (!selectedCluster) return
     
-    if (!confirm(`Are you sure you want to delete service "${service.metadata.name}"?`)) {
+    if (!confirm(`确定要删除服务"${service.metadata.name}"吗？`)) {
       return
     }
 
@@ -83,11 +83,11 @@ export function ServicesPage() {
         service.metadata.namespace,
         service.metadata.name
       )
-      showToast(`Service "${service.metadata.name}" deleted successfully`, 'success')
+      showToast(`服务"${service.metadata.name}"已删除`, 'success')
       loadServices()
     } catch (error) {
       console.error('Failed to delete service:', error)
-      showToast('Failed to delete service', 'error')
+      showToast('删除服务失败', 'error')
     }
   }
 
@@ -132,9 +132,9 @@ export function ServicesPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Services</h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
-              Manage Kubernetes Services and their endpoints
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">服务管理</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              管理 Kubernetes 服务（Service）及其端点
             </p>
           </div>
           <RefreshButton onClick={loadServices} isLoading={isLoading} />
@@ -142,7 +142,7 @@ export function ServicesPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 p-4 mb-6">
+      <div className="card p-4 mb-6">
         <div className="flex flex-wrap items-center gap-4">
           <ClusterSelector
             clusters={clusters.map(c => c.name)}
@@ -160,48 +160,49 @@ export function ServicesPage() {
       </div>
 
       {/* Services Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="card overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-            <p className="mt-4 text-slate-600 dark:text-slate-400">Loading services...</p>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">正在加载服务…</p>
           </div>
         ) : services.length === 0 ? (
           <div className="p-12 text-center">
-            <Network className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No services found</h3>
-            <p className="text-slate-600 dark:text-slate-400">
+            <Network className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">未找到服务</h3>
+            <p className="text-gray-600 dark:text-gray-400">
               {selectedNamespace && selectedNamespace !== ALL_NAMESPACES
-                ? `No services in namespace "${selectedNamespace}"`
-                : 'No services found in this cluster'}
+                ? `命名空间"${selectedNamespace}"下暂无服务`
+                : '当前集群下暂无服务'}
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 dark:bg-slate-700/50 text-slate-900 dark:text-white">
+              <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Name</th>
-                  <th className="px-4 py-3 font-semibold">Namespace</th>
-                  <th className="px-4 py-3 font-semibold">Type</th>
-                  <th className="px-4 py-3 font-semibold">Cluster IP</th>
-                  <th className="px-4 py-3 font-semibold">Ports</th>
-                  <th className="px-4 py-3 font-semibold">Selector</th>
-                  <th className="px-4 py-3 font-semibold">Age</th>
-                  <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                  <th className="px-4 py-3 font-semibold">名称</th>
+                  <th className="px-4 py-3 font-semibold">命名空间</th>
+                  <th className="px-4 py-3 font-semibold">类型</th>
+                  <th className="px-4 py-3 font-semibold">集群 IP</th>
+                  <th className="px-4 py-3 font-semibold">外部 IP</th>
+                  <th className="px-4 py-3 font-semibold">端口</th>
+                  <th className="px-4 py-3 font-semibold">选择器</th>
+                  <th className="px-4 py-3 font-semibold">存续时间</th>
+                  <th className="px-4 py-3 font-semibold text-right">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {services.map((service) => (
                   <tr 
                     key={`${service.metadata.namespace}-${service.metadata.name}`}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                       {service.metadata.name}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                         {service.metadata.namespace}
                       </span>
                     </td>
@@ -210,8 +211,11 @@ export function ServicesPage() {
                         {service.spec.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                       {service.spec.clusterIP || '-'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-mono text-xs">
+                      {service.status.loadBalancer?.ingress?.[0]?.ip || service.spec.externalIPs?.join(', ') || '-'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
@@ -224,7 +228,7 @@ export function ServicesPage() {
                           </span>
                         ))}
                         {(service.spec.ports?.length || 0) > 2 && (
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             +{service.spec.ports!.length - 2}
                           </span>
                         )}
@@ -242,31 +246,31 @@ export function ServicesPage() {
                             </span>
                           ))}
                           {Object.keys(service.spec.selector).length > 1 && (
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
                               +{Object.keys(service.spec.selector).length - 1}
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-600">-</span>
+                        <span className="text-gray-400 dark:text-gray-600">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                       {formatAge(service.metadata.creationTimestamp)}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleViewService(service)}
-                          className="p-1.5 text-slate-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="View details"
+                          className="p-1.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                          title="查看详情"
                         >
                           <Info className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteService(service)}
-                          className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete service"
+                          className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="删除服务"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

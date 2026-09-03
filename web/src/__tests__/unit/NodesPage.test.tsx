@@ -14,12 +14,12 @@ afterEach(() => server.resetHandlers())
 describe('NodesPage', () => {
   it('应该显示页面标题', () => {
     render(<NodesPage />)
-    expect(screen.getByText('Nodes Management')).toBeInTheDocument()
+    expect(screen.getByText('节点（Node）管理')).toBeInTheDocument()
   })
 
   it('应该显示集群选择器', () => {
     render(<NodesPage />)
-    expect(screen.getByText('Select Cluster')).toBeInTheDocument()
+    expect(screen.getByText('选择集群')).toBeInTheDocument()
   })
 
   it('应该成功加载并显示节点列表', async () => {
@@ -55,13 +55,13 @@ describe('NodesPage', () => {
     
     // 节点为卡片布局（非表格），断言卡片内的资源标题与容量值
     expect(screen.getAllByText('CPU').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Memory').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Conditions').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('内存').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('状态条件（Conditions）').length).toBeGreaterThan(0)
   })
 
   it('应该显示刷新按钮', () => {
     render(<NodesPage />)
-    expect(screen.getByText('Refresh')).toBeInTheDocument()
+    expect(screen.getByText('刷新')).toBeInTheDocument()
   })
 
   it('应该显示节点数量统计', async () => {

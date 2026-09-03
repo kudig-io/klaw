@@ -15,6 +15,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
   const [endpoints, setEndpoints] = useState<ServiceEndpoints | null>(null)
   const [isLoadingEndpoints, setIsLoadingEndpoints] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'ports' | 'endpoints'>('overview')
+  const tabLabels = { overview: '概览', ports: '端口', endpoints: '端点' } as const
 
   useEffect(() => {
     if (isOpen && cluster) {
@@ -40,7 +41,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text)
-    showToast('Copied to clipboard', 'success')
+    showToast('已复制到剪贴板', 'success')
   }
 
   function formatAge(timestamp: string): string {
@@ -53,10 +54,10 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
     const hours = Math.floor(minutes / 60)
     const days = Math.floor(hours / 24)
     
-    if (days > 0) return `${days} day${days > 1 ? 's' : ''}`
-    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`
-    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''}`
-    return `${seconds} second${seconds > 1 ? 's' : ''}`
+    if (days > 0) return `${days} 天`
+    if (hours > 0) return `${hours} 小时`
+    if (minutes > 0) return `${minutes} 分钟`
+    return `${seconds} 秒`
   }
 
   if (!isOpen) return null
@@ -70,32 +71,32 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
       />
       
       {/* Drawer */}
-      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-800 shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col h-full">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
               <Globe className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {service.metadata.name}
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {service.metadata.namespace} namespace
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                命名空间 {service.metadata.namespace}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-slate-200 dark:border-slate-700 px-6">
+        <div className="flex border-b border-gray-200 dark:border-gray-700 px-6">
           {(['overview', 'ports', 'endpoints'] as const).map((tab) => (
             <button
               key={tab}
@@ -103,10 +104,10 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab
                   ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tabLabels[tab]}
             </button>
           ))}
         </div>
@@ -117,28 +118,28 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
             <div className="space-y-6">
               {/* Basic Info */}
               <section>
-                <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                   <Network className="w-4 h-4" />
-                  Basic Information
+                  基本信息
                 </h3>
-                <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 space-y-3">
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Type</label>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      <label className="text-xs text-gray-500 dark:text-gray-400">类型</label>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {service.spec.type}
                       </p>
                     </div>
                     <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Cluster IP</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">集群 IP</label>
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-slate-900 dark:text-white font-mono">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white font-mono">
                           {service.spec.clusterIP || '-'}
                         </p>
                         {service.spec.clusterIP && (
                           <button
                             onClick={() => copyToClipboard(service.spec.clusterIP)}
-                            className="text-slate-400 hover:text-primary-600"
+                            className="text-gray-400 hover:text-primary-600"
                           >
                             <Copy className="w-3 h-3" />
                           </button>
@@ -146,15 +147,27 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Age</label>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      <label className="text-xs text-gray-500 dark:text-gray-400">存续时间</label>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {formatAge(service.metadata.creationTimestamp)}
                       </p>
                     </div>
                     <div>
-                      <label className="text-xs text-slate-500 dark:text-slate-400">Namespace</label>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      <label className="text-xs text-gray-500 dark:text-gray-400">命名空间</label>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
                         {service.metadata.namespace}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">会话亲和</label>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {service.spec.sessionAffinity || 'None'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 dark:text-gray-400">外部流量策略</label>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {service.spec.externalTrafficPolicy || '-'}
                       </p>
                     </div>
                   </div>
@@ -164,11 +177,11 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
               {/* External IPs */}
               {(service.spec.externalIPs?.length || 0) > 0 && (
                 <section>
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    External IPs
+                    外部 IP
                   </h3>
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <div className="flex flex-wrap gap-2">
                       {service.spec.externalIPs!.map((ip, idx) => (
                         <span 
@@ -192,17 +205,17 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
               {/* Load Balancer Ingress */}
               {(service.status.loadBalancer?.ingress?.length || 0) > 0 && (
                 <section>
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                     <Globe className="w-4 h-4" />
-                    Load Balancer
+                    负载均衡（Load Balancer）
                   </h3>
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <div className="space-y-2">
                       {service.status.loadBalancer!.ingress!.map((ingress, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           {ingress.ip && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                              IP: {ingress.ip}
+                              IP：{ingress.ip}
                               <button
                                 onClick={() => copyToClipboard(ingress.ip!)}
                                 className="hover:text-blue-600"
@@ -213,7 +226,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                           )}
                           {ingress.hostname && (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                              Host: {ingress.hostname}
+                              主机名：{ingress.hostname}
                               <button
                                 onClick={() => copyToClipboard(ingress.hostname!)}
                                 className="hover:text-purple-600"
@@ -232,11 +245,11 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
               {/* Selector */}
               {service.spec.selector && Object.keys(service.spec.selector).length > 0 && (
                 <section>
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                     <Link2 className="w-4 h-4" />
-                    Selector
+                    选择器
                   </h3>
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(service.spec.selector).map(([key, value]) => (
                         <span 
@@ -254,15 +267,15 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
               {/* Labels */}
               {service.metadata.labels && Object.keys(service.metadata.labels).length > 0 && (
                 <section>
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3">
-                    Labels
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                    标签（Labels）
                   </h3>
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(service.metadata.labels).map(([key, value]) => (
                         <span 
                           key={key}
-                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300"
+                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300"
                         >
                           {key}={value}
                         </span>
@@ -275,14 +288,14 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
               {/* Annotations */}
               {service.metadata.annotations && Object.keys(service.metadata.annotations).length > 0 && (
                 <section>
-                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3">
-                    Annotations
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                    注解（Annotations）
                   </h3>
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4 space-y-2">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-2">
                     {Object.entries(service.metadata.annotations).map(([key, value]) => (
                       <div key={key} className="text-xs">
-                        <span className="font-medium text-slate-700 dark:text-slate-300">{key}:</span>
-                        <span className="text-slate-600 dark:text-slate-400 ml-2">{value}</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{key}:</span>
+                        <span className="text-gray-600 dark:text-gray-400 ml-2">{value}</span>
                       </div>
                     ))}
                   </div>
@@ -293,9 +306,9 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
 
           {activeTab === 'ports' && (
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-2">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                 <Server className="w-4 h-4" />
-                Service Ports
+                服务端口
               </h3>
               
               {service.spec.ports && service.spec.ports.length > 0 ? (
@@ -303,11 +316,11 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                   {service.spec.ports.map((port, idx) => (
                     <div 
                       key={idx}
-                      className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4"
+                      className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4"
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-slate-900 dark:text-white">
-                          {port.name || `Port ${idx + 1}`}
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {port.name || `端口 ${idx + 1}`}
                         </span>
                         <span className="text-xs px-2 py-1 rounded bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
                           {port.protocol}
@@ -315,21 +328,21 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
-                          <label className="text-xs text-slate-500 dark:text-slate-400">Port</label>
-                          <p className="font-medium text-slate-900 dark:text-white font-mono">
+                          <label className="text-xs text-gray-500 dark:text-gray-400">端口</label>
+                          <p className="font-medium text-gray-900 dark:text-white font-mono">
                             {port.port}
                           </p>
                         </div>
                         <div>
-                          <label className="text-xs text-slate-500 dark:text-slate-400">Target Port</label>
-                          <p className="font-medium text-slate-900 dark:text-white font-mono">
+                          <label className="text-xs text-gray-500 dark:text-gray-400">目标端口</label>
+                          <p className="font-medium text-gray-900 dark:text-white font-mono">
                             {port.targetPort}
                           </p>
                         </div>
                         {port.nodePort && (
                           <div>
-                            <label className="text-xs text-slate-500 dark:text-slate-400">Node Port</label>
-                            <p className="font-medium text-slate-900 dark:text-white font-mono">
+                            <label className="text-xs text-gray-500 dark:text-gray-400">节点端口</label>
+                            <p className="font-medium text-gray-900 dark:text-white font-mono">
                               {port.nodePort}
                             </p>
                           </div>
@@ -339,7 +352,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                   ))}
                 </div>
               ) : (
-                <p className="text-slate-500 dark:text-slate-400 text-sm">No ports defined</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">未定义端口</p>
               )}
             </div>
           )}
@@ -347,16 +360,16 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
           {activeTab === 'endpoints' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-slate-900 dark:text-white flex items-center gap-2">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
                   <Network className="w-4 h-4" />
-                  Endpoints
+                  端点
                 </h3>
                 <button
                   onClick={loadEndpoints}
                   disabled={isLoadingEndpoints}
                   className="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                 >
-                  {isLoadingEndpoints ? 'Loading...' : 'Refresh'}
+                  {isLoadingEndpoints ? '加载中…' : '刷新'}
                 </button>
               </div>
 
@@ -367,31 +380,31 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
               ) : endpoints?.endpoints && endpoints.endpoints.length > 0 ? (
                 <div className="space-y-4">
                   {endpoints.endpoints.map((subset, idx) => (
-                    <div key={idx} className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
+                    <div key={idx} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                       {/* Ready Addresses */}
                       {subset.addresses && subset.addresses.length > 0 && (
                         <div className="mb-4">
                           <h4 className="text-xs font-medium text-green-600 dark:text-green-400 mb-2">
-                            Ready ({subset.addresses.length})
+                            就绪（{subset.addresses.length}）
                           </h4>
                           <div className="space-y-2">
                             {subset.addresses.map((addr, addrIdx) => (
                               <div 
                                 key={addrIdx}
-                                className="flex items-center justify-between text-sm bg-white dark:bg-slate-800 p-2 rounded"
+                                className="flex items-center justify-between text-sm bg-white dark:bg-gray-800 p-2 rounded"
                               >
                                 <div className="flex items-center gap-2">
                                   <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                  <span className="font-mono text-slate-900 dark:text-white">{addr.ip}</span>
+                                  <span className="font-mono text-gray-900 dark:text-white">{addr.ip}</span>
                                   {addr.targetRef && (
-                                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
                                       ({addr.targetRef.kind}: {addr.targetRef.name})
                                     </span>
                                   )}
                                 </div>
                                 <button
                                   onClick={() => copyToClipboard(addr.ip)}
-                                  className="text-slate-400 hover:text-primary-600"
+                                  className="text-gray-400 hover:text-primary-600"
                                 >
                                   <Copy className="w-3 h-3" />
                                 </button>
@@ -405,19 +418,19 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                       {subset.notReadyAddresses && subset.notReadyAddresses.length > 0 && (
                         <div>
                           <h4 className="text-xs font-medium text-red-600 dark:text-red-400 mb-2">
-                            Not Ready ({subset.notReadyAddresses.length})
+                            未就绪（{subset.notReadyAddresses.length}）
                           </h4>
                           <div className="space-y-2">
                             {subset.notReadyAddresses.map((addr, addrIdx) => (
                               <div 
                                 key={addrIdx}
-                                className="flex items-center justify-between text-sm bg-white dark:bg-slate-800 p-2 rounded"
+                                className="flex items-center justify-between text-sm bg-white dark:bg-gray-800 p-2 rounded"
                               >
                                 <div className="flex items-center gap-2">
                                   <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                  <span className="font-mono text-slate-900 dark:text-white">{addr.ip}</span>
+                                  <span className="font-mono text-gray-900 dark:text-white">{addr.ip}</span>
                                   {addr.targetRef && (
-                                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
                                       ({addr.targetRef.kind}: {addr.targetRef.name})
                                     </span>
                                   )}
@@ -430,17 +443,17 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
 
                       {/* Ports */}
                       {subset.ports && subset.ports.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
-                          <h4 className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-                            Endpoint Ports
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                          <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                            端点端口
                           </h4>
                           <div className="flex flex-wrap gap-2">
                             {subset.ports.map((port, portIdx) => (
                               <span 
                                 key={portIdx}
-                                className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-slate-200 text-slate-700 dark:bg-slate-600 dark:text-slate-300"
+                                className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300"
                               >
-                                {port.name || 'unnamed'}: {port.port}/{port.protocol}
+                                {port.name || '未命名'}: {port.port}/{port.protocol}
                               </span>
                             ))}
                           </div>
@@ -450,10 +463,10 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   <Network className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No endpoints found</p>
-                  <p className="text-xs mt-1">Service selector may not match any pods</p>
+                  <p>未找到端点</p>
+                  <p className="text-xs mt-1">服务选择器可能未匹配到任何容器组（Pod）</p>
                 </div>
               )}
             </div>

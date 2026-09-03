@@ -3,6 +3,8 @@
 import { clusterHandlers, nodeHandlers, podHandlers, deploymentHandlers, eventHandlers } from './cluster'
 import { monitorHandlers, alertHandlers } from './monitoring'
 import { serviceHandlers } from './services'
+import { networkHandlers } from './network'
+import { storageHandlers } from './storage'
 import { backupHandlers } from './backups'
 import { tenancyHandlers, auditHandlers } from './governance'
 import { diagHandlers, sosHandlers } from './diag'
@@ -17,6 +19,8 @@ export const handlers = [
   ...monitorHandlers,
   ...alertHandlers,
   ...serviceHandlers,
+  ...networkHandlers,
+  ...storageHandlers,
   ...backupHandlers,
   ...tenancyHandlers,
   ...auditHandlers,
@@ -25,4 +29,4 @@ export const handlers = [
   ...analysisHandlers,
 ]
 
-export { analysisHandlers, clusterHandlers, nodeHandlers, podHandlers, deploymentHandlers, eventHandlers, monitorHandlers, alertHandlers, serviceHandlers, backupHandlers, tenancyHandlers, auditHandlers, diagHandlers, sosHandlers }
+export { analysisHandlers, clusterHandlers, nodeHandlers, podHandlers, deploymentHandlers, eventHandlers, monitorHandlers, alertHandlers, serviceHandlers, networkHandlers, storageHandlers, backupHandlers, tenancyHandlers, auditHandlers, diagHandlers, sosHandlers }

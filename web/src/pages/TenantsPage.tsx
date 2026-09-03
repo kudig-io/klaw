@@ -73,7 +73,7 @@ const TenantsPage = () => {
       setAuditStats(auditStatsRes.data)
     } catch (err) {
       console.error(err)
-      setError('Failed to load tenant data')
+      setError('加载多租户数据失败')
     } finally {
       setLoading(false)
     }
@@ -89,7 +89,7 @@ const TenantsPage = () => {
         await loadData(nextCluster)
       } catch (err) {
         console.error(err)
-        setError('Failed to load clusters')
+        setError('加载集群列表失败')
       }
     }
     void loadInitial()
@@ -129,7 +129,7 @@ const TenantsPage = () => {
       await loadData()
     } catch (err) {
       console.error(err)
-      setError('Failed to create tenant')
+      setError('创建租户失败')
     }
   }
 
@@ -150,18 +150,18 @@ const TenantsPage = () => {
       await loadData()
     } catch (err) {
       console.error(err)
-      setError('Failed to create tenant user')
+      setError('创建租户用户失败')
     }
   }
 
   const deleteTenant = async (tenant: Tenant) => {
-    if (!confirm(`Delete tenant ${tenant.name}?`)) return
+    if (!confirm(`确定要删除租户 ${tenant.name} 吗？`)) return
     await tenancyApi.deleteTenant(tenant.id)
     await loadData()
   }
 
   const deleteUser = async (user: TenantUser) => {
-    if (!confirm(`Delete user ${user.username}?`)) return
+    if (!confirm(`确定要删除用户 ${user.username} 吗？`)) return
     await tenancyApi.deleteUser(user.id)
     await loadData()
   }
@@ -170,13 +170,13 @@ const TenantsPage = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Tenants</h1>
+          <h1 className="text-2xl font-bold">多租户</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Multi-tenant management and audit trail integrated from the guardian platform plan.
+            提供租户隔离、配额与审计日志的统一管理。
           </p>
         </div>
         <select className="input max-w-xs" value={selectedCluster} onChange={(e) => setSelectedCluster(e.target.value)}>
-          <option value="">All Clusters</option>
+          <option value="">全部集群</option>
           {clusters.map((cluster) => (
             <option key={cluster.name} value={cluster.name}>{cluster.name}</option>
           ))}
@@ -185,22 +185,26 @@ const TenantsPage = () => {
 
       {error && <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3">{error}</div>}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="card p-5">
-          <div className="text-sm text-gray-500">Tenants</div>
+          <div className="text-sm text-gray-500">租户数</div>
           <div className="text-2xl font-semibold mt-2">{stats?.totalTenants ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">Users</div>
+          <div className="text-sm text-gray-500">用户数</div>
           <div className="text-2xl font-semibold mt-2">{stats?.totalUsers ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">Namespaces</div>
+          <div className="text-sm text-gray-500">命名空间数</div>
           <div className="text-2xl font-semibold mt-2">{stats?.totalNamespaces ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">Audit Logs 24h</div>
+          <div className="text-sm text-gray-500">近 24 小时审计</div>
           <div className="text-2xl font-semibold mt-2">{auditStats?.recent24h ?? 0}</div>
+        </div>
+        <div className="card p-5">
+          <div className="text-sm text-gray-500">审计日志总数</div>
+          <div className="text-2xl font-semibold mt-2">{auditStats?.totalLogs ?? 0}</div>
         </div>
       </div>
 
@@ -214,15 +218,24 @@ const TenantsPage = () => {
             <div className="card p-6">
               <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
                 <Shield className="h-5 w-5 text-primary-600" />
-                <span>Tenant Inventory</span>
+                <span>租户列表</span>
               </h2>
               <div className="space-y-3">
                 {tenants.map((tenant) => (
                   <div key={tenant.id} className="rounded-lg border border-gray-200 dark:border-gray-800 p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <div className="font-medium">{tenant.name}</div>
-                        <div className="text-sm text-gray-500 mt-1">{tenant.description || 'No description'}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium">{tenant.name}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${tenant.networkPolicies.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                            网络策略 {tenant.networkPolicies.enabled ? '启用' : '停用'}
+                          </span>
+                          {tenant.networkPolicies.defaultDeny && (
+                            <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">默认拒绝</span>
+                          )}
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">RBAC {tenant.rbac.defaultRole}</span>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">{tenant.description || '暂无描述'}</div>
                       </div>
                       {tenant.id !== 'default' && (
                         <button onClick={() => deleteTenant(tenant)} className="text-danger-600 hover:text-danger-700">
@@ -232,17 +245,38 @@ const TenantsPage = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-sm">
                       <div>
-                        <div className="text-gray-500">Cluster</div>
-                        <div>{tenant.cluster || 'Unassigned'}</div>
+                        <div className="text-gray-500">所属集群</div>
+                        <div>{tenant.cluster || '未分配'}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">Namespaces</div>
+                        <div className="text-gray-500">命名空间</div>
                         <div>{tenant.namespaces.join(', ')}</div>
                       </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3 text-sm">
                       <div>
-                        <div className="text-gray-500">Default Role</div>
-                        <div>{tenant.rbac.defaultRole}</div>
+                        <div className="text-gray-500">CPU 配额</div>
+                        <div className="font-medium">{tenant.resourceQuotas.cpu} 核</div>
                       </div>
+                      <div>
+                        <div className="text-gray-500">内存配额</div>
+                        <div className="font-medium">{tenant.resourceQuotas.memory}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">容器组上限</div>
+                        <div className="font-medium">{tenant.resourceQuotas.pods}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">服务上限</div>
+                        <div className="font-medium">{tenant.resourceQuotas.services}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">PVC 上限</div>
+                        <div className="font-medium">{tenant.resourceQuotas.persistentVolumeClaims}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                      创建 {formatDate(tenant.createdAt)} · 更新 {formatDate(tenant.updatedAt)}
                     </div>
                   </div>
                 ))}
@@ -252,8 +286,17 @@ const TenantsPage = () => {
             <div className="card p-6">
               <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
                 <Users className="h-5 w-5 text-primary-600" />
-                <span>Tenant Users</span>
+                <span>租户用户</span>
               </h2>
+              {stats?.usersByRole && Object.keys(stats.usersByRole).length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap mb-4">
+                  {Object.entries(stats.usersByRole).map(([role, count]) => (
+                    <span key={role} className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-xs">
+                      {role} × {count}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="space-y-3">
                 {users.map((user) => (
                   <div key={user.id} className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
@@ -263,8 +306,8 @@ const TenantsPage = () => {
                         {(user.subjectKind || 'User')} · {user.subjectName || user.username} · {user.role}
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
-                        {user.email || 'No email'} · NS: {user.namespaces?.join(', ') || 'tenant default'}
-                        {user.subjectKind === 'ServiceAccount' && ` · SA NS: ${user.subjectNamespace || 'default'}`}
+                        {user.email || '未填写邮箱'} · 命名空间：{user.namespaces?.join(', ') || '租户默认'}
+                        {user.subjectKind === 'ServiceAccount' && ` · SA 命名空间：${user.subjectNamespace || 'default'}`}
                       </div>
                     </div>
                     <button onClick={() => deleteUser(user)} className="text-danger-600 hover:text-danger-700">
@@ -276,14 +319,28 @@ const TenantsPage = () => {
             </div>
 
             <div className="card p-6">
-              <h2 className="text-lg font-semibold mb-4">Audit Trail</h2>
+              <h2 className="text-lg font-semibold mb-4">审计日志</h2>
               <div className="space-y-3">
                 {auditLogs.map((log) => (
                   <div key={log.id} className="rounded-lg border border-gray-200 dark:border-gray-800 p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <div className="font-medium">{log.action}</div>
-                        <div className="text-sm text-gray-500 mt-1">{log.user || 'system'} · {log.result}</div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{log.eventType}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${log.severity === 'warning' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : log.severity === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{log.severity}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${log.result === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : log.result === 'failure' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>{log.result}</span>
+                        </div>
+                        <div className="font-medium mt-1">{log.action}</div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {log.user || '系统'} · 来源 {log.source}
+                          {log.resource?.kind && ` · ${log.resource.kind} ${log.resource.namespace ? `${log.resource.namespace}/` : ''}${log.resource.name}`}
+                          {log.ipAddress && ` · IP ${log.ipAddress}`}
+                        </div>
+                        {log.details && Object.keys(log.details).length > 0 && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono break-all">
+                            {Object.entries(log.details).map(([k, v]) => `${k}: ${String(v)}`).join(' · ')}
+                          </div>
+                        )}
                       </div>
                       <div className="text-sm text-gray-500 whitespace-nowrap">{formatDate(log.timestamp)}</div>
                     </div>
@@ -297,48 +354,48 @@ const TenantsPage = () => {
             <div className="card p-6">
               <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
                 <Plus className="h-5 w-5 text-primary-600" />
-                <span>Create Tenant</span>
+                <span>创建租户</span>
               </h2>
               <form onSubmit={createTenant} className="space-y-4">
                 <select className="input" value={tenantForm.cluster || selectedCluster} onChange={(e) => setTenantForm((prev) => ({ ...prev, cluster: e.target.value }))} required>
-                  <option value="">Select Cluster</option>
+                  <option value="">选择集群</option>
                   {clusters.map((cluster) => (
                     <option key={cluster.name} value={cluster.name}>{cluster.name}</option>
                   ))}
                 </select>
-                <input className="input" value={tenantForm.name} onChange={(e) => setTenantForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Tenant name" required />
-                <input className="input" value={tenantForm.description} onChange={(e) => setTenantForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Description" />
+                <input className="input" value={tenantForm.name} onChange={(e) => setTenantForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="租户名称" required />
+                <input className="input" value={tenantForm.description} onChange={(e) => setTenantForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="描述" />
                 <textarea className="input min-h-[84px]" value={tenantForm.namespaces} onChange={(e) => setTenantForm((prev) => ({ ...prev, namespaces: e.target.value }))} placeholder="default, team-a" />
                 <div className="grid grid-cols-2 gap-3">
                   <input className="input" value={tenantForm.cpu} onChange={(e) => setTenantForm((prev) => ({ ...prev, cpu: e.target.value }))} placeholder="CPU" />
-                  <input className="input" value={tenantForm.memory} onChange={(e) => setTenantForm((prev) => ({ ...prev, memory: e.target.value }))} placeholder="Memory" />
-                  <input className="input" value={tenantForm.pods} onChange={(e) => setTenantForm((prev) => ({ ...prev, pods: e.target.value }))} placeholder="Pods" />
-                  <input className="input" value={tenantForm.services} onChange={(e) => setTenantForm((prev) => ({ ...prev, services: e.target.value }))} placeholder="Services" />
+                  <input className="input" value={tenantForm.memory} onChange={(e) => setTenantForm((prev) => ({ ...prev, memory: e.target.value }))} placeholder="内存" />
+                  <input className="input" value={tenantForm.pods} onChange={(e) => setTenantForm((prev) => ({ ...prev, pods: e.target.value }))} placeholder="容器组" />
+                  <input className="input" value={tenantForm.services} onChange={(e) => setTenantForm((prev) => ({ ...prev, services: e.target.value }))} placeholder="服务" />
                 </div>
-                <input className="input" value={tenantForm.persistentVolumeClaims} onChange={(e) => setTenantForm((prev) => ({ ...prev, persistentVolumeClaims: e.target.value }))} placeholder="PVCs" />
+                <input className="input" value={tenantForm.persistentVolumeClaims} onChange={(e) => setTenantForm((prev) => ({ ...prev, persistentVolumeClaims: e.target.value }))} placeholder="存储卷声明（PVC）" />
                 <select className="input" value={tenantForm.defaultRole} onChange={(e) => setTenantForm((prev) => ({ ...prev, defaultRole: e.target.value }))}>
                   <option value="view">view</option>
                   <option value="edit">edit</option>
                   <option value="admin">admin</option>
                 </select>
-                <button type="submit" className="btn btn-primary w-full">Create Tenant</button>
+                <button type="submit" className="btn btn-primary w-full">创建租户</button>
               </form>
             </div>
 
             <div className="card p-6">
               <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
                 <Plus className="h-5 w-5 text-primary-600" />
-                <span>Add Tenant User</span>
+                <span>添加租户用户</span>
               </h2>
               <form onSubmit={createUser} className="space-y-4">
                 <select className="input" value={userForm.tenantId} onChange={(e) => setUserForm((prev) => ({ ...prev, tenantId: e.target.value }))} required>
-                  <option value="">Select Tenant</option>
+                  <option value="">选择租户</option>
                   {tenants.map((tenant) => (
                     <option key={tenant.id} value={tenant.id}>{tenant.name}</option>
                   ))}
                 </select>
-                <input className="input" value={userForm.username} onChange={(e) => setUserForm((prev) => ({ ...prev, username: e.target.value }))} placeholder="Username" required />
-                <input className="input" value={userForm.email} onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Email" />
+                <input className="input" value={userForm.username} onChange={(e) => setUserForm((prev) => ({ ...prev, username: e.target.value }))} placeholder="用户名" required />
+                <input className="input" value={userForm.email} onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="邮箱" />
                 <select className="input" value={userForm.subjectKind} onChange={(e) => setUserForm((prev) => ({ ...prev, subjectKind: e.target.value as TenantSubjectKind, subjectNamespace: e.target.value === 'ServiceAccount' ? prev.subjectNamespace : '' }))}>
                   <option value="User">User</option>
                   <option value="Group">Group</option>
@@ -348,7 +405,7 @@ const TenantsPage = () => {
                   className="input"
                   value={userForm.subjectName}
                   onChange={(e) => setUserForm((prev) => ({ ...prev, subjectName: e.target.value }))}
-                  placeholder={userForm.subjectKind === 'Group' ? 'Group name' : userForm.subjectKind === 'ServiceAccount' ? 'ServiceAccount name' : 'Subject name (optional)'}
+                  placeholder={userForm.subjectKind === 'Group' ? '用户组名称' : userForm.subjectKind === 'ServiceAccount' ? 'ServiceAccount 名称' : '主体名称（可选）'}
                 />
                 <textarea
                   className="input min-h-[72px]"
@@ -361,7 +418,7 @@ const TenantsPage = () => {
                     className="input"
                     value={userForm.subjectNamespace}
                     onChange={(e) => setUserForm((prev) => ({ ...prev, subjectNamespace: e.target.value }))}
-                    placeholder="ServiceAccount namespace"
+                    placeholder="ServiceAccount 所在命名空间"
                   />
                 )}
                 <select className="input" value={userForm.role} onChange={(e) => setUserForm((prev) => ({ ...prev, role: e.target.value }))}>
@@ -369,7 +426,7 @@ const TenantsPage = () => {
                   <option value="editor">editor</option>
                   <option value="admin">admin</option>
                 </select>
-                <button type="submit" className="btn btn-primary w-full">Add User</button>
+                <button type="submit" className="btn btn-primary w-full">添加用户</button>
               </form>
             </div>
           </div>

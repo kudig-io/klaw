@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { alertingApi, clusterApi, monitoringApi, type AlertRecord, type AlertRule, type AlertStats } from '../lib/api'
-import { formatDate } from '../lib/utils'
+import { cn, formatDate } from '../lib/utils'
 import { RefreshCw, Loader2, AlertCircle, Activity, Clock, AlertTriangle, Siren, CheckCircle2 } from 'lucide-react'
 
 const MonitoringPage: React.FC = () => {
@@ -79,35 +79,35 @@ const MonitoringPage: React.FC = () => {
   }
 
   const getAlertColor = (level: string, resolved?: boolean) => {
-    if (resolved) return 'border-gray-400 bg-gray-50'
-    if (level === 'critical' || level === 'error') return 'border-red-500 bg-red-50'
-    if (level === 'warning') return 'border-yellow-500 bg-yellow-50'
-    return 'border-blue-500 bg-blue-50'
+    if (resolved) return 'border-gray-400 bg-gray-50 dark:border-gray-600 dark:bg-gray-800'
+    if (level === 'critical' || level === 'error') return 'border-red-500 bg-red-50 dark:bg-red-950/40'
+    if (level === 'warning') return 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/40'
+    return 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
   }
 
   return (
     <div>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <h1 className="text-2xl font-bold">Monitoring</h1>
+        <h1 className="text-2xl font-bold">监控告警</h1>
         <div className="flex items-center space-x-4">
           <select
             value={selectedCluster}
             onChange={(e) => setSelectedCluster(e.target.value)}
-            className="input"
+            className="input w-44 shrink-0"
           >
-            <option value="">Select Cluster</option>
+            <option value="">选择集群</option>
             {clusters.map((c: any) => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
           </select>
-          <button onClick={loadData} className="btn btn-secondary flex items-center space-x-2">
+          <button onClick={loadData} className="btn btn-secondary flex items-center space-x-2 whitespace-nowrap">
             <RefreshCw className="h-4 w-4" />
-            <span>Refresh</span>
+            <span>刷新</span>
           </button>
-          <button onClick={evaluateAlerts} className="btn btn-primary flex items-center space-x-2">
+          <button onClick={evaluateAlerts} className="btn btn-primary flex items-center space-x-2 whitespace-nowrap">
             <Siren className="h-4 w-4" />
-            <span>Evaluate Rules</span>
+            <span>评估规则</span>
           </button>
         </div>
       </div>
@@ -123,24 +123,38 @@ const MonitoringPage: React.FC = () => {
             <div className="card p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
                 <Activity className="h-5 w-5 text-blue-600" />
-                <span>Alert Stats</span>
+                <span>告警统计</span>
               </h2>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500">Total</div>
-                  <div className="text-2xl font-semibold">{stats?.total ?? 0}</div>
+                <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">总计</div>
+                  <div className="text-2xl font-semibold font-mono">{stats?.total ?? 0}</div>
                 </div>
-                <div className="bg-red-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500">Active</div>
-                  <div className="text-2xl font-semibold">{stats?.active ?? 0}</div>
+                <div className={cn('rounded-lg p-4', (stats?.active ?? 0) > 0 ? 'bg-danger-50 dark:bg-danger-950/40' : 'bg-gray-50 dark:bg-gray-800/60')}>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">进行中</div>
+                  <div className="text-2xl font-semibold font-mono">{stats?.active ?? 0}</div>
                 </div>
-                <div className="bg-yellow-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500">Recent 24h</div>
-                  <div className="text-2xl font-semibold">{stats?.recent24h ?? 0}</div>
+                <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">近 24 小时</div>
+                  <div className="text-2xl font-semibold font-mono">{stats?.recent24h ?? 0}</div>
                 </div>
-                <div className="bg-green-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-500">Rules</div>
-                  <div className="text-2xl font-semibold">{rules.length}</div>
+                <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">规则数</div>
+                  <div className="text-2xl font-semibold font-mono">{rules.length}</div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="flex items-center gap-3 flex-wrap text-sm">
+                  <span className="text-gray-500">未解决分级：</span>
+                  <span className="font-medium text-danger-600 dark:text-danger-400">critical <span className="font-mono">{stats?.bySeverity?.critical ?? 0}</span></span>
+                  <span className="font-medium text-warning-600 dark:text-warning-400">error <span className="font-mono">{stats?.bySeverity?.error ?? 0}</span></span>
+                  <span className="font-medium text-gray-600 dark:text-gray-400">warning <span className="font-mono">{stats?.bySeverity?.warning ?? 0}</span></span>
+                </div>
+                <div className="flex items-center gap-3 flex-wrap text-sm">
+                  <span className="text-gray-500">状态分布：</span>
+                  <span className="font-medium">未确认 <span className="font-mono">{stats?.byStatus?.active ?? 0}</span></span>
+                  <span className="font-medium">已确认 <span className="font-mono">{stats?.byStatus?.acknowledged ?? 0}</span></span>
+                  <span className="font-medium text-success-600 dark:text-success-400">已解决 <span className="font-mono">{stats?.byStatus?.resolved ?? 0}</span></span>
                 </div>
               </div>
             </div>
@@ -148,17 +162,45 @@ const MonitoringPage: React.FC = () => {
             <div className="card p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
                 <Clock className="h-5 w-5 text-green-600" />
-                <span>Rule Coverage</span>
+                <span>规则覆盖</span>
               </h2>
               <div className="space-y-3">
-                {rules.slice(0, 5).map((rule) => (
-                  <div key={rule.id} className="rounded-lg border border-gray-200 p-3">
-                    <div className="flex items-center justify-between">
+                {rules.map((rule) => (
+                  <div key={rule.id} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">{rule.name}</span>
-                      <span className="text-xs uppercase text-gray-500">{rule.severity}</span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-xs ${
+                            rule.enabled
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                          }`}
+                        >
+                          {rule.enabled ? '启用' : '停用'}
+                        </span>
+                        <span className="text-xs uppercase text-gray-500">{rule.severity}</span>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{rule.description}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-mono">
                       {rule.condition.type}.{rule.condition.field} {rule.condition.operator} {String(rule.condition.threshold)}
+                      <span className="text-gray-400 font-sans"> · 窗口 {rule.condition.timeWindow}</span>
+                    </div>
+                    {(rule.actions?.length ?? 0) > 0 && (
+                      <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                        {rule.actions?.map((action) => (
+                          <span
+                            key={action}
+                            className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-xs font-mono text-gray-600 dark:text-gray-400"
+                          >
+                            {action}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="mt-1.5 text-xs text-gray-500 dark:text-gray-500">
+                      创建 {formatDate(rule.createdAt)} · 更新 {formatDate(rule.updatedAt)}
                     </div>
                   </div>
                 ))}
@@ -170,13 +212,13 @@ const MonitoringPage: React.FC = () => {
             <div className="card p-6">
               <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
                 <AlertTriangle className="h-5 w-5 text-orange-600" />
-                <span>Last Evaluation Triggered {lastTriggered.length} Alerts</span>
+                <span>本次评估触发 {lastTriggered.length} 条告警</span>
               </h2>
               <div className="space-y-2">
                 {lastTriggered.map((alert) => (
-                  <div key={alert.id} className="rounded-lg p-3 border border-orange-200 bg-orange-50">
+                  <div key={alert.id} className="rounded-lg p-3 border border-orange-200 dark:border-orange-800/50 bg-orange-50 dark:bg-orange-950/40">
                     <div className="font-medium">{alert.ruleName}</div>
-                    <div className="text-sm text-gray-600">{alert.resourceKind} {alert.namespace ? `${alert.namespace}/` : ''}{alert.resourceName}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">{alert.resourceKind} {alert.namespace ? `${alert.namespace}/` : ''}{alert.resourceName}</div>
                   </div>
                 ))}
               </div>
@@ -187,7 +229,7 @@ const MonitoringPage: React.FC = () => {
           <div className="card p-6">
             <h2 className="text-lg font-semibold mb-4 flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
-              <span>Alert History ({alerts.length})</span>
+              <span>告警历史（{alerts.length}）</span>
             </h2>
             <div className="space-y-3">
               {alerts.map((alert) => (
@@ -198,23 +240,36 @@ const MonitoringPage: React.FC = () => {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="font-medium">{alert.message}</div>
-                      <div className="text-sm text-gray-600 mt-1">
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                         {alert.ruleName} · {alert.resourceKind} · {alert.namespace ? `${alert.namespace}/` : ''}{alert.resourceName}
+                      </div>
+                      <div className="text-sm text-gray-700 dark:text-gray-300 mt-1 font-mono">
+                        触发值 {alert.value} {alert.operator} 阈值 {alert.threshold}
                       </div>
                     </div>
                     <span className="text-sm text-gray-500 whitespace-nowrap">{formatDate(alert.createdAt)}</span>
                   </div>
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-gray-600 capitalize">{alert.ruleType} - {alert.severity}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">{alert.ruleType} - {alert.severity}</span>
+                    {alert.acknowledged && (
+                      <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs">
+                        已确认{alert.acknowledgedAt ? ` · ${formatDate(alert.acknowledgedAt)}` : ''}
+                      </span>
+                    )}
+                    {alert.resolved && (
+                      <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
+                        已解决{alert.resolvedAt ? ` · ${formatDate(alert.resolvedAt)}` : ''}
+                      </span>
+                    )}
                     {!alert.acknowledged && !alert.resolved && (
                       <button onClick={() => acknowledgeAlert(alert.id)} className="btn btn-secondary text-xs">
-                        Acknowledge
+                        确认
                       </button>
                     )}
                     {!alert.resolved && (
                       <button onClick={() => resolveAlert(alert.id)} className="btn btn-secondary text-xs flex items-center space-x-1">
                         <CheckCircle2 className="h-3 w-3" />
-                        <span>Resolve</span>
+                        <span>解决</span>
                       </button>
                     )}
                   </div>
@@ -225,21 +280,39 @@ const MonitoringPage: React.FC = () => {
 
           {/* Status */}
           <div className="card p-6">
-            <h2 className="text-lg font-semibold mb-4">Status</h2>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <div className="text-sm text-gray-500">Status</div>
+            <h2 className="text-lg font-semibold mb-4">运行状态</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4 text-center">
+                <div className="text-sm text-gray-500 dark:text-gray-400">状态</div>
                 <div className="text-lg font-semibold text-green-600">
-                  {status.active ? 'Active' : 'Inactive'}
+                  {status.active ? '运行中' : '未启用'}
                 </div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <div className="text-sm text-gray-500">Data Points</div>
+              <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4 text-center">
+                <div className="text-sm text-gray-500 dark:text-gray-400">数据点</div>
                 <div className="text-lg font-semibold">{status.dataPoints}</div>
               </div>
-              <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <div className="text-sm text-gray-500">Cluster</div>
+              <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4 text-center">
+                <div className="text-sm text-gray-500 dark:text-gray-400">集群</div>
                 <div className="text-lg font-semibold">{status.cluster}</div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4 text-center">
+                <div className="text-sm text-gray-500 dark:text-gray-400">采集间隔</div>
+                <div className="text-lg font-semibold">{status.interval ?? '-'}</div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4 text-center">
+                <div className="text-sm text-gray-500 dark:text-gray-400">评估间隔</div>
+                <div className="text-lg font-semibold">{status.evalInterval ?? '-'}</div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4 text-center">
+                <div className="text-sm text-gray-500 dark:text-gray-400">启用规则</div>
+                <div className="text-lg font-semibold">
+                  {status.rulesEnabled ?? '-'}/{status.rulesTotal ?? '-'}
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-4 text-center col-span-2">
+                <div className="text-sm text-gray-500 dark:text-gray-400">最近评估</div>
+                <div className="text-lg font-semibold">{status.lastEvaluation ? formatDate(status.lastEvaluation) : '-'}</div>
               </div>
             </div>
           </div>

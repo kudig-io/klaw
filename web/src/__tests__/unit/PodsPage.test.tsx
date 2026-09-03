@@ -14,13 +14,13 @@ afterEach(() => server.resetHandlers())
 describe('PodsPage', () => {
   it('应该显示页面标题', () => {
     render(<PodsPage />)
-    expect(screen.getByText('Pods Management')).toBeInTheDocument()
+    expect(screen.getByText('容器组（Pod）管理')).toBeInTheDocument()
   })
 
   it('应该显示集群和命名空间选择器', () => {
     render(<PodsPage />)
-    expect(screen.getByText('Select Cluster')).toBeInTheDocument()
-    expect(screen.getByText('All Namespaces')).toBeInTheDocument()
+    expect(screen.getByText('选择集群')).toBeInTheDocument()
+    expect(screen.getByText('全部命名空间')).toBeInTheDocument()
   })
 
   it('应该成功加载并显示 Pod 列表', async () => {
@@ -56,7 +56,7 @@ describe('PodsPage', () => {
     }, { timeout: 3000 })
     
     // 输入搜索词
-    const searchInput = screen.getByPlaceholderText('Search pods...')
+    const searchInput = screen.getByPlaceholderText('搜索容器组…')
     fireEvent.change(searchInput, { target: { value: 'nginx' } })
     
     // 验证过滤结果（pod 名称包含搜索词）
@@ -72,16 +72,16 @@ describe('PodsPage', () => {
     }, { timeout: 3000 })
     
     // 验证表头
-    expect(screen.getByText('Pod Name')).toBeInTheDocument()
-    expect(screen.getByText('Status')).toBeInTheDocument()
-    expect(screen.getByText('Node')).toBeInTheDocument()
-    expect(screen.getByText('IP')).toBeInTheDocument()
-    expect(screen.getByText('Created')).toBeInTheDocument()
+    expect(screen.getByText('容器组名称')).toBeInTheDocument()
+    expect(screen.getByText('状态')).toBeInTheDocument()
+    expect(screen.getByText('节点')).toBeInTheDocument()
+    expect(screen.getByText('IP 地址')).toBeInTheDocument()
+    expect(screen.getByText('创建时间')).toBeInTheDocument()
   })
 
   it('应该显示刷新按钮', () => {
     render(<PodsPage />)
-    expect(screen.getByText('Refresh')).toBeInTheDocument()
+    expect(screen.getByText('刷新')).toBeInTheDocument()
   })
 
   it('应该支持展开查看日志', async () => {
@@ -102,7 +102,7 @@ describe('PodsPage', () => {
       
       // 验证日志区域显示
       await waitFor(() => {
-        expect(screen.getByText(/Logs for/)).toBeInTheDocument()
+        expect(screen.getByText(/的日志/)).toBeInTheDocument()
       })
     }
   })

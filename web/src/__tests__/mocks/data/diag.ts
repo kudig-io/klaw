@@ -59,6 +59,7 @@ const ISSUES: IssueSeed[] = [
   {
     severity: 'info', cn: '节点内核版本一致', en: 'Node Kernel Consistent', analyzer: 'cluster',
     details: '所有节点运行相同内核版本（5.15.0-89-generic），kubelet 版本 v1.29.2，无需升级。',
+    remediation: { suggestion: '无需处理；保持节点内核与 kubelet 版本基线一致，升级时统一滚动。' },
   },
   {
     severity: 'info', cn: 'etcd 快照备份完成', en: 'etcd Snapshot Backup Completed', analyzer: 'backup',

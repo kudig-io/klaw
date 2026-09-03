@@ -14,12 +14,12 @@ afterEach(() => server.resetHandlers())
 describe('DeploymentsPage', () => {
   it('应该显示页面标题', () => {
     render(<DeploymentsPage />)
-    expect(screen.getByText('Deployments Management')).toBeInTheDocument()
+    expect(screen.getByText('部署管理')).toBeInTheDocument()
   })
 
   it('应该显示集群选择器', () => {
     render(<DeploymentsPage />)
-    expect(screen.getByText('Select Cluster')).toBeInTheDocument()
+    expect(screen.getByText('选择集群')).toBeInTheDocument()
   })
 
   it('应该成功加载并显示 Deployment 列表', async () => {
@@ -43,7 +43,7 @@ describe('DeploymentsPage', () => {
     }, { timeout: 3000 })
     
     // 验证状态标签（多 Deployment 共用同名状态，用 getAllByText）
-    expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('可用').length).toBeGreaterThan(0)
   })
 
   it('应该显示副本数量', async () => {
@@ -73,7 +73,7 @@ describe('DeploymentsPage', () => {
     }, { timeout: 3000 })
     
     // 输入搜索词
-    const searchInput = screen.getByPlaceholderText('Search deployments...')
+    const searchInput = screen.getByPlaceholderText('搜索部署…')
     fireEvent.change(searchInput, { target: { value: 'nginx' } })
     
     // 验证过滤结果
@@ -97,7 +97,7 @@ describe('DeploymentsPage', () => {
       
       // 验证详情显示
       await waitFor(() => {
-        expect(screen.getByText(/Deployment Details:/)).toBeInTheDocument()
+        expect(screen.getByText(/部署详情：/)).toBeInTheDocument()
       })
     }
   })
@@ -106,7 +106,7 @@ describe('DeploymentsPage', () => {
     render(<DeploymentsPage />)
     
     await waitFor(() => {
-      expect(screen.getByText('Refresh')).toBeInTheDocument()
+      expect(screen.getByText('刷新')).toBeInTheDocument()
     })
   })
 

@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, HashRouter } from 'react-router-dom'
 import App from './App.tsx'
 import { ToastProvider } from './contexts/ToastContext.tsx'
 import './index.css'
@@ -13,13 +13,21 @@ async function bootstrap() {
     await startMockService()
   }
 
+  // 支持 ?theme=dark 深链（演示/截图场景），与顶栏切换按钮共用同一 class
+  if (new URLSearchParams(location.search).get('theme') === 'dark') {
+    document.documentElement.classList.add('dark')
+  }
+
+  // Meoo 等静态托管没有服务端路由，深链刷新会 404，构建时用 VITE_USE_HASH_ROUTER=true 切换
+  const Router = import.meta.env.VITE_USE_HASH_ROUTER === 'true' ? HashRouter : BrowserRouter
+
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <BrowserRouter>
+      <Router>
         <ToastProvider>
           <App />
         </ToastProvider>
-      </BrowserRouter>
+      </Router>
     </React.StrictMode>,
   )
 }

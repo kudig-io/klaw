@@ -32,7 +32,7 @@ const DeploymentsPage: React.FC = () => {
         setSelectedCluster(response.data[0].name)
       }
     } catch (err) {
-      setError('Failed to fetch clusters')
+      setError('获取集群列表失败')
       console.error('Error fetching clusters:', err)
     }
   }
@@ -50,7 +50,7 @@ const DeploymentsPage: React.FC = () => {
       // 默认选择 "All Namespaces" (空字符串)
       setSelectedNamespace('')
     } catch (err) {
-      setError('Failed to fetch namespaces')
+      setError('获取命名空间列表失败')
       console.error('Error fetching namespaces:', err)
     }
   }
@@ -68,7 +68,7 @@ const DeploymentsPage: React.FC = () => {
       const response = await deploymentApi.listDeployments(selectedCluster, selectedNamespace)
       setDeployments(response.data)
     } catch (err) {
-      setError('Failed to fetch deployments')
+      setError('获取部署列表失败')
       console.error('Error fetching deployments:', err)
     } finally {
       setLoading(false)
@@ -115,7 +115,7 @@ const DeploymentsPage: React.FC = () => {
       // 刷新状态
       await fetchDeploymentStatus(deployment)
     } catch (err) {
-      setError('Failed to scale deployment')
+      setError('调整副本数失败')
       console.error('Error scaling deployment:', err)
     } finally {
       setScalingDeployment(null)
@@ -125,16 +125,16 @@ const DeploymentsPage: React.FC = () => {
   const restartDeployment = async (deployment: Deployment) => {
     const deploymentName = deployment.metadata.name
     const namespace = getDeploymentNamespace(deployment)
-    if (!confirm(`Are you sure you want to restart deployment ${deploymentName}?`)) {
+    if (!confirm(`确定要重启部署 ${deploymentName} 吗？`)) {
       return
     }
 
     try {
       setRestartingDeployment(deploymentName)
       await deploymentApi.restartDeployment(selectedCluster, namespace, deploymentName)
-      alert(`Deployment ${deploymentName} restarted successfully`)
+      alert(`部署 ${deploymentName} 已重启`)
     } catch (err) {
-      setError('Failed to restart deployment')
+      setError('重启部署失败')
       console.error('Error restarting deployment:', err)
     } finally {
       setRestartingDeployment(null)
@@ -161,13 +161,13 @@ const DeploymentsPage: React.FC = () => {
     const desired = deployment.spec.replicas || 0
     
     if (available === desired && desired > 0) {
-      return 'Available'
+      return '可用'
     } else if (available > 0) {
-      return 'Progressing'
+      return '变更中'
     } else if (desired === 0) {
-      return 'Scaled to 0'
+      return '已缩容至 0'
     } else {
-      return 'Unavailable'
+      return '不可用'
     }
   }
 
@@ -178,7 +178,7 @@ const DeploymentsPage: React.FC = () => {
   return (
     <div>
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <h1 className="text-2xl font-bold">Deployments Management</h1>
+        <h1 className="text-2xl font-bold">部署管理</h1>
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex items-center space-x-2">
             <select
@@ -186,7 +186,7 @@ const DeploymentsPage: React.FC = () => {
               onChange={(e) => setSelectedCluster(e.target.value)}
               className="input"
             >
-              <option value="">Select Cluster</option>
+              <option value="">选择集群</option>
               {clusters.map((cluster) => (
                 <option key={cluster.name} value={cluster.name}>
                   {cluster.name}
@@ -201,7 +201,7 @@ const DeploymentsPage: React.FC = () => {
               className="input"
               disabled={!selectedCluster}
             >
-              <option value="">All Namespaces</option>
+              <option value="">全部命名空间</option>
               {namespaces.map((ns) => (
                 <option key={ns.metadata.name} value={ns.metadata.name}>
                   {ns.metadata.name}
@@ -214,7 +214,7 @@ const DeploymentsPage: React.FC = () => {
             className="btn btn-secondary flex items-center space-x-2 whitespace-nowrap"
           >
             <RefreshCw className="h-4 w-4" />
-            <span>Refresh</span>
+            <span>刷新</span>
           </button>
         </div>
       </div>
@@ -224,14 +224,14 @@ const DeploymentsPage: React.FC = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search deployments..."
+            placeholder="搜索部署…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="input pl-10"
           />
         </div>
         <div className="ml-4 text-sm text-gray-500 dark:text-gray-400">
-          {filteredDeployments.length} deployments
+          共 {filteredDeployments.length} 个部署
         </div>
       </div>
 
@@ -251,22 +251,25 @@ const DeploymentsPage: React.FC = () => {
             <thead>
               <tr className="bg-gray-100 dark:bg-gray-800">
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Deployment Name
+                  部署名称
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Status
+                  命名空间
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Replicas
+                  状态
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Image
+                  副本
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Created
+                  镜像
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  创建时间
                 </th>
                 <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Actions
+                  操作
                 </th>
               </tr>
             </thead>
@@ -279,6 +282,9 @@ const DeploymentsPage: React.FC = () => {
                         <Box className="h-4 w-4 text-primary-600" />
                         <span>{deployment.metadata.name}</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {getDeploymentNamespace(deployment)}
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium">
@@ -329,7 +335,7 @@ const DeploymentsPage: React.FC = () => {
                           onClick={() => restartDeployment(deployment)}
                           disabled={restartingDeployment === deployment.metadata.name}
                           className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
-                          title="Restart Deployment"
+                          title="重启部署"
                         >
                           <RotateCcw className={cn(
                             "h-4 w-4",
@@ -351,12 +357,31 @@ const DeploymentsPage: React.FC = () => {
                   </tr>
                   {expandedDeployment === deployment.metadata.name && (
                     <tr className="bg-gray-50 dark:bg-gray-800/30 border-b border-gray-200 dark:border-gray-700">
-                      <td colSpan={6} className="px-6 py-4">
+                      <td colSpan={7} className="px-6 py-4">
                         <div className="bg-gray-100 dark:bg-gray-900 rounded-lg p-4">
                           <h3 className="text-sm font-semibold mb-3 flex items-center">
                             <Server className="h-4 w-4 mr-2" />
-                            Deployment Details: {deployment.metadata.name}
+                            部署详情：{deployment.metadata.name}
                           </h3>
+
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                            <div className="bg-white dark:bg-gray-800 rounded p-3">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">命名空间</div>
+                              <div className="text-sm font-semibold">{getDeploymentNamespace(deployment)}</div>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 rounded p-3">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">标签选择器</div>
+                              <div className="text-sm font-semibold font-mono break-all">
+                                {Object.entries(deployment.spec.selector.matchLabels).map(([k, v]) => `${k}=${v}`).join(', ')}
+                              </div>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 rounded p-3">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">标签</div>
+                              <div className="text-sm font-semibold font-mono break-all">
+                                {Object.entries(deployment.metadata.labels || {}).map(([k, v]) => `${k}=${v}`).join(', ') || '-'}
+                              </div>
+                            </div>
+                          </div>
                           
                           {statusLoading[deployment.metadata.name] ? (
                             <div className="flex items-center justify-center py-8">
@@ -366,23 +391,23 @@ const DeploymentsPage: React.FC = () => {
                             <div className="space-y-4">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="bg-white dark:bg-gray-800 rounded p-3">
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">Desired Replicas</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">期望副本</div>
                                   <div className="text-lg font-semibold">{deployment.spec.replicas || 0}</div>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded p-3">
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">Available</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">可用副本</div>
                                   <div className="text-lg font-semibold text-green-600">
                                     {deploymentStatus[deployment.metadata.name].availableReplicas}
                                   </div>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded p-3">
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">Ready</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">就绪副本</div>
                                   <div className="text-lg font-semibold text-blue-600">
                                     {deploymentStatus[deployment.metadata.name].readyReplicas}
                                   </div>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded p-3">
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">Updated</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">已更新副本</div>
                                   <div className="text-lg font-semibold">
                                     {deploymentStatus[deployment.metadata.name].updatedReplicas}
                                   </div>
@@ -391,7 +416,7 @@ const DeploymentsPage: React.FC = () => {
                               
                               {deploymentStatus[deployment.metadata.name].conditions.length > 0 && (
                                 <div>
-                                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Conditions</h4>
+                                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">状态条件（Conditions）</h4>
                                   <div className="space-y-2">
                                     {deploymentStatus[deployment.metadata.name].conditions.map((condition, idx) => (
                                       <div key={idx} className="bg-white dark:bg-gray-800 rounded p-2 text-sm">
@@ -419,7 +444,7 @@ const DeploymentsPage: React.FC = () => {
                               )}
 
                               <div>
-                                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Containers</h4>
+                                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">容器（Containers）</h4>
                                 <div className="space-y-2">
                                   {deployment.spec.template.spec.containers.map((container, idx) => (
                                     <div key={idx} className="bg-white dark:bg-gray-800 rounded p-2 text-sm">
@@ -427,13 +452,25 @@ const DeploymentsPage: React.FC = () => {
                                         <span className="font-medium">{container.name}</span>
                                       </div>
                                       <div className="text-xs text-gray-500 mt-1 font-mono truncate">{container.image}</div>
+                                      {(container.resources?.requests || container.resources?.limits) && (
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                          {container.resources?.requests && (
+                                            <span className="mr-3">
+                                              Requests：CPU {container.resources.requests.cpu || '-'} / 内存 {container.resources.requests.memory || '-'}
+                                            </span>
+                                          )}
+                                          {container.resources?.limits && (
+                                            <span>Limits：CPU {container.resources.limits.cpu || '-'} / 内存 {container.resources.limits.memory || '-'}</span>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             </div>
                           ) : (
-                            <div className="text-center py-8 text-gray-500">No status information available</div>
+                            <div className="text-center py-8 text-gray-500">暂无状态信息</div>
                           )}
                         </div>
                       </td>
@@ -445,7 +482,7 @@ const DeploymentsPage: React.FC = () => {
           </table>
           {filteredDeployments.length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              No deployments found
+              未找到部署
             </div>
           )}
         </div>

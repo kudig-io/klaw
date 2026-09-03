@@ -23,7 +23,7 @@ describe('Error Handling', () => {
     render(<ClusterDashboard />)
     
     await waitFor(() => {
-      expect(screen.getByText(/Failed to fetch cluster data/)).toBeInTheDocument()
+      expect(screen.getByText(/集群数据获取失败/)).toBeInTheDocument()
     }, { timeout: 3000 })
   })
 
@@ -33,7 +33,7 @@ describe('Error Handling', () => {
     render(<ClusterDashboard />)
     
     await waitFor(() => {
-      expect(screen.getByText('Try Again')).toBeInTheDocument()
+      expect(screen.getByText('重试')).toBeInTheDocument()
     }, { timeout: 3000 })
   })
 })

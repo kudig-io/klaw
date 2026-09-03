@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
+import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react'
 
 type ToastType = 'success' | 'error' | 'info' | 'warning'
 
@@ -54,7 +55,7 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-2">
+    <div className="fixed bottom-4 right-4 z-50 space-y-2" role="status" aria-live="polite">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
       ))}
@@ -62,34 +63,35 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
   )
 }
 
+// 700 阶保证白字对比 ≥4.5:1
+const toastStyles: Record<ToastType, string> = {
+  success: 'bg-success-700 text-white',
+  error: 'bg-danger-700 text-white',
+  warning: 'bg-warning-700 text-white',
+  info: 'bg-info-700 text-white',
+}
+
+const toastIcons: Record<ToastType, typeof CheckCircle2> = {
+  success: CheckCircle2,
+  error: XCircle,
+  warning: AlertTriangle,
+  info: Info,
+}
+
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
-  const colors = {
-    success: 'bg-green-500 text-white',
-    error: 'bg-red-500 text-white',
-    warning: 'bg-yellow-500 text-white',
-    info: 'bg-blue-500 text-white',
-  }
-
-  const icons = {
-    success: '✓',
-    error: '✕',
-    warning: '⚠',
-    info: 'ℹ',
-  }
-
+  const Icon = toastIcons[toast.type]
   return (
     <div
-      className={`${colors[toast.type]} px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[280px] animate-in slide-in-from-right fade-in`}
+      className={`${toastStyles[toast.type]} px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[280px] animate-toast-in`}
     >
-      <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-white/20 rounded-full text-sm">
-        {icons[toast.type]}
-      </span>
+      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span className="flex-1 text-sm font-medium">{toast.message}</span>
       <button
         onClick={() => onRemove(toast.id)}
-        className="flex-shrink-0 text-white/80 hover:text-white"
+        aria-label="关闭通知"
+        className="shrink-0 text-white/70 hover:text-white transition-colors duration-150"
       >
-        ✕
+        <X className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   )
