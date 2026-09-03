@@ -125,13 +125,13 @@ export function StoragePage() {
   function getPvcPhaseColor(phase: string): string {
     switch (phase) {
       case 'Bound':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+        return 'bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-300'
       case 'Pending':
-        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+        return 'bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-300'
       case 'Lost':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+        return 'bg-danger-100 text-danger-800 dark:bg-danger-900/30 dark:text-danger-300'
       case 'Terminating':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+        return 'bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-300'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
     }
@@ -140,13 +140,13 @@ export function StoragePage() {
   function getPvPhaseColor(phase: string): string {
     switch (phase) {
       case 'Available':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+        return 'bg-info-100 text-info-800 dark:bg-info-900/30 dark:text-info-300'
       case 'Bound':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+        return 'bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-300'
       case 'Released':
-        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+        return 'bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-300'
       case 'Failed':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+        return 'bg-danger-100 text-danger-800 dark:bg-danger-900/30 dark:text-danger-300'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
     }
@@ -216,8 +216,8 @@ export function StoragePage() {
               <p className="text-sm text-gray-600 dark:text-gray-400">PVC 声明</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{pvcs.length}</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <Database className="h-5 w-5 text-blue-600 dark:text-blue-300" />
+            <div className="p-2.5 rounded-lg bg-info-100 dark:bg-info-900/30">
+              <Database className="h-5 w-5 text-info-600 dark:text-info-300" />
             </div>
           </div>
         </div>
@@ -227,8 +227,8 @@ export function StoragePage() {
               <p className="text-sm text-gray-600 dark:text-gray-400">持久卷 PV</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{pvs.length}</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-green-100 dark:bg-green-900/30">
-              <HardDrive className="h-5 w-5 text-green-600 dark:text-green-300" />
+            <div className="p-2.5 rounded-lg bg-success-100 dark:bg-success-900/30">
+              <HardDrive className="h-5 w-5 text-success-600 dark:text-success-300" />
             </div>
           </div>
         </div>
@@ -238,8 +238,8 @@ export function StoragePage() {
               <p className="text-sm text-gray-600 dark:text-gray-400">存储类</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{storageClasses.length}</p>
             </div>
-            <div className="p-2.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-              <Boxes className="h-5 w-5 text-purple-600 dark:text-purple-300" />
+            <div className="p-2.5 rounded-lg bg-primary-100 dark:bg-primary-900/30">
+              <Boxes className="h-5 w-5 text-primary-600 dark:text-primary-300" />
             </div>
           </div>
         </div>
@@ -258,8 +258,8 @@ export function StoragePage() {
                 </div>
               )}
             </div>
-            <div className="p-2.5 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-              <PieChart className="h-5 w-5 text-orange-600 dark:text-orange-300" />
+            <div className="p-2.5 rounded-lg bg-warning-100 dark:bg-warning-900/30">
+              <PieChart className="h-5 w-5 text-warning-600 dark:text-warning-300" />
             </div>
           </div>
         </div>
@@ -273,7 +273,7 @@ export function StoragePage() {
       <div className="card overflow-hidden mb-8">
         {isLoading ? (
           <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent"></div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">正在加载存储资源…</p>
           </div>
         ) : pvcs.length === 0 ? (
@@ -306,7 +306,7 @@ export function StoragePage() {
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                       {pvc.metadata.name}
                       {pvc.metadata.deletionTimestamp && (
-                        <span className="ml-2 text-xs text-orange-600 dark:text-orange-400">删除中</span>
+                        <span className="ml-2 text-xs text-warning-600 dark:text-warning-400">删除中</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -458,7 +458,7 @@ export function StoragePage() {
                     </td>
                     <td className="px-4 py-3">
                       {sc.allowVolumeExpansion ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-300">
                           支持
                         </span>
                       ) : (

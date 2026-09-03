@@ -42,9 +42,9 @@ const formatDuration = (start?: string, end?: string) => {
 }
 
 const getPhaseBadgeClass = (phase: string) => {
-  if (phase === 'Completed') return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-  if (phase === 'Failed') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-  if (phase === 'PartiallyFailed') return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+  if (phase === 'Completed') return 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400'
+  if (phase === 'Failed') return 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400'
+  if (phase === 'PartiallyFailed') return 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400'
   return 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
 }
 
@@ -160,34 +160,34 @@ const BackupsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3">
+        <div className="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-900/20 text-danger-700 dark:text-danger-300 px-4 py-3">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="card p-5">
-          <div className="text-sm text-gray-500">备份总数</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">备份总数</div>
           <div className="text-2xl font-semibold mt-2">{summary?.total ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">已完成</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">已完成</div>
           <div className="text-2xl font-semibold mt-2">{summary?.byPhase?.Completed ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">部分失败</div>
-          <div className="text-2xl font-semibold mt-2 text-yellow-600">{summary?.byPhase?.PartiallyFailed ?? 0}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">部分失败</div>
+          <div className="text-2xl font-semibold mt-2 text-warning-600 dark:text-warning-400">{summary?.byPhase?.PartiallyFailed ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">失败</div>
-          <div className="text-2xl font-semibold mt-2 text-red-600">{summary?.byPhase?.Failed ?? 0}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">失败</div>
+          <div className="text-2xl font-semibold mt-2 text-danger-600 dark:text-danger-400">{summary?.byPhase?.Failed ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">增量备份</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">增量备份</div>
           <div className="text-2xl font-semibold mt-2">{summary?.byMode?.Incremental ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">近 24 小时</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">近 24 小时</div>
           <div className="text-2xl font-semibold mt-2">{summary?.recent24h ?? 0}</div>
         </div>
       </div>
@@ -221,7 +221,7 @@ const BackupsPage: React.FC = () => {
                           {backup.phase}
                         </span>
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {backup.spec.backupMode} · {formatBytes(backup.snapshotSize)} · 耗时 {formatDuration(backup.startTime, backup.completionTime)}
                       </div>
                     </div>
@@ -236,29 +236,29 @@ const BackupsPage: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-sm">
                     <div>
-                      <div className="text-gray-500">创建时间</div>
+                      <div className="text-gray-500 dark:text-gray-400">创建时间</div>
                       <div>{formatDate(backup.createdAt)}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500">etcd 版本</div>
+                      <div className="text-gray-500 dark:text-gray-400">etcd 版本</div>
                       <div>{backup.etcdRevision}</div>
                     </div>
                     <div className="md:col-span-2">
-                      <div className="text-gray-500">快照位置</div>
+                      <div className="text-gray-500 dark:text-gray-400">快照位置</div>
                       <div className="break-all">{backup.snapshotLocation}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500">存储位置</div>
+                      <div className="text-gray-500 dark:text-gray-400">存储位置</div>
                       <div>
                         {backup.spec.storageLocation.provider} / {backup.spec.storageLocation.bucket} / {backup.spec.storageLocation.region}
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">凭证引用（Secret）</div>
+                      <div className="text-gray-500 dark:text-gray-400">凭证引用（Secret）</div>
                       <div className="font-mono">{backup.spec.storageLocation.credentialsSecret}</div>
                     </div>
                     <div>
-                      <div className="text-gray-500">数据校验</div>
+                      <div className="text-gray-500 dark:text-gray-400">数据校验</div>
                       <div>
                         {backup.validationResult?.message || '未启用'}
                         {backup.validationResult?.hash && (
@@ -267,18 +267,18 @@ const BackupsPage: React.FC = () => {
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">校验配置</div>
+                      <div className="text-gray-500 dark:text-gray-400">校验配置</div>
                       <div>
                         {backup.spec.validation?.enabled ? '启用' : '停用'}
                         {backup.spec.validation?.consistencyCheck ? ' · 一致性检查 启用' : ''}
                       </div>
                     </div>
                     <div>
-                      <div className="text-gray-500">etcd 端点</div>
+                      <div className="text-gray-500 dark:text-gray-400">etcd 端点</div>
                       <div>{backup.spec.etcdEndpoints?.length ?? 0} 个</div>
                     </div>
                     {backup.message && (
-                      <div className="md:col-span-2 text-red-600 dark:text-red-400">{backup.message}</div>
+                      <div className="md:col-span-2 text-danger-600 dark:text-danger-400">{backup.message}</div>
                     )}
                   </div>
                 </div>

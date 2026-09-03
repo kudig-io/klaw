@@ -19,10 +19,10 @@ interface DiagResult {
 }
 
 const severityColors: Record<string, string> = {
-  CRITICAL: 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400',
-  ERROR: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400',
-  WARNING: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400',
-  INFO: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400',
+  CRITICAL: 'text-danger-600 bg-danger-50 dark:bg-danger-900/20 dark:text-danger-400',
+  ERROR: 'text-danger-600 bg-danger-50 dark:bg-danger-900/20 dark:text-danger-400',
+  WARNING: 'text-warning-600 bg-warning-50 dark:bg-warning-900/20 dark:text-warning-400',
+  INFO: 'text-info-600 bg-info-50 dark:bg-info-900/20 dark:text-info-400',
 }
 
 // 后端 Severity.MarshalJSON 序列化为英文小写；同时兼容数字与历史中文值
@@ -42,10 +42,10 @@ const severityLabels: Record<string, string> = {
 }
 
 function severityIcon(sev: 'CRITICAL' | 'ERROR' | 'WARNING' | 'INFO') {
-  if (sev === 'CRITICAL') return <AlertCircle className="h-5 w-5 text-red-500" />
-  if (sev === 'ERROR') return <AlertOctagon className="h-5 w-5 text-orange-500" />
-  if (sev === 'WARNING') return <AlertTriangle className="h-5 w-5 text-yellow-500" />
-  return <Info className="h-5 w-5 text-blue-500" />
+  if (sev === 'CRITICAL') return <AlertCircle className="h-5 w-5 text-danger-500" />
+  if (sev === 'ERROR') return <AlertOctagon className="h-5 w-5 text-danger-500" />
+  if (sev === 'WARNING') return <AlertTriangle className="h-5 w-5 text-warning-500" />
+  return <Info className="h-5 w-5 text-info-500" />
 }
 
 export default function DiagnosticsPage() {
@@ -108,7 +108,7 @@ export default function DiagnosticsPage() {
           </button>
         </div>
         {error && (
-          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-md text-sm">
+          <div className="mt-4 p-3 bg-danger-50 dark:bg-danger-900/20 text-danger-600 dark:text-danger-400 rounded-md text-sm">
             {error}
           </div>
         )}
@@ -118,19 +118,19 @@ export default function DiagnosticsPage() {
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-              <div className="text-3xl font-bold text-red-600 dark:text-red-400">{critical}</div>
+              <div className="text-3xl font-bold text-danger-600 dark:text-danger-400">{critical}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">严重</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-              <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">{errCount}</div>
+              <div className="text-3xl font-bold text-danger-600 dark:text-danger-400">{errCount}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">错误</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{warning}</div>
+              <div className="text-3xl font-bold text-warning-600 dark:text-warning-400">{warning}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">警告</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{info}</div>
+              <div className="text-3xl font-bold text-info-600 dark:text-info-400">{info}</div>
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">信息</div>
             </div>
           </div>

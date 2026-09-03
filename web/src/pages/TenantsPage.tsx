@@ -183,27 +183,27 @@ const TenantsPage = () => {
         </select>
       </div>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3">{error}</div>}
+      {error && <div className="rounded-lg border border-danger-200 dark:border-danger-800 bg-danger-50 dark:bg-danger-900/20 text-danger-700 dark:text-danger-300 px-4 py-3">{error}</div>}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="card p-5">
-          <div className="text-sm text-gray-500">租户数</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">租户数</div>
           <div className="text-2xl font-semibold mt-2">{stats?.totalTenants ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">用户数</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">用户数</div>
           <div className="text-2xl font-semibold mt-2">{stats?.totalUsers ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">命名空间数</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">命名空间数</div>
           <div className="text-2xl font-semibold mt-2">{stats?.totalNamespaces ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">近 24 小时审计</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">近 24 小时审计</div>
           <div className="text-2xl font-semibold mt-2">{auditStats?.recent24h ?? 0}</div>
         </div>
         <div className="card p-5">
-          <div className="text-sm text-gray-500">审计日志总数</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">审计日志总数</div>
           <div className="text-2xl font-semibold mt-2">{auditStats?.totalLogs ?? 0}</div>
         </div>
       </div>
@@ -227,15 +227,15 @@ const TenantsPage = () => {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{tenant.name}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${tenant.networkPolicies.enabled ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${tenant.networkPolicies.enabled ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
                             网络策略 {tenant.networkPolicies.enabled ? '启用' : '停用'}
                           </span>
                           {tenant.networkPolicies.defaultDeny && (
-                            <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">默认拒绝</span>
+                            <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">默认拒绝</span>
                           )}
-                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">RBAC {tenant.rbac.defaultRole}</span>
+                          <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-info-100 text-info-700 dark:bg-info-900/30 dark:text-info-400">RBAC {tenant.rbac.defaultRole}</span>
                         </div>
-                        <div className="text-sm text-gray-500 mt-1">{tenant.description || '暂无描述'}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tenant.description || '暂无描述'}</div>
                       </div>
                       {tenant.id !== 'default' && (
                         <button onClick={() => deleteTenant(tenant)} className="text-danger-600 hover:text-danger-700">
@@ -245,33 +245,33 @@ const TenantsPage = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-sm">
                       <div>
-                        <div className="text-gray-500">所属集群</div>
+                        <div className="text-gray-500 dark:text-gray-400">所属集群</div>
                         <div>{tenant.cluster || '未分配'}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">命名空间</div>
+                        <div className="text-gray-500 dark:text-gray-400">命名空间</div>
                         <div>{tenant.namespaces.join(', ')}</div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3 text-sm">
                       <div>
-                        <div className="text-gray-500">CPU 配额</div>
+                        <div className="text-gray-500 dark:text-gray-400">CPU 配额</div>
                         <div className="font-medium">{tenant.resourceQuotas.cpu} 核</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">内存配额</div>
+                        <div className="text-gray-500 dark:text-gray-400">内存配额</div>
                         <div className="font-medium">{tenant.resourceQuotas.memory}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">容器组上限</div>
+                        <div className="text-gray-500 dark:text-gray-400">容器组上限</div>
                         <div className="font-medium">{tenant.resourceQuotas.pods}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">服务上限</div>
+                        <div className="text-gray-500 dark:text-gray-400">服务上限</div>
                         <div className="font-medium">{tenant.resourceQuotas.services}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">PVC 上限</div>
+                        <div className="text-gray-500 dark:text-gray-400">PVC 上限</div>
                         <div className="font-medium">{tenant.resourceQuotas.persistentVolumeClaims}</div>
                       </div>
                     </div>
@@ -302,10 +302,10 @@ const TenantsPage = () => {
                   <div key={user.id} className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between">
                     <div>
                       <div className="font-medium">{user.username}</div>
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {(user.subjectKind || 'User')} · {user.subjectName || user.username} · {user.role}
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {user.email || '未填写邮箱'} · 命名空间：{user.namespaces?.join(', ') || '租户默认'}
                         {user.subjectKind === 'ServiceAccount' && ` · SA 命名空间：${user.subjectNamespace || 'default'}`}
                       </div>
@@ -327,11 +327,11 @@ const TenantsPage = () => {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{log.eventType}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${log.severity === 'warning' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : log.severity === 'error' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{log.severity}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${log.result === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : log.result === 'failure' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>{log.result}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${log.severity === 'warning' ? 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400' : log.severity === 'error' ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>{log.severity}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${log.result === 'success' ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400' : log.result === 'failure' ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-400' : 'bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400'}`}>{log.result}</span>
                         </div>
                         <div className="font-medium mt-1">{log.action}</div>
-                        <div className="text-sm text-gray-500 mt-1">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           {log.user || '系统'} · 来源 {log.source}
                           {log.resource?.kind && ` · ${log.resource.kind} ${log.resource.namespace ? `${log.resource.namespace}/` : ''}${log.resource.name}`}
                           {log.ipAddress && ` · IP ${log.ipAddress}`}
@@ -342,7 +342,7 @@ const TenantsPage = () => {
                           </div>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500 whitespace-nowrap">{formatDate(log.timestamp)}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{formatDate(log.timestamp)}</div>
                     </div>
                   </div>
                 ))}

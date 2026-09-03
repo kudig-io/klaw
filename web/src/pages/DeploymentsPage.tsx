@@ -146,13 +146,13 @@ const DeploymentsPage: React.FC = () => {
     const desired = deployment.spec.replicas || 0
     
     if (available === desired && desired > 0) {
-      return 'bg-green-500'
+      return 'bg-success-500'
     } else if (available > 0) {
-      return 'bg-yellow-500'
+      return 'bg-warning-500'
     } else if (desired === 0) {
       return 'bg-gray-400'
     } else {
-      return 'bg-red-500'
+      return 'bg-danger-500'
     }
   }
 
@@ -236,7 +236,7 @@ const DeploymentsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 text-danger-700 dark:text-danger-300 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
@@ -396,13 +396,13 @@ const DeploymentsPage: React.FC = () => {
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded p-3">
                                   <div className="text-xs text-gray-500 dark:text-gray-400">可用副本</div>
-                                  <div className="text-lg font-semibold text-green-600">
+                                  <div className="text-lg font-semibold text-success-600 dark:text-success-400">
                                     {deploymentStatus[deployment.metadata.name].availableReplicas}
                                   </div>
                                 </div>
                                 <div className="bg-white dark:bg-gray-800 rounded p-3">
                                   <div className="text-xs text-gray-500 dark:text-gray-400">就绪副本</div>
-                                  <div className="text-lg font-semibold text-blue-600">
+                                  <div className="text-lg font-semibold text-info-600 dark:text-info-400">
                                     {deploymentStatus[deployment.metadata.name].readyReplicas}
                                   </div>
                                 </div>
@@ -424,18 +424,18 @@ const DeploymentsPage: React.FC = () => {
                                           <span className="font-medium">{condition.type}</span>
                                           <span className={cn(
                                             "px-2 py-0.5 rounded text-xs",
-                                            condition.status === 'True' 
-                                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                                            condition.status === 'True'
+                                              ? "bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-400"
                                               : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400"
                                           )}>
                                             {condition.status}
                                           </span>
                                         </div>
                                         {condition.reason && (
-                                          <div className="text-xs text-gray-500 mt-1">{condition.reason}</div>
+                                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{condition.reason}</div>
                                         )}
                                         {condition.message && (
-                                          <div className="text-xs text-gray-400 mt-0.5">{condition.message}</div>
+                                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{condition.message}</div>
                                         )}
                                       </div>
                                     ))}
@@ -451,7 +451,7 @@ const DeploymentsPage: React.FC = () => {
                                       <div className="flex items-center justify-between">
                                         <span className="font-medium">{container.name}</span>
                                       </div>
-                                      <div className="text-xs text-gray-500 mt-1 font-mono truncate">{container.image}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono truncate">{container.image}</div>
                                       {(container.resources?.requests || container.resources?.limits) && (
                                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                           {container.resources?.requests && (
@@ -470,7 +470,7 @@ const DeploymentsPage: React.FC = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="text-center py-8 text-gray-500">暂无状态信息</div>
+                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">暂无状态信息</div>
                           )}
                         </div>
                       </td>

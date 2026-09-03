@@ -202,7 +202,7 @@ const PodsPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-danger-50 dark:bg-danger-900/20 border border-danger-200 dark:border-danger-800 text-danger-700 dark:text-danger-300 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
@@ -303,7 +303,7 @@ const PodsPage: React.FC = () => {
                             </div>
                             <div className="bg-white dark:bg-gray-800 rounded p-3">
                               <div className="text-xs text-gray-500 dark:text-gray-400">累计重启</div>
-                              <div className={`text-sm font-semibold ${getPodRestarts(pod) > 0 ? 'text-red-600' : ''}`}>{getPodRestarts(pod)}</div>
+                              <div className={`text-sm font-semibold ${getPodRestarts(pod) > 0 ? 'text-danger-600 dark:text-danger-400' : ''}`}>{getPodRestarts(pod)}</div>
                             </div>
                           </div>
 
@@ -343,7 +343,7 @@ const PodsPage: React.FC = () => {
                                         </div>
                                       )}
                                       {state.waiting?.message && (
-                                        <div className="text-xs text-red-600 mt-1">{state.waiting.message}</div>
+                                        <div className="text-xs text-danger-600 dark:text-danger-400 mt-1">{state.waiting.message}</div>
                                       )}
                                     </div>
                                   )
@@ -359,7 +359,7 @@ const PodsPage: React.FC = () => {
                                 {pod.status.conditions.map((cond: any) => (
                                   <div key={cond.type} className="bg-white dark:bg-gray-800 rounded p-2 text-xs">
                                     <div className="font-medium">{cond.type}</div>
-                                    <div className={cond.status === 'True' ? 'text-green-600' : 'text-red-600'}>
+                                    <div className={cond.status === 'True' ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'}>
                                       {cond.status}
                                       {cond.reason ? ` · ${cond.reason}` : ''}
                                     </div>
@@ -384,19 +384,19 @@ const PodsPage: React.FC = () => {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                               <div className="bg-white dark:bg-gray-800 rounded p-3">
                                 <div className="text-xs text-gray-500 dark:text-gray-400">错误</div>
-                                <div className="text-lg font-semibold text-red-600">{podAnalysis[pod.metadata.name].errorCount}</div>
+                                <div className="text-lg font-semibold text-danger-600 dark:text-danger-400">{podAnalysis[pod.metadata.name].errorCount}</div>
                               </div>
                               <div className="bg-white dark:bg-gray-800 rounded p-3">
                                 <div className="text-xs text-gray-500 dark:text-gray-400">警告</div>
-                                <div className="text-lg font-semibold text-yellow-600">{podAnalysis[pod.metadata.name].warningCount}</div>
+                                <div className="text-lg font-semibold text-warning-600 dark:text-warning-400">{podAnalysis[pod.metadata.name].warningCount}</div>
                               </div>
                               <div className="bg-white dark:bg-gray-800 rounded p-3">
                                 <div className="text-xs text-gray-500 dark:text-gray-400">安全事件</div>
-                                <div className="text-lg font-semibold text-orange-600">{podAnalysis[pod.metadata.name].securityEvents?.length || 0}</div>
+                                <div className="text-lg font-semibold text-danger-600 dark:text-danger-400">{podAnalysis[pod.metadata.name].securityEvents?.length || 0}</div>
                               </div>
                               <div className="bg-white dark:bg-gray-800 rounded p-3">
                                 <div className="text-xs text-gray-500 dark:text-gray-400">慢请求</div>
-                                <div className="text-lg font-semibold text-blue-600">{podAnalysis[pod.metadata.name].performanceMetrics.slowRequests?.length || 0}</div>
+                                <div className="text-lg font-semibold text-info-600 dark:text-info-400">{podAnalysis[pod.metadata.name].performanceMetrics.slowRequests?.length || 0}</div>
                               </div>
                             </div>
                           )}

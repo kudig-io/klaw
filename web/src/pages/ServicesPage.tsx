@@ -115,13 +115,13 @@ export function ServicesPage() {
   function getServiceTypeColor(type: string): string {
     switch (type) {
       case 'LoadBalancer':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+        return 'bg-info-100 text-info-800 dark:bg-info-900/30 dark:text-info-300'
       case 'NodePort':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+        return 'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300'
       case 'ClusterIP':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+        return 'bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-300'
       case 'ExternalName':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+        return 'bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-300'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
     }
@@ -163,7 +163,7 @@ export function ServicesPage() {
       <div className="card overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent"></div>
             <p className="mt-4 text-gray-600 dark:text-gray-400">正在加载服务…</p>
           </div>
         ) : services.length === 0 ? (
@@ -240,7 +240,7 @@ export function ServicesPage() {
                           {Object.entries(service.spec.selector).slice(0, 1).map(([key, value]) => (
                             <span 
                               key={key}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
                             >
                               {key}={value}
                             </span>
@@ -269,7 +269,7 @@ export function ServicesPage() {
                         </button>
                         <button
                           onClick={() => handleDeleteService(service)}
-                          className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-600 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
                           title="删除服务"
                         >
                           <Trash2 className="w-4 h-4" />

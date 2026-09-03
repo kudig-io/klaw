@@ -186,12 +186,12 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                       {service.spec.externalIPs!.map((ip, idx) => (
                         <span 
                           key={idx}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-300"
                         >
                           {ip}
                           <button
                             onClick={() => copyToClipboard(ip)}
-                            className="hover:text-orange-600"
+                            className="hover:text-warning-600"
                           >
                             <Copy className="w-3 h-3" />
                           </button>
@@ -214,22 +214,22 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                       {service.status.loadBalancer!.ingress!.map((ingress, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           {ingress.ip && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-info-100 text-info-800 dark:bg-info-900/30 dark:text-info-300">
                               IP：{ingress.ip}
                               <button
                                 onClick={() => copyToClipboard(ingress.ip!)}
-                                className="hover:text-blue-600"
+                                className="hover:text-info-600"
                               >
                                 <Copy className="w-3 h-3" />
                               </button>
                             </span>
                           )}
                           {ingress.hostname && (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300">
                               主机名：{ingress.hostname}
                               <button
                                 onClick={() => copyToClipboard(ingress.hostname!)}
-                                className="hover:text-purple-600"
+                                className="hover:text-primary-600"
                               >
                                 <Copy className="w-3 h-3" />
                               </button>
@@ -254,7 +254,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                       {Object.entries(service.spec.selector).map(([key, value]) => (
                         <span 
                           key={key}
-                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300"
+                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300"
                         >
                           {key}: {value}
                         </span>
@@ -375,7 +375,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
 
               {isLoadingEndpoints ? (
                 <div className="text-center py-8">
-                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
+                  <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-primary-500 border-t-transparent"></div>
                 </div>
               ) : endpoints?.endpoints && endpoints.endpoints.length > 0 ? (
                 <div className="space-y-4">
@@ -384,7 +384,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                       {/* Ready Addresses */}
                       {subset.addresses && subset.addresses.length > 0 && (
                         <div className="mb-4">
-                          <h4 className="text-xs font-medium text-green-600 dark:text-green-400 mb-2">
+                          <h4 className="text-xs font-medium text-success-600 dark:text-success-400 mb-2">
                             就绪（{subset.addresses.length}）
                           </h4>
                           <div className="space-y-2">
@@ -394,7 +394,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                                 className="flex items-center justify-between text-sm bg-white dark:bg-gray-800 p-2 rounded"
                               >
                                 <div className="flex items-center gap-2">
-                                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                  <span className="w-2 h-2 rounded-full bg-success-500"></span>
                                   <span className="font-mono text-gray-900 dark:text-white">{addr.ip}</span>
                                   {addr.targetRef && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -417,7 +417,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                       {/* Not Ready Addresses */}
                       {subset.notReadyAddresses && subset.notReadyAddresses.length > 0 && (
                         <div>
-                          <h4 className="text-xs font-medium text-red-600 dark:text-red-400 mb-2">
+                          <h4 className="text-xs font-medium text-danger-600 dark:text-danger-400 mb-2">
                             未就绪（{subset.notReadyAddresses.length}）
                           </h4>
                           <div className="space-y-2">
@@ -427,7 +427,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                                 className="flex items-center justify-between text-sm bg-white dark:bg-gray-800 p-2 rounded"
                               >
                                 <div className="flex items-center gap-2">
-                                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                  <span className="w-2 h-2 rounded-full bg-danger-500"></span>
                                   <span className="font-mono text-gray-900 dark:text-white">{addr.ip}</span>
                                   {addr.targetRef && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
