@@ -16,7 +16,7 @@ One config, one deploy — click in the browser, shout in a DingTalk/Feishu grou
 **30-second start:**
 
 ```bash
-git clone https://github.com/kudig-io/klaw.git && cd klaw
+git clone --recurse-submodules https://github.com/kudig-io/klaw.git && cd klaw
 make build && ./klaw        # open http://localhost:8080
 ```
 
@@ -212,6 +212,12 @@ This is a monorepo with 5 independent Go modules:
 | `modules/etcd-guardian/` (submodule) | `github.com/etcdguardian/etcdguardian` | 1.26.0 | etcd backup/restore Operator (CRDs, controller, Helm chart) |
 | `modules/etcd-guardian/backend/` | `.../etcd-guardian/backend` | 1.22 | Gin backend API for etcd-guardian |
 
+> **Submodule notes**: components under `modules/` are mounted as git submodules (the upstream standalone repo is the single source of truth).
+> - Clone: `git clone --recurse-submodules …`; for existing clones run `git submodule update --init`
+> - Bump the pointer: `git submodule update --remote modules/etcd-guardian`, then commit
+> - Do not edit code inside `modules/etcd-guardian/` directly — land changes in the upstream repo first, then bump the pointer here
+> - The CI `etcd-guardian-module` job already sets `submodules: true`; any new job touching modules must do the same
+
 ```
 klaw/
 ├── cmd/klaw/               # CLI entry: main / server / diag
@@ -328,7 +334,7 @@ flowchart LR
 ### Option 1: Local Binary
 
 ```bash
-git clone https://github.com/kudig-io/klaw.git
+git clone --recurse-submodules https://github.com/kudig-io/klaw.git
 cd klaw
 
 # build frontend + backend in one step

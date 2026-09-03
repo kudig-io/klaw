@@ -16,7 +16,7 @@ Klaw 把「集群管理控制台」「深度诊断引擎」「ChatOps 机器人�
 **30 秒上手：**
 
 ```bash
-git clone https://github.com/kudig-io/klaw.git && cd klaw
+git clone --recurse-submodules https://github.com/kudig-io/klaw.git && cd klaw
 make build && ./klaw        # 打开 http://localhost:8080
 ```
 
@@ -214,6 +214,12 @@ React 18 + Vite + Tailwind 构建的单页应用，与后端二进制打包在�
 | `modules/etcd-guardian/` (submodule) | `github.com/etcdguardian/etcdguardian` | 1.26.0 | etcd 备份恢复 Operator（含 CRD、控制器、Helm Chart） |
 | `modules/etcd-guardian/backend/` | `.../etcd-guardian/backend` | 1.22 | etcd-guardian 的 Gin 后端 API |
 
+> **Submodule 注意事项**：`modules/` 下的组件以 git submodule 挂载（上游独立仓库为唯一事实源）。
+> - 克隆：`git clone --recurse-submodules …`；已克隆的仓库执行 `git submodule update --init`
+> - 升级指针：`git submodule update --remote modules/etcd-guardian` 后提交
+> - 不要直接在 `modules/etcd-guardian/` 内改代码——变更先提交到上游仓库，再回这里升级指针
+> - CI 的 `etcd-guardian-module` job 已配置 `submodules: true`；新增涉及 modules 的 job 时同样需要
+
 ```
 klaw/
 ├── cmd/klaw/               # CLI 入口：main / server / diag
@@ -330,7 +336,7 @@ flowchart LR
 ### 方式一：本地二进制
 
 ```bash
-git clone https://github.com/kudig-io/klaw.git
+git clone --recurse-submodules https://github.com/kudig-io/klaw.git
 cd klaw
 
 # 一键构建前端 + 后端
