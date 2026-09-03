@@ -1,0 +1,3 @@
+[submodule "modules/etcd-guardian"]
+	path = modules/etcd-guardian
+	url = https://github.com/kudig-io/etcd-guardian.git

@@ -211,7 +211,7 @@ React 18 + Vite + Tailwind 构建的单页应用，与后端二进制打包在�
 | `./` | `github.com/kudig-io/klaw` | 1.24.2 | 主应用：API + Web + 诊断 + ChatOps |
 | `operator/` | `.../klaw/operator` | 1.21 | Kudig Operator，CRD 驱动的诊断编排 |
 | `modules/etcd-backup/` | `.../modules/etcd-backup` | 1.25 | etcd 备份/恢复客户端库 |
-| `modules/etcd-guardian/` | `.../modules/etcd-guardian` | 1.26.0 | etcd 备份恢复 Operator（含 CRD、控制器、Helm Chart） |
+| `modules/etcd-guardian/` (submodule) | `github.com/etcdguardian/etcdguardian` | 1.26.0 | etcd 备份恢复 Operator（含 CRD、控制器、Helm Chart） |
 | `modules/etcd-guardian/backend/` | `.../etcd-guardian/backend` | 1.22 | etcd-guardian 的 Gin 后端 API |
 
 ```
@@ -1019,7 +1019,7 @@ CRD 驱动的声明式诊断编排，基于 controller-runtime 0.16.3。
 
 ### etcd Guardian（`modules/etcd-guardian/`）
 
-完整的 etcd 备份恢复 Operator，自带控制器、CRD、Gin 后端 API、独立 Web UI 与 Helm Chart。可独立部署，也可作为 Klaw 的 etcd 备份能力后端。详见 `modules/etcd-guardian/README.md`。
+完整的 etcd 备份恢复 Operator，自带控制器、CRD、Gin 后端 API、独立 Web UI 与 Helm Chart。可独立部署，也可作为 Klaw 的 etcd 备份能力后端。本目录为 **git submodule**，上游仓库为 [kudig-io/etcd-guardian](https://github.com/kudig-io/etcd-guardian)（唯一事实源，所有变更先进入上游，再在此升级 submodule 指针）。详见 `modules/etcd-guardian/README.md` 与 `modules/etcd-guardian/docs/klaw-integration.md`。
 
 ### etcd Backup（`modules/etcd-backup/`）
 

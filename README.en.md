@@ -209,7 +209,7 @@ This is a monorepo with 5 independent Go modules:
 | `./` | `github.com/kudig-io/klaw` | 1.24.2 | Main app: API + Web + diagnostics + ChatOps |
 | `operator/` | `.../klaw/operator` | 1.21 | Kudig Operator, CRD-driven diagnostics orchestration |
 | `modules/etcd-backup/` | `.../modules/etcd-backup` | 1.25 | etcd backup/restore client library |
-| `modules/etcd-guardian/` | `.../modules/etcd-guardian` | 1.26.0 | etcd backup/restore Operator (CRDs, controller, Helm chart) |
+| `modules/etcd-guardian/` (submodule) | `github.com/etcdguardian/etcdguardian` | 1.26.0 | etcd backup/restore Operator (CRDs, controller, Helm chart) |
 | `modules/etcd-guardian/backend/` | `.../etcd-guardian/backend` | 1.22 | Gin backend API for etcd-guardian |
 
 ```
@@ -1020,7 +1020,7 @@ Deploy: `operator/helm/kudig-operator`. Example CRs: `operator/config/examples/`
 
 ### etcd Guardian (`modules/etcd-guardian/`)
 
-A complete etcd backup/restore Operator with its own controller, CRDs, Gin backend API, standalone Web UI, and Helm chart. Deployable independently or as Klaw's etcd backup backend. See `modules/etcd-guardian/README.md`.
+A complete etcd backup/restore Operator with its own controller, CRDs, Gin backend API, standalone Web UI, and Helm chart. Deployable independently or as Klaw's etcd backup backend. This directory is a **git submodule**; the upstream repo [kudig-io/etcd-guardian](https://github.com/kudig-io/etcd-guardian) is the single source of truth — all changes land upstream first, then the submodule pointer is bumped here. See `modules/etcd-guardian/README.md` and `modules/etcd-guardian/docs/klaw-integration.md`.
 
 ### etcd Backup (`modules/etcd-backup/`)
 
