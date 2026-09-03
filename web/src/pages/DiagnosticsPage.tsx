@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { v1Api } from '../lib/api'
-import { Activity, AlertOctagon, AlertTriangle, AlertCircle, Info, Loader2, Search } from 'lucide-react'
+import { Activity, AlertOctagon, AlertTriangle, AlertCircle, CheckCircle2, Info, Lightbulb, Loader2, Search } from 'lucide-react'
 
 interface Issue {
   severity: string
@@ -143,8 +143,9 @@ export default function DiagnosticsPage() {
               </h3>
             </div>
             {issues.length === 0 ? (
-              <div className="p-12 text-center text-gray-500 dark:text-gray-400">
-                ✅ 未发现问题
+              <div className="flex flex-col items-center gap-2 p-12 text-gray-500 dark:text-gray-400">
+                <CheckCircle2 className="h-8 w-8 text-success-500" />
+                <span>未发现问题</span>
               </div>
             ) : (
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -174,8 +175,9 @@ export default function DiagnosticsPage() {
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{issue.details}</p>
                         )}
                         {issue.remediation?.suggestion && (
-                          <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                            💡 {issue.remediation.suggestion}
+                          <p className="flex items-start gap-1.5 text-sm text-success-600 dark:text-success-400 mt-1">
+                            <Lightbulb className="mt-0.5 h-4 w-4 shrink-0" />
+                            <span>{issue.remediation.suggestion}</span>
                           </p>
                         )}
                         {issue.remediation?.command && (
