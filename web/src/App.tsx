@@ -64,6 +64,15 @@ function App() {
     setIsMockMode(mockEnabled)
   }, [location]) // 路由变化时重新检查
 
+  // SOS 通话页为 design.md 登记的全屏例外：脱离 Workbench 骨架，不渲染侧栏/顶栏/悬浮球
+  if (location.pathname === '/sos') {
+    return (
+      <Routes>
+        <Route path="/sos" element={<SosCallPage />} />
+      </Routes>
+    )
+  }
+
   const toggleDarkMode = () => {
     const next = !isDarkMode
     document.documentElement.classList.toggle('dark', next)
@@ -239,7 +248,6 @@ function App() {
               <Route path="/nodes" element={<NodesPage />} />
               <Route path="/monitoring" element={<MonitoringPage />} />
               <Route path="/diagnostics" element={<DiagnosticsPage />} />
-              <Route path="/sos" element={<SosCallPage />} />
             </Routes>
           </main>
         </div>

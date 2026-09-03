@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, Mic, MicOff, PhoneOff, Siren } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Loader2, Mic, MicOff, PhoneOff, Siren } from 'lucide-react'
 import { fetchSosStatus, type SosStatus } from '../lib/sosApi'
 import { useSosSession } from '../hooks/useSosSession'
 import { cn } from '../lib/utils'
@@ -17,6 +17,7 @@ const statusText: Record<string, string> = {
 export default function SosCallPage() {
   const [statusInfo, setStatusInfo] = useState<SosStatus | null>(null)
   const { state, start, hangup, toggleMute } = useSosSession()
+  const isError = state.status === 'error'
 
   useEffect(() => {
     fetchSosStatus().then(setStatusInfo).catch(() => setStatusInfo(null))
@@ -55,6 +56,32 @@ export default function SosCallPage() {
               <code className="mx-1 rounded bg-black/40 px-1">KLAW_SOS_DASHSCOPE_API_KEY</code>
               注入后重启服务。
             </p>
+            <Link
+              to="/"
+              className="inline-block rounded-md bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20"
+            >
+              返回首页
+            </Link>
+          </div>
+        ) : isError ? (
+          <div className="max-w-md space-y-3 rounded-lg border border-red-500/20 bg-red-500/10 p-6 text-center">
+            <AlertTriangle className="mx-auto h-10 w-10 text-red-400" />
+            <p className="text-base font-medium text-white">会话出现错误</p>
+            <p className="text-sm text-red-300">{state.error || '语音会话连接失败'}</p>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => void start()}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+              >
+                重试
+              </button>
+              <Link
+                to="/"
+                className="rounded-md bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20"
+              >
+                返回首页
+              </Link>
+            </div>
           </div>
         ) : (
           <>
@@ -107,9 +134,9 @@ export default function SosCallPage() {
         )}
       </div>
 
-      {/* 控制条 */}
-      {statusInfo?.ready && (
-        <div className="flex items-center justify-center gap-8 pb-10">
+      {/* 控制条：吸底，字幕滚动时仍可触达 */}
+      {statusInfo?.ready && !isError && (
+        <div className="sticky bottom-0 flex items-center justify-center gap-8 bg-gray-950/95 py-6 backdrop-blur-sm">
           <button
             onClick={toggleMute}
             aria-label={state.muted ? '取消静音' : '静音'}
