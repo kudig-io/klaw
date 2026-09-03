@@ -146,13 +146,13 @@ const BackupsPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <select value={selectedCluster} onChange={(e) => setSelectedCluster(e.target.value)} className="input">
+          <select value={selectedCluster} onChange={(e) => setSelectedCluster(e.target.value)} className="input w-44 shrink-0">
             <option value="">选择集群</option>
             {clusters.map((cluster: any) => (
               <option key={cluster.name} value={cluster.name}>{cluster.name}</option>
             ))}
           </select>
-          <button onClick={() => selectedCluster && loadBackups(selectedCluster)} className="btn btn-secondary flex items-center gap-2">
+          <button onClick={() => selectedCluster && loadBackups(selectedCluster)} className="btn btn-secondary flex items-center gap-2 whitespace-nowrap shrink-0">
             <RefreshCw className="h-4 w-4" />
             <span>刷新</span>
           </button>

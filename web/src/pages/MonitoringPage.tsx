@@ -90,7 +90,7 @@ const MonitoringPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h1 className="text-2xl font-bold">监控告警</h1>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center gap-4">
           <select
             value={selectedCluster}
             onChange={(e) => setSelectedCluster(e.target.value)}
