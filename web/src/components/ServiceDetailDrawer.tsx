@@ -89,6 +89,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
           </div>
           <button
             onClick={onClose}
+            aria-label="关闭详情"
             className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -139,6 +140,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                         {service.spec.clusterIP && (
                           <button
                             onClick={() => copyToClipboard(service.spec.clusterIP)}
+                            aria-label={`复制 ClusterIP ${service.spec.clusterIP}`}
                             className="text-gray-400 hover:text-primary-600"
                           >
                             <Copy className="w-3 h-3" />
@@ -191,6 +193,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                           {ip}
                           <button
                             onClick={() => copyToClipboard(ip)}
+                            aria-label={`复制外部 IP ${ip}`}
                             className="hover:text-warning-600"
                           >
                             <Copy className="w-3 h-3" />
@@ -218,6 +221,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                               IP：{ingress.ip}
                               <button
                                 onClick={() => copyToClipboard(ingress.ip!)}
+                                aria-label={`复制 Ingress IP ${ingress.ip}`}
                                 className="hover:text-info-600"
                               >
                                 <Copy className="w-3 h-3" />
@@ -229,6 +233,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                               主机名：{ingress.hostname}
                               <button
                                 onClick={() => copyToClipboard(ingress.hostname!)}
+                                aria-label={`复制主机名 ${ingress.hostname}`}
                                 className="hover:text-primary-600"
                               >
                                 <Copy className="w-3 h-3" />
@@ -404,6 +409,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
                                 </div>
                                 <button
                                   onClick={() => copyToClipboard(addr.ip)}
+                                  aria-label={`复制端点 IP ${addr.ip}`}
                                   className="text-gray-400 hover:text-primary-600"
                                 >
                                   <Copy className="w-3 h-3" />

@@ -238,7 +238,7 @@ const TenantsPage = () => {
                         <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{tenant.description || '暂无描述'}</div>
                       </div>
                       {tenant.id !== 'default' && (
-                        <button onClick={() => deleteTenant(tenant)} className="text-danger-600 hover:text-danger-700">
+                        <button onClick={() => deleteTenant(tenant)} aria-label={`删除租户 ${tenant.name}`} className="text-danger-600 hover:text-danger-700">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
@@ -310,7 +310,7 @@ const TenantsPage = () => {
                         {user.subjectKind === 'ServiceAccount' && ` · SA 命名空间：${user.subjectNamespace || 'default'}`}
                       </div>
                     </div>
-                    <button onClick={() => deleteUser(user)} className="text-danger-600 hover:text-danger-700">
+                    <button onClick={() => deleteUser(user)} aria-label={`删除用户 ${user.username}`} className="text-danger-600 hover:text-danger-700">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { clusterApi, podApi, type LogAnalysis } from '../lib/api'
-import { getStatusColor, formatDate } from '../lib/utils'
+import { getStatusColor, formatDate, cn } from '../lib/utils'
 import { Search, RefreshCw, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 
 const PodsPage: React.FC = () => {
@@ -321,11 +321,20 @@ const PodsPage: React.FC = () => {
                                       : state.terminated
                                         ? `Terminated（${state.terminated.reason}）`
                                         : '-'
+                                  const stateAbnormal = Boolean(
+                                    (state.waiting && ['CrashLoopBackOff', 'ErrImagePull', 'ImagePullBackOff', 'CreateContainerError', 'RunContainerError'].includes(state.waiting.reason)) ||
+                                    state.terminated
+                                  )
                                   return (
                                     <div key={c.name} className="bg-white dark:bg-gray-800 rounded p-3 text-sm">
                                       <div className="flex items-center justify-between mb-1">
                                         <span className="font-medium">{c.name}</span>
-                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        <span className={cn(
+                                          'text-xs',
+                                          stateAbnormal
+                                            ? 'font-medium text-danger-600 dark:text-danger-400'
+                                            : 'text-gray-500 dark:text-gray-400'
+                                        )}>
                                           {stateText} · 重启 {cs?.restartCount || 0} 次
                                         </span>
                                       </div>

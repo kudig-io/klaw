@@ -228,6 +228,7 @@ const BackupsPage: React.FC = () => {
                     <button
                       onClick={() => handleDelete(backup)}
                       className="text-danger-600 hover:text-danger-700"
+                      aria-label={`删除备份 ${backup.name}`}
                       title="删除备份"
                     >
                       <Trash2 className="h-4 w-4" />

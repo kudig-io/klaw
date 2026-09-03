@@ -155,6 +155,8 @@ function App() {
                 {/* 移动端品牌 + 菜单按钮 */}
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  aria-label={isMobileMenuOpen ? '关闭导航菜单' : '打开导航菜单'}
+                  aria-expanded={isMobileMenuOpen}
                   className="md:hidden p-2 -ml-2 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -189,6 +191,7 @@ function App() {
                 </button>
                 <button
                   onClick={toggleDarkMode}
+                  aria-label={isDarkMode ? '切换到浅色模式' : '切换到深色模式'}
                   className="p-2 rounded-md text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors duration-150"
                 >
                   {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

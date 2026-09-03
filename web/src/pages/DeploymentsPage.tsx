@@ -300,6 +300,7 @@ const DeploymentsPage: React.FC = () => {
                             deployment.spec.replicas || 0,
                             -1
                           )}
+                          aria-label={`缩减副本 ${deployment.metadata.name}`}
                           disabled={scalingDeployment === deployment.metadata.name || (deployment.spec.replicas || 0) <= 0}
                           className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
                         >
@@ -314,6 +315,7 @@ const DeploymentsPage: React.FC = () => {
                             deployment.spec.replicas || 0,
                             1
                           )}
+                          aria-label={`扩容副本 ${deployment.metadata.name}`}
                           disabled={scalingDeployment === deployment.metadata.name}
                           className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
                         >
@@ -335,6 +337,7 @@ const DeploymentsPage: React.FC = () => {
                           onClick={() => restartDeployment(deployment)}
                           disabled={restartingDeployment === deployment.metadata.name}
                           className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"
+                          aria-label={`重启部署 ${deployment.metadata.name}`}
                           title="重启部署"
                         >
                           <RotateCcw className={cn(
@@ -344,6 +347,7 @@ const DeploymentsPage: React.FC = () => {
                         </button>
                         <button
                           onClick={() => toggleDeploymentDetails(deployment)}
+                          aria-label={expandedDeployment === deployment.metadata.name ? '收起详情' : '展开详情'}
                           className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
                         >
                           {expandedDeployment === deployment.metadata.name ? (
