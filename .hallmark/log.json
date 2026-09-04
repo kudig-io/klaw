@@ -1,0 +1,58 @@
+{
+  "entries": [
+    {
+      "timestamp": "2026-09-03T14:20:00+08:00",
+      "scope": "app",
+      "project": "klaw",
+      "genre": "modern-minimal",
+      "design_system": "design.md",
+      "pages": [
+        {
+          "path": "GTM/index.html",
+          "role": "marketing",
+          "macrostructure": "Marquee-Hero",
+          "stamp": "/* Hallmark · genre: modern-minimal · macrostructure: Marquee-Hero · design-system: design.md · designed-as-app */",
+          "notes": "Light-first page (bg #f6f8fb / text #0c1830 / brand #0052fa), dark product frames kept via --dk-* group (terminal / console mock / chat / events). Nav ghost「打开控制台」+ hero primary CTA → https://kl5ildhuciv0.meoo.fun (线上 Mock 演示); cta-note: 线上演示为模拟数据（Mock），本地 make build && ./klaw 运行后 localhost:8080 可管理真实集群. Footer GitHub link https://github.com/kudig-io/klaw#readme. Radius 8px cards / 6px buttons, 1px rule borders, no shadows/glows/gradients, no hover transforms. Copy: 中文为主, 技术名词中文（English）。"
+        },
+        {
+          "path": "web/src (React console, 10 pages)",
+          "role": "product",
+          "macrostructure": "Workbench",
+          "stamp": "/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */ (web/src/index.css)",
+          "notes": "Left grouped sidebar (总览/工作负载/平台能力) + topbar current-page label. Tailwind primary remapped to brand blue (#0052fa family); .btn/.card/.input component layer. Light default: useState(false), no matchMedia/persistence; dark toggle opt-in only. Console→GTM cross-link at sidebar bottom (产品介绍 · GTM → https://bs7klknl29np.meoo.fun). Copy pass done: UI 文案全中文，技术名词中文（English）；K8s 数据值保持英文（资源类型/Pod 阶段/事件名等）；severity 在展示层经映射表转中文。已发布 Meoo（https://kl5ildhuciv0.meoo.fun, 项目 Klaw Console kl5ildhuciv0）：构建 VITE_USE_MOCK=true（Mock 内置免后端）+ VITE_USE_HASH_ROUTER=true（main.tsx 按环境变量切 HashRouter，本地/产品仍 BrowserRouter），满足静态托管 hash-only 约束。"
+        }
+      ],
+      "cross_navigation": {
+        "gtm_to_console": "https://kl5ildhuciv0.meoo.fun (nav ghost + hero primary CTA, 线上 Mock 演示; cta-note 注明本地 make build && ./klaw 后 localhost:8080 管理真实集群)",
+        "console_to_gtm": "https://bs7klknl29np.meoo.fun (sidebar bottom, target _blank rel noreferrer)"
+      },
+      "verification": {
+        "build": "tsc + vite pass (1679 modules); vitest 86/86 pass",
+        "console_screenshots": [
+          "/tmp/klaw-shots/console-dashboard-light.png (1440)",
+          "/tmp/klaw-shots/console-dashboard-dark.png (1440)",
+          "/tmp/klaw-shots/console-services-light.png (1440)",
+          "/tmp/klaw-shots/console-services-dark.png (1440)",
+          "/tmp/klaw-shots/console-dashboard-mobile.png (390x844, hamburger sidebar)",
+          "/tmp/klaw-shots/console-monitoring-dark.png (light-mode capture; dark verified on dashboard/services)"
+        ],
+        "gtm_screenshots": [
+          "/tmp/klaw-shots/gtm-light-1440-full.png (light-first 全页)",
+          "/tmp/klaw-shots/gtm-light-375-full.png",
+          "/tmp/klaw-shots/gtm-light-320-full.png"
+        ],
+        "console_screenshots_light": [
+          "/tmp/klaw-shots/console-light-default-1440.png (无后端错误态, html 无 dark 类)",
+          "/tmp/klaw-shots/console-light-mock-1440.png (Mock 数据态)",
+          "/tmp/klaw-shots/console-live-meoo-pods.png (线上 #/pods 深链截图, MOCK 徽标 + 13 Pod)"
+        ],
+        "live": {
+          "gtm": "https://bs7klknl29np.meoo.fun (v5, CTA 已指向控制台演示)",
+          "console": "https://kl5ildhuciv0.meoo.fun (v2, 项目 Klaw Console; 最新源码重建 1685 modules, assets index-zT5XP4Sq.js / index-CPnjydyH.css; CDN-only 发布, Meoo 编辑器预览为空属预期)",
+          "two_way_jump": "GTM hero CTA 点击 → 落地控制台实测通过; 控制台侧栏 产品介绍 · GTM 点击 → 新标签打开 GTM 实测通过; #/pods 深链刷新直渲染 (HashRouter 生效); curl 根路径与 mockServiceWorker.js 均 200"
+        },
+        "overflow_checks": "GTM scrollWidth == viewport at 1440/375/320; console 1440 no horizontal overflow; 测试断言与文案同步后 vitest 86/86"
+      }
+    }
+  ]
+}

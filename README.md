@@ -140,6 +140,8 @@ React 18 + Vite + Tailwind 构建的单页应用，与后端二进制打包在�
 | `PodsPage` | 列表、搜索、详情、实时日志、删除 |
 | `DeploymentsPage` | 列表、详情、扩缩容、滚动重启、关联 Pod |
 | `ServicesPage` | 列表、详情、Endpoints |
+| `NetworkPage` | Ingress/NetworkPolicy 列表、网络分析（暴露服务、策略分布） |
+| `StoragePage` | PVC/PV/StorageClass 列表、存储容量分析 |
 | `NodesPage` | 节点状态、容量、指标 |
 | `MonitoringPage` | 告警列表、历史趋势、图表 |
 | `DiagnosticsPage` | 触发诊断、查看分析器结果 |

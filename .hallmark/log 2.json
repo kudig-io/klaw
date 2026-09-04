@@ -1,0 +1,51 @@
+{
+  "entries": [
+    {
+      "timestamp": "2026-09-03T13:10:44+08:00",
+      "scope": "app",
+      "project": "klaw",
+      "genre": "modern-minimal",
+      "design_system": "design.md",
+      "pages": [
+        {
+          "path": "GTM/index.html",
+          "role": "marketing",
+          "macrostructure": "Marquee-Hero",
+          "stamp": "/* Hallmark · genre: modern-minimal · macrostructure: Marquee-Hero · design-system: design.md · designed-as-app */",
+          "notes": "Canon dark theme (#010411 / brand #0052fa / #4cc3ff). Nav ghost「打开控制台」+ hero primary CTA → http://localhost:8080 with cta-note. Radius 8px cards / 6px buttons, 1px rule borders, no shadows/glows/gradients, no hover transforms."
+        },
+        {
+          "path": "web/src (React console, 10 pages)",
+          "role": "product",
+          "macrostructure": "Workbench",
+          "stamp": "/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */ (web/src/index.css)",
+          "notes": "Left grouped sidebar (Overview/Workloads/Platform) + topbar current-page label. Tailwind primary remapped to brand blue (#0052fa family); .btn/.card/.input component layer; dark mode shares origin with GTM canon. Console→GTM cross-link fixed at sidebar bottom (产品介绍 · GTM → https://bs7klknl29np.meoo.fun). Shadow/oversized-radius/gradient/scale-transform/slate debt removed across 8 files."
+        }
+      ],
+      "cross_navigation": {
+        "gtm_to_console": "http://localhost:8080 (nav ghost + hero primary CTA, cta-note 本地运行后可访问)",
+        "console_to_gtm": "https://bs7klknl29np.meoo.fun (sidebar bottom, target _blank rel noreferrer)"
+      },
+      "verification": {
+        "build": "tsc + vite pass (1679 modules); vitest 86/86 pass",
+        "console_screenshots": [
+          "/tmp/klaw-shots/console-dashboard-light.png (1440)",
+          "/tmp/klaw-shots/console-dashboard-dark.png (1440)",
+          "/tmp/klaw-shots/console-services-light.png (1440)",
+          "/tmp/klaw-shots/console-services-dark.png (1440)",
+          "/tmp/klaw-shots/console-dashboard-mobile.png (390x844, hamburger sidebar)",
+          "/tmp/klaw-shots/console-monitoring-dark.png (light-mode capture; dark verified on dashboard/services)"
+        ],
+        "gtm_screenshots": [
+          "/tmp/klaw-shots/gtm-desktop-1440-hero.png",
+          "/tmp/klaw-shots/gtm-desktop-1440-full.png",
+          "/tmp/klaw-shots/gtm-tablet-768.png",
+          "/tmp/klaw-shots/gtm-mobile-375-full.png",
+          "/tmp/klaw-shots/gtm-mobile-320-full.png",
+          "/tmp/klaw-shots/gtm-mobile-414-full.png"
+        ],
+        "overflow_checks": "GTM scrollWidth == viewport at 320/375/414; console mobile 390 no horizontal overflow"
+      }
+    }
+  ]
+}

@@ -138,6 +138,8 @@ A single-page app built with React 18 + Vite + Tailwind, bundled into the backen
 | `PodsPage` | list, search, details, live logs, delete |
 | `DeploymentsPage` | list, details, scale, rolling restart, related Pods |
 | `ServicesPage` | list, details, Endpoints |
+| `NetworkPage` | Ingress/NetworkPolicy lists, network analysis (exposed services, policy distribution) |
+| `StoragePage` | PVC/PV/StorageClass lists, storage capacity analysis |
 | `NodesPage` | node status, capacity, metrics |
 | `MonitoringPage` | alert list, history trends, charts |
 | `DiagnosticsPage` | trigger diagnostics, view analyzer results |
