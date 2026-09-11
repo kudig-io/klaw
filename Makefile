@@ -44,6 +44,7 @@ dev-backend:
 # 运行应用
 .PHONY: run
 run: build
+	@test -f configs/config.yaml || cp configs/config.yaml.example configs/config.yaml
 	@echo "Running $(BINARY_NAME)..."
 	./$(BINARY_NAME)
 
@@ -95,6 +96,7 @@ docker-build:
 
 .PHONY: docker-run
 docker-run:
+	@test -f configs/config.yaml || cp configs/config.yaml.example configs/config.yaml
 	@echo "Running Docker container..."
 	docker run -d \
 		-p 8080:8080 \

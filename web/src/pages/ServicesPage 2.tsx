@@ -63,7 +63,7 @@ export function ServicesPage() {
       setServices(response.data || [])
     } catch (error) {
       console.error('Failed to load services:', error)
-      showToast('Failed to load services', 'error')
+      showToast('加载服务列表失败', 'error')
       setServices([])
     } finally {
       setIsLoading(false)
@@ -73,7 +73,7 @@ export function ServicesPage() {
   async function handleDeleteService(service: Service) {
     if (!selectedCluster) return
     
-    if (!confirm(`Are you sure you want to delete service "${service.metadata.name}"?`)) {
+    if (!confirm(`确定要删除服务"${service.metadata.name}"吗？`)) {
       return
     }
 
@@ -83,11 +83,11 @@ export function ServicesPage() {
         service.metadata.namespace,
         service.metadata.name
       )
-      showToast(`Service "${service.metadata.name}" deleted successfully`, 'success')
+      showToast(`服务"${service.metadata.name}"已删除`, 'success')
       loadServices()
     } catch (error) {
       console.error('Failed to delete service:', error)
-      showToast('Failed to delete service', 'error')
+      showToast('删除服务失败', 'error')
     }
   }
 
@@ -115,13 +115,13 @@ export function ServicesPage() {
   function getServiceTypeColor(type: string): string {
     switch (type) {
       case 'LoadBalancer':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+        return 'bg-info-100 text-info-800 dark:bg-info-900/30 dark:text-info-300'
       case 'NodePort':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+        return 'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300'
       case 'ClusterIP':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+        return 'bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-300'
       case 'ExternalName':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+        return 'bg-warning-100 text-warning-800 dark:bg-warning-900/30 dark:text-warning-300'
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
     }
@@ -132,9 +132,9 @@ export function ServicesPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Services</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">服务管理</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Manage Kubernetes Services and their endpoints
+              管理 Kubernetes 服务（Service）及其端点
             </p>
           </div>
           <RefreshButton onClick={loadServices} isLoading={isLoading} />
@@ -163,17 +163,17 @@ export function ServicesPage() {
       <div className="card overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading services...</p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">正在加载服务…</p>
           </div>
         ) : services.length === 0 ? (
           <div className="p-12 text-center">
             <Network className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No services found</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">未找到服务</h3>
             <p className="text-gray-600 dark:text-gray-400">
               {selectedNamespace && selectedNamespace !== ALL_NAMESPACES
-                ? `No services in namespace "${selectedNamespace}"`
-                : 'No services found in this cluster'}
+                ? `命名空间"${selectedNamespace}"下暂无服务`
+                : '当前集群下暂无服务'}
             </p>
           </div>
         ) : (
@@ -181,14 +181,15 @@ export function ServicesPage() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Name</th>
-                  <th className="px-4 py-3 font-semibold">Namespace</th>
-                  <th className="px-4 py-3 font-semibold">Type</th>
-                  <th className="px-4 py-3 font-semibold">Cluster IP</th>
-                  <th className="px-4 py-3 font-semibold">Ports</th>
-                  <th className="px-4 py-3 font-semibold">Selector</th>
-                  <th className="px-4 py-3 font-semibold">Age</th>
-                  <th className="px-4 py-3 font-semibold text-right">Actions</th>
+                  <th className="px-4 py-3 font-semibold">名称</th>
+                  <th className="px-4 py-3 font-semibold">命名空间</th>
+                  <th className="px-4 py-3 font-semibold">类型</th>
+                  <th className="px-4 py-3 font-semibold">集群 IP</th>
+                  <th className="px-4 py-3 font-semibold">外部 IP</th>
+                  <th className="px-4 py-3 font-semibold">端口</th>
+                  <th className="px-4 py-3 font-semibold">选择器</th>
+                  <th className="px-4 py-3 font-semibold">存续时间</th>
+                  <th className="px-4 py-3 font-semibold text-right">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -213,6 +214,9 @@ export function ServicesPage() {
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
                       {service.spec.clusterIP || '-'}
                     </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 font-mono text-xs">
+                      {service.status.loadBalancer?.ingress?.[0]?.ip || service.spec.externalIPs?.join(', ') || '-'}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {service.spec.ports?.slice(0, 2).map((port, idx) => (
@@ -236,7 +240,7 @@ export function ServicesPage() {
                           {Object.entries(service.spec.selector).slice(0, 1).map(([key, value]) => (
                             <span 
                               key={key}
-                              className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
                             >
                               {key}={value}
                             </span>
@@ -259,14 +263,14 @@ export function ServicesPage() {
                         <button
                           onClick={() => handleViewService(service)}
                           className="p-1.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="View details"
+                          title="查看详情"
                         >
                           <Info className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteService(service)}
-                          className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete service"
+                          className="p-1.5 text-gray-600 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
+                          title="删除服务"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

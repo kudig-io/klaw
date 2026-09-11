@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Security & CI
+
+- **依赖安全修复**:升级 `golang.org/x/net` v0.46.0 → v0.55.0、`golang.org/x/text` v0.30.0 → v0.39.0,消除 GO-2026-4918 / GO-2026-5026 / GO-2026-5970 三个漏洞;CI 中 govulncheck 去掉 `|| true`,漏洞扫描变为阻断门槛。根模块 go directive 随之升至 1.25.0,CI(`setup-go` 1.25)、Dockerfile(`golang:1.25-alpine`)、README/CONTRIBUTING 版本说明同步。
+- **前端 lint 门槛**:新增 `web/.eslintrc.cjs`(eslint:recommended + @typescript-eslint + react-hooks),CI frontend job 增加 `npm run lint`;lint 脚本去掉 `--max-warnings 0`,19 处历史 `react-hooks/exhaustive-deps` warning 保持可见但不阻断,待后续以 useCallback 重构消化。
+- **eslint 清零**:删除 8 处未使用导入/变量(`NodesPage` 的 `cn`、`ServicesPage` 的 `Globe`、mock 测试文件等)。
+
+### Removed
+
+- 清理 git 误跟踪的 macOS 复制残留:`web/src/pages/NetworkPage 2.tsx`、`NodesPage 2.tsx`、`ServicesPage 2.tsx`(均为旧版快照)、`.hallmark/log 2.json`;删除空目录 `pkg/models`、`pkg/utils`。
+
+### Changed
+
+- **`configs/config.yaml` 停止 git 跟踪**(含本机 kubeconfig 绝对路径,已加入 .gitignore);`configs/config.yaml.example` 与现行配置结构对齐(补齐 events/watch 配置、SOS、`server.ops` 等字段);`make run` / `make docker-run` 自动从 example 引导,README 中英版「30 秒上手」补充 `cp` 步骤。
+
 ### Added - SOS Mode (Voice Emergency Quick Dialog)
 
 - **SOS 语音应急快速对话**（`internal/sos/` + Web `/sos` 通话页）

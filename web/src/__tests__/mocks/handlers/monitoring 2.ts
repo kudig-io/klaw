@@ -1,7 +1,7 @@
 // 监控 + 告警（rules / evaluate / history / stats / acknowledge / resolve）
 
 import { http, HttpResponse } from 'msw'
-import { mockMetricsHistory, mockAlertRules, mockAlerts, derive } from '../data/index'
+import { mockMetricsHistory, mockAlertRules, mockAlertRecords, mockAlerts, derive } from '../data/index'
 import { store, appendAudit, nextAlertId, now } from '../store'
 
 export const monitorHandlers = [

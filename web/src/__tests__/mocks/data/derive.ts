@@ -172,7 +172,8 @@ export function deriveBackupSummary(cluster: string) {
 export function deriveNetworkAnalysis() {
   const policiesByNamespace: Record<string, string[]> = {}
   mockNetworkPolicies.forEach((p) => {
-    ;(policiesByNamespace[p.metadata.namespace] ||= []).push(p.metadata.name)
+    const names = (policiesByNamespace[p.metadata.namespace] ||= [])
+    names.push(p.metadata.name)
   })
   const servicesByType: Record<string, number> = {}
   mockServices.forEach((s) => { servicesByType[s.spec.type] = (servicesByType[s.spec.type] || 0) + 1 })

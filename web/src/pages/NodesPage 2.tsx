@@ -96,7 +96,7 @@ const NodesPage: React.FC = () => {
       </div>
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-4">
+        <div className="bg-danger-50 dark:bg-danger-950/40 border border-danger-200 dark:border-danger-800 text-danger-700 dark:text-danger-400 px-4 py-3 rounded mb-4">
           {error}
         </div>
       )}
@@ -151,11 +151,11 @@ const NodesPage: React.FC = () => {
                       <div className="mt-2">
                         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                           <span>使用率</span>
-                          <span className={nodeMetric.usage.cpuPercent >= 80 ? 'text-red-600 font-medium' : ''}>{nodeMetric.usage.cpuPercent}%</span>
+                          <span className={nodeMetric.usage.cpuPercent >= 80 ? 'text-danger-600 dark:text-danger-400 font-medium' : ''}>{nodeMetric.usage.cpuPercent}%</span>
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
                           <div
-                            className={`h-1.5 rounded-full ${nodeMetric.usage.cpuPercent >= 80 ? 'bg-red-500' : 'bg-primary-500'}`}
+                            className={`h-1.5 rounded-full ${nodeMetric.usage.cpuPercent >= 80 ? 'bg-danger-500' : 'bg-primary-500'}`}
                             style={{ width: `${Math.min(nodeMetric.usage.cpuPercent, 100)}%` }}
                           />
                         </div>
@@ -174,11 +174,11 @@ const NodesPage: React.FC = () => {
                       <div className="mt-2">
                         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                           <span>使用率</span>
-                          <span className={nodeMetric.usage.memoryPercent >= 80 ? 'text-red-600 font-medium' : ''}>{nodeMetric.usage.memoryPercent}%</span>
+                          <span className={nodeMetric.usage.memoryPercent >= 80 ? 'text-danger-600 dark:text-danger-400 font-medium' : ''}>{nodeMetric.usage.memoryPercent}%</span>
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
                           <div
-                            className={`h-1.5 rounded-full ${nodeMetric.usage.memoryPercent >= 80 ? 'bg-red-500' : 'bg-primary-500'}`}
+                            className={`h-1.5 rounded-full ${nodeMetric.usage.memoryPercent >= 80 ? 'bg-danger-500' : 'bg-primary-500'}`}
                             style={{ width: `${Math.min(nodeMetric.usage.memoryPercent, 100)}%` }}
                           />
                         </div>

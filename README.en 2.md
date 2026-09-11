@@ -209,7 +209,7 @@ This is a monorepo with 5 independent Go modules:
 
 | Path | Module | Go | Description |
 |---|---|---|---|
-| `./` | `github.com/kudig-io/klaw` | 1.25.0 | Main app: API + Web + diagnostics + ChatOps |
+| `./` | `github.com/kudig-io/klaw` | 1.24.2 | Main app: API + Web + diagnostics + ChatOps |
 | `operator/` | `.../klaw/operator` | 1.21 | Kudig Operator, CRD-driven diagnostics orchestration |
 | `modules/etcd-backup/` | `.../modules/etcd-backup` | 1.25 | etcd backup/restore client library |
 | `modules/etcd-guardian/` (submodule) | `github.com/etcdguardian/etcdguardian` | 1.26.0 | etcd backup/restore Operator (CRDs, controller, Helm chart) |
@@ -328,7 +328,7 @@ flowchart LR
 
 | Component | Version | Notes |
 |---|---|---|
-| Go | 1.25+ | `modules/etcd-guardian` needs 1.26+ |
+| Go | 1.24+ | `modules/etcd-guardian` needs 1.26+ |
 | Node.js | 18+ | build the frontend |
 | Kubernetes | 1.24+ | or use kind for a local cluster |
 | Docker | optional | containerized deploy / kind |
@@ -369,7 +369,7 @@ docker run -d \
   kudig-io/klaw:latest
 ```
 
-Three-stage build: `node:20-alpine` (frontend) → `golang:1.25-alpine` (backend, `CGO_ENABLED=0`) → `alpine:3.20` (runtime, non-root UID 65532); final image ~127MB.
+Three-stage build: `node:20-alpine` (frontend) → `golang:1.24-alpine` (backend, `CGO_ENABLED=0`) → `alpine:3.20` (runtime, non-root UID 65532); final image ~127MB.
 
 For restricted networks, set a module proxy:
 

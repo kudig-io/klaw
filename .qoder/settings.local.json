@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git log --oneline -20 && echo \"---\" && git ls-files | head -50)"
+    ]
+  }
+}

@@ -37,7 +37,6 @@ export const store = {
 }
 
 let alertSeq = store.alertRecords.length
-let backupSeq = store.backups.length
 let tenantSeq = store.tenants.length
 let userSeq = store.users.length
 let auditSeq = store.auditLogs.length

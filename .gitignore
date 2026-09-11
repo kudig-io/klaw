@@ -77,4 +77,5 @@ Thumbs.db
 
 # Kubernetes
 *.kubeconfig
+configs/config.yaml
 !configs/config.yaml.example

@@ -2,13 +2,13 @@
 
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest'
 import { server } from '../mocks/server'
-import {
-  clusterApi,
-  podApi,
-  nodeApi,
+import api, { 
+  clusterApi, 
+  podApi, 
+  nodeApi, 
   deploymentApi,
   eventApi,
-  monitoringApi
+  monitoringApi 
 } from '../../lib/api'
 
 // 启动 MSW

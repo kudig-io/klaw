@@ -1,7 +1,11 @@
-# Klaw 配置文件
+# Klaw 配置文件示例
+# 使用方式:cp configs/config.yaml.example configs/config.yaml 后按需修改。
+# 敏感字段(token / secret / api_key)建议用环境变量注入,优先级高于本文件,详见 README「环境变量覆盖」。
 
 kubernetes:
   clusters:
+    # 多集群:按需追加条目(name + kubeconfig 绝对路径 + context),
+    # 先用 kubectl --kubeconfig 验证连通性,再启动。
     - name: default
       kubeconfig: ~/.kube/config
       context: minikube
@@ -13,10 +17,41 @@ messaging:
     app_secret: your_app_secret
     webhook: your_webhook_url
     secret: your_secret
+    webhook_port: 8081  # 接收钉钉消息的端口
   feishu:
     enabled: false
     app_id: your_app_id
     app_secret: your_app_secret
+
+# 事件监听配置(Watch 模式 - 实时推送)
+events:
+  enabled: true
+  watch_types:          # 监听的资源类型
+    - Pod
+    - Deployment
+    - Service
+    - Node
+  namespaces: []        # 监听的命名空间,为空表示所有
+  event_types:          # 监听的事件类型
+    - Warning
+    - Error
+  reasons:              # 关注的原因(为空表示所有)
+    - BackOff
+    - Unhealthy
+    - Failed
+    - Killing
+  exclude_reasons:      # 排除的原因
+    - Scheduled
+    - SuccessfulMountVolume
+    - Pulling
+    - Pulled
+    - Created
+    - Started
+  min_severity: warning # 最小严重级别: info, warning, critical
+  rate_limit: 10        # 每秒最大事件数
+  dedup_window: 300     # 去重窗口(秒)
+  mute_duration: 5      # 相同事件静音时长(分钟)
+  channels: []          # 推送的频道列表(为空则发送到所有平台)
 
 openclaw:
   enabled: true
@@ -25,24 +60,24 @@ openclaw:
 server:
   port: 8080
   auth:
-    enabled: true
-    # 也可通过环境变量 KLAW_API_TOKEN 注入，避免密钥落盘
-    token: change-me
+    enabled: false
+    # 也可通过环境变量 KLAW_API_TOKEN 注入,避免密钥落盘
+    token: ""
   cors:
-    # 跨域白名单；留空表示仅允许同源
+    # 跨域白名单;留空表示仅允许同源
     allowed_origins: []
     # allowed_origins:
     #   - https://klaw.example.com
   ops:
-    # ChatOps 破坏性命令（如 pod delete）总开关，默认关闭；
-    # 群聊中任何人 @ 机器人都能发命令，删除类操作需显式开启
+    # ChatOps 破坏性命令(如 pod delete)总开关,默认关闭;
+    # 群聊中任何人 @ 机器人都能发命令,删除类操作需显式开启
     # 也可用环境变量 KLAW_OPS_ALLOW_DESTRUCTIVE=true 注入
     allow_destructive: false
 
-# SOS 语音应急快速对话
+# SOS 语音应急快速对话(默认关闭)
 sos:
   enabled: false
-  provider: dashscope      # dashscope | glm（智谱 GLM-Realtime）
+  provider: dashscope      # dashscope | glm(智谱 GLM-Realtime)
   dashscope:
     api_key: ""            # 或环境变量 KLAW_SOS_DASHSCOPE_API_KEY
     workspace_id: ""       # 百炼 Workspace ID
@@ -50,7 +85,7 @@ sos:
     model: "qwen3.5-omni-plus-realtime"
     voice: "Ethan"
   glm:
-    api_key: ""            # 形如 {id}.{secret}，或环境变量 KLAW_SOS_GLM_API_KEY
+    api_key: ""            # 形如 {id}.{secret},或环境变量 KLAW_SOS_GLM_API_KEY
     model: "glm-realtime"
     voice: ""              # 可选音色
   faq_file: ""             # 可选外部语料路径

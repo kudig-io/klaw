@@ -8,7 +8,7 @@ Thanks for your interest in improving Klaw! All contributions — bug reports, d
 
 | Component | Version | Notes |
 |---|---|---|
-| Go | 1.24+ | `modules/etcd-guardian` requires Go 1.26+ |
+| Go | 1.25+ | `modules/etcd-guardian` requires Go 1.26+ |
 | Node.js | 18+ | for the web frontend |
 | Kubernetes | 1.24+ | or a local kind cluster |
 | Helm | 3.x | for in-cluster deployment |

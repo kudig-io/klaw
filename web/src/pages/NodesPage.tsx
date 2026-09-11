@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { clusterApi, nodeApi } from '../lib/api'
-import { cn, formatDate, getStatusColor } from '../lib/utils'
+import { formatDate, getStatusColor } from '../lib/utils'
 import { RefreshCw, Loader2, Server, Cpu, HardDrive } from 'lucide-react'
 
 const NodesPage: React.FC = () => {

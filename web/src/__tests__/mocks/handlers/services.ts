@@ -2,7 +2,7 @@
 
 import { http, HttpResponse } from 'msw'
 import { mockServices, derive } from '../data/index'
-import { store, appendAudit } from '../store'
+import { appendAudit } from '../store'
 
 export const serviceHandlers = [
   http.get('/api/v1/clusters/:cluster/services', () => HttpResponse.json(mockServices)),

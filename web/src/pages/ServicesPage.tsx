@@ -5,7 +5,7 @@ import { ClusterSelector } from '../components/ClusterSelector'
 import { NamespaceSelector } from '../components/NamespaceSelector'
 import { RefreshButton } from '../components/RefreshButton'
 import { ServiceDetailDrawer } from '../components/ServiceDetailDrawer'
-import { Trash2, Globe, Network, Info } from 'lucide-react'
+import { Trash2, Network, Info } from 'lucide-react'
 import { useToast } from '../contexts/ToastContext'
 
 const ALL_NAMESPACES = '_all' // Special value for all namespaces

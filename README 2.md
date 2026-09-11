@@ -211,7 +211,7 @@ React 18 + Vite + Tailwind 构建的单页应用，与后端二进制打包在�
 
 | 路径 | Module | Go | 说明 |
 |---|---|---|---|
-| `./` | `github.com/kudig-io/klaw` | 1.25.0 | 主应用：API + Web + 诊断 + ChatOps |
+| `./` | `github.com/kudig-io/klaw` | 1.24.2 | 主应用：API + Web + 诊断 + ChatOps |
 | `operator/` | `.../klaw/operator` | 1.21 | Kudig Operator，CRD 驱动的诊断编排 |
 | `modules/etcd-backup/` | `.../modules/etcd-backup` | 1.25 | etcd 备份/恢复客户端库 |
 | `modules/etcd-guardian/` (submodule) | `github.com/etcdguardian/etcdguardian` | 1.26.0 | etcd 备份恢复 Operator（含 CRD、控制器、Helm Chart） |
@@ -330,7 +330,7 @@ flowchart LR
 
 | 组件 | 版本 | 备注 |
 |---|---|---|
-| Go | 1.25+ | `modules/etcd-guardian` 需 1.26+ |
+| Go | 1.24+ | `modules/etcd-guardian` 需 1.26+ |
 | Node.js | 18+ | 构建前端 |
 | Kubernetes | 1.24+ | 或用 kind 起本地集群 |
 | Docker | 可选 | 容器化部署 / kind |
@@ -371,7 +371,7 @@ docker run -d \
   kudig-io/klaw:latest
 ```
 
-三阶段构建：`node:20-alpine`（前端）→ `golang:1.25-alpine`（后端，`CGO_ENABLED=0`）→ `alpine:3.20`（运行时，非 root UID 65532），最终镜像约 127MB。
+三阶段构建：`node:20-alpine`（前端）→ `golang:1.24-alpine`（后端，`CGO_ENABLED=0`）→ `alpine:3.20`（运行时，非 root UID 65532），最终镜像约 127MB。
 
 网络受限时可指定模块代理：
 
