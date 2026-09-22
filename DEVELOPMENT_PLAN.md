@@ -2,8 +2,8 @@
 
 本文档记录 Klaw 作为开箱即用的 Kubernetes 运维工具的开发计划和进度。
 
-> 创建时间：2026-04-01  
-> 最后更新：2026-04-01
+> 创建时间：2026-04-01
+> 最后更新：2026-09-22
 
 ---
 
@@ -11,247 +11,91 @@
 
 ### ✅ 已完成功能
 
-#### Web UI
+#### Web UI（13 个页面）
 | 功能 | 状态 | 说明 | 完成时间 |
 |------|------|------|----------|
-| Dashboard | ✅ | 集群概览、节点/Pod 统计 | 初始版本 |
+| Cluster Dashboard | ✅ | 集群概览、节点/Pod 统计、RBAC 摘要 | 初始版本 |
 | Pods 管理 | ✅ | 查看、搜索、删除 Pod，查看日志 | 初始版本 |
 | Nodes 管理 | ✅ | 查看节点状态和资源 | 初始版本 |
+| Deployments 管理 | ✅ | 列表、详情、扩缩容、重启 | 2026-04-01 |
+| Services 管理 | ✅ | 列表、详情、Endpoints | 2026-04-01 |
 | Monitoring | ✅ | 监控图表、告警列表 | 初始版本 |
-| 深色模式 | ✅ | 主题切换 | 初始版本 |
-| **Deployments 管理** | ✅ | 列表、详情、扩缩容、重启 | 2026-04-01 |
-| **Services 管理** | ✅ | 列表、详情、Endpoints | 2026-04-01 |
+| **Network 管理** | ✅ | NetworkPolicy/Ingress 概览、拓扑分析（当前 mock 数据） | 2026-09-03 |
+| **Storage 管理** | ✅ | PV/PVC/StorageClass、容量统计（当前 mock 数据） | 2026-09-03 |
+| **SOS 语音应急** | ✅ | 全屏语音通话、双向字幕、工具调用兜底 | 2026-09-04 |
+| **Backups 管理** | ✅ | 备份列表/摘要 | 2026-09 前 |
+| **Tenants 管理** | ✅ | 租户与租户用户管理 | 2026-09 前 |
+| **Diagnostics 诊断** | ✅ | 日志分析、RBAC 分析、集群诊断 | 2026-09 前 |
+| 深色模式 / 设计语言 | ✅ | 全站语义色 token、Workbench 设计语言落地 | 2026-09-03 |
 
 #### API 接口
-| 功能 | 状态 | 说明 | 完成时间 |
-|------|------|------|----------|
-| 集群管理 | ✅ | 获取集群列表、状态、指标、命名空间 | 初始版本 |
-| Pod 管理 | ✅ | 列出、详情、日志、删除 | 初始版本 |
-| 节点管理 | ✅ | 列出、详情、指标 | 初始版本 |
-| 事件查看 | ✅ | 获取集群/命名空间事件 | 初始版本 |
-| 监控数据 | ✅ | 监控状态、告警、历史数据 | 初始版本 |
-| **Deployment 管理** | ✅ | CRUD、扩缩容、重启、查看关联 Pods | 2026-04-01 |
-| **Service 管理** | ✅ | 列出、详情、Endpoints | 2026-04-01 |
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| 集群管理 | ✅ | 集群列表、状态、指标、命名空间 |
+| Pod / Node 管理 | ✅ | 列出、详情、日志（含日志分析）、删除 |
+| Deployment 管理 | ✅ | CRUD、扩缩容、重启、关联 Pods |
+| Service 管理 | ✅ | 列出、详情、Endpoints |
+| 事件查看 | ✅ | 集群/命名空间事件 |
+| 监控数据 | ✅ | 监控状态、告警、历史数据 |
+| 告警引擎 | ✅ | 告警规则 CRUD、评估、确认/恢复、统计与历史 |
+| 备份 | ✅ | 备份列表/详情/摘要 |
+| 租户 | ✅ | 租户/租户用户 CRUD 与统计 |
+| 审计 | ✅ | 审计日志与统计 |
+| RBAC 分析 | ✅ | `/rbac/analysis` 权限分析 |
+| 网络与存储 | 🚧 | 页面与 mock 契约已就绪，Go API 待实现（见迭代 3） |
+| SOS 语音代理 | ✅ | dashscope（Qwen-Omni-Realtime）/ glm（GLM-Realtime）双 provider |
 
 #### 运维命令（钉钉/飞书）
-| 功能 | 状态 | 说明 | 完成时间 |
-|------|------|------|----------|
-| 集群命令 | ✅ | status、metrics、chart | 初始版本 |
-| Pod 命令 | ✅ | list、describe、logs、delete | 初始版本 |
-| 节点命令 | ✅ | list、describe、metrics | 初始版本 |
-| 监控命令 | ✅ | status、alerts、chart | 初始版本 |
-| **Deployment 命令** | ✅ | list、status、scale、restart、pods | 2026-04-01 |
+| 功能 | 状态 | 说明 |
+|------|------|------|
+| 集群 / Pod / 节点 / 监控命令 | ✅ | status、list、describe、logs、delete、metrics 等 |
+| Deployment 命令 | ✅ | list、status、scale、restart、pods |
+| 实时事件推送 | ✅ | Watch 模式 + 智能过滤 + 防消息风暴 |
 
-#### 监控告警
-| 功能 | 状态 | 说明 | 完成时间 |
-|------|------|------|----------|
-| 指标收集 | ✅ | CPU、内存、节点/Pod 状态 | 初始版本 |
-| 告警检查 | ✅ | 节点 NotReady、Pod Failed/Pending | 初始版本 |
-| 消息通知 | ✅ | 钉钉、飞书消息发送 | 初始版本 |
-| **实时事件推送** | ✅ | Watch 模式，秒级告警 | 2026-04-02 |
-
----
-
-## ✅ 迭代 1：Deployment 管理（已完成）
-
-### 实现内容
-
-#### 1. 后端 API
-- ✅ `GET /api/clusters/{cluster}/namespaces/{namespace}/deployments` - 列出所有 Deployment
-- ✅ `GET /api/clusters/{cluster}/namespaces/{namespace}/deployments/{name}` - 获取 Deployment 详情
-- ✅ `POST /api/clusters/{cluster}/namespaces/{namespace}/deployments/{name}/scale` - 扩缩容
-- ✅ `POST /api/clusters/{cluster}/namespaces/{namespace}/deployments/{name}/restart` - 重启
-- ✅ `GET /api/clusters/{cluster}/namespaces/{namespace}/deployments/{name}/pods` - 获取关联 Pods
-- ✅ `GET /api/clusters/{cluster}/namespaces/{namespace}/deployments/{name}/status` - 获取状态摘要
-
-#### 2. 前端页面 (DeploymentsPage.tsx)
-- ✅ Deployment 列表展示（名称、状态、副本数、镜像、创建时间）
-- ✅ 状态指示器（Available/Progressing/Unavailable/Scaled to 0）
-- ✅ 快速扩缩容（+/- 按钮）
-- ✅ 重启功能
-- ✅ 详情展开面板
-  - 副本统计（Desired/Available/Ready/Updated）
-  - 条件状态（Conditions）
-  - 容器信息
-- ✅ 搜索过滤
-- ✅ 集群/命名空间选择
-
-#### 3. 运维命令
-- ✅ `deployment list <cluster-name> <namespace>`
-- ✅ `deployment status <cluster-name> <namespace> <deployment-name>`
-- ✅ `deployment scale <cluster-name> <namespace> <deployment-name> <replicas>`
-- ✅ `deployment restart <cluster-name> <namespace> <deployment-name>`
-- ✅ `deployment pods <cluster-name> <namespace> <deployment-name>`
-
-#### 4. 代码变更
-- `internal/kubernetes/resources.go` - 添加 Deployment 操作方法
-- `internal/api/server.go` - 添加 Deployment API 路由和处理器
-- `internal/ops/handler.go` - 添加 deployment 命令处理
-- `web/src/lib/api.ts` - 添加 Deployment API 客户端
-- `web/src/pages/DeploymentsPage.tsx` - 新增页面
-- `web/src/App.tsx` - 添加路由和导航
+#### 工程质量
+| 项 | 状态 | 说明 |
+|------|------|------|
+| CI 安全门槛 | ✅ | govulncheck 阻断（2026-09-11 起）；依赖升级消除 GO-2026-4918/5026/5970 |
+| 前端 lint 门槛 | ✅ | CI 增加 eslint（19 处历史 exhaustive-deps warning 可见不阻断） |
+| 前端测试 | ✅ | Vitest + MSW，119 用例全绿 |
+| 子模块化 | ✅ | etcd-guardian 以 git submodule 接入，CI fetch submodules |
 
 ---
 
 ## 🚧 待开发功能
 
-#### 第二阶段：运维能力（中优先级）
+### 迭代 3：网络与存储后端真实化（进行中，最高优先级）
 
-##### 2. Service 管理 ✅
-- [x] **Web UI**: Services 页面
-  - 列出所有 Service
-  - 查看 Service 详情
-  - 查看 Endpoints
-- [x] **API**: Service 的 CRUD 接口
-  - `GET /api/clusters/{cluster}/services` (所有命名空间)
-  - `GET /api/clusters/{cluster}/namespaces/{namespace}/services`
-  - `GET /api/clusters/{cluster}/namespaces/{namespace}/services/{name}`
-  - `GET /api/clusters/{cluster}/namespaces/{namespace}/services/{name}/endpoints`
-- [ ] **运维命令**:
-  - `klaw kubernetes service list <cluster> <namespace>`
-  - `klaw kubernetes service describe <cluster> <namespace> <service>`
+Web 端 Network/Storage 页面、mock 契约与单测均已就绪，但 Go 后端尚无对应路由，页面只能跑 mock 数据。
 
-##### 3. 实时事件推送 ✅
-- [x] **Watch 模式**: 从轮询升级为实时监听
-  - K8s Event Watch API
-  - Pod/Deployment 变化监听
-  - 自动重连机制
-- [x] **智能过滤**: 灵活的事件过滤配置
-  - 按命名空间过滤
-  - 按资源类型过滤
-  - 按事件类型过滤
-  - 按原因过滤
-- [x] **防消息风暴**:
-  - 速率限制
-  - 事件去重
-  - 事件聚合
-- [x] **实时推送**: Markdown 格式推送到钉钉
+- [ ] **Go API**：按 mock 契约实现
+  - Network：NetworkPolicy / Ingress 列表与统计、连接拓扑分析
+  - Storage：PV / PVC / StorageClass 列表、容量统计摘要
+- [ ] **K8s 数据采集**：`internal/kubernetes` 增加对应资源采集方法
+- [ ] **前端切换**：`web/src/lib/api.ts` 增加 client 函数，页面从 mock 切真实 API（mock 保留给测试）
+- [ ] **端到端验证**：kind 集群实测两页渲染真实数据（深浅双模式）
 
-##### 4. 图表生成增强
-- [ ] 使用真实图表库生成 PNG/SVG 图片（替代目前的 ASCII 图表）
-- [ ] 支持发送到钉钉和飞书的图片消息
+### 迭代 4：可观测性补齐（API 已就绪，缺 UI）
 
-#### 第三阶段：运维能力（中优先级）
+- [ ] **Events 独立页面**：按类型/命名空间/时间范围筛选与搜索
+- [ ] **RBAC 分析页面**：可视化 `/rbac/analysis` 结果
 
-##### 4. ConfigMap/Secret 管理
-- [ ] **Web UI**: ConfigMaps/Secrets 管理页面
-- [ ] **API**: 查看、创建、编辑、删除 ConfigMap/Secret
-- [ ] **运维命令**: 相关的查看和管理命令
+### 迭代 5：备选池（按需拉取）
 
-##### 5. 资源配额查看
-- [ ] **Web UI**: 显示资源配额信息
-- [ ] **运维命令**: `klaw cluster resources quota <cluster-name> <namespace>`
+- [ ] Service/Deployment 运维命令（`klaw kubernetes service list/describe` 等）
+- [ ] ConfigMap/Secret 管理页面与 API
+- [ ] 图表 PNG 生成（替代 ASCII 图表，支持钉钉/飞书图片消息）
+- [ ] 日志增强：多容器选择、下载、更强过滤
+- [ ] Prometheus 集成
+- [ ] 集群生命周期管理、OpenClaw 技能完整实现
 
-##### 6. Events 页面
-- [ ] **Web UI**: 独立的事件查看页面，支持筛选和搜索
-- [ ] 按类型、命名空间、时间范围筛选
+### 质量债（贯穿）
 
-#### 第四阶段：高级功能（中优先级）
-
-##### 7. 集群安全配置
-- [ ] **安全审计**: `klaw cluster security audit <cluster-name>`
-- [ ] **安全策略**: `klaw cluster security policy <cluster-name> <policy>`
-
-##### 8. RBAC 管理
-- [ ] **Web UI**: 角色和权限管理界面
-- [ ] **API**: ServiceAccount、Role、RoleBinding 管理
-
-##### 9. Prometheus 集成
-- [ ] 支持从 Prometheus 获取指标
-- [ ] 更丰富的监控图表
-
-#### 第五阶段：生态（低优先级）
-
-##### 10. 集群生命周期管理
-- [ ] `klaw cluster create <cluster-name> <config-file>`
-- [ ] `klaw cluster delete <cluster-name>`
-- [ ] `klaw cluster upgrade <cluster-name> <version>`
-
-##### 11. OpenClaw 技能完整实现
-- [ ] 实现 `ExecuteSkill` 的真正逻辑
-- [ ] 动态加载和执行技能
-
-##### 12. 日志增强
-- [ ] 多容器 Pod 日志选择
-- [ ] 日志下载功能
-- [ ] 更强大的日志过滤和搜索
+- [ ] 19 处 `react-hooks/exhaustive-deps` warning 以 useCallback 重构消化，恢复 `--max-warnings 0`
 
 ---
 
-## 📅 迭代计划
+## 📝 维护说明
 
-### 迭代 2：Service 管理 ✅（已完成）
-**目标**：实现 Service 的完整管理功能
-
-**任务清单**：
-1. [x] 后端 API 开发
-   - [x] 在 server.go 添加 Service 相关接口
-   - [x] 在 resources.go 中添加 Service 操作方法
-2. [x] 前端页面开发
-   - [x] 创建 ServicesPage.tsx
-   - [x] 创建 ServiceDetailDrawer.tsx 详情抽屉
-   - [x] 添加到路由和导航
-   - [x] 创建 ToastContext 通知系统
-   - [x] 创建共用组件（ClusterSelector, NamespaceSelector, RefreshButton）
-3. [ ] 运维命令开发
-   - [ ] 在 handler.go 中添加 service 子命令处理
-4. [x] 测试验证
-
----
-
-## 📝 更新日志
-
-### 2026-04-02
-- **完成 Phase 2：实时事件推送**
-  - 实现 K8s Watch 模式事件监听
-  - 实现事件过滤和格式化
-  - 实现速率限制和去重
-  - 实时推送到钉钉
-  - 向后兼容（禁用事件时回退到轮询）
-  - 完整配置系统
-
-### 2026-04-01
-- **完成 Phase 1：钉钉双向通信**
-  - 实现 Communicator 抽象接口
-  - 重构 DingTalk 为插件化架构
-  - 命令路由系统
-  - 命令缩写支持
-
-- **完成迭代 2：Service 管理**
-  - 实现 Service API (List/Get/Delete + Endpoints)
-  - 实现 ServicesPage 页面
-  - 实现 ServiceDetailDrawer 详情组件
-  - 支持所有命名空间查询
-  - 添加 ToastContext 通知系统
-  - 添加共用组件 (ClusterSelector, NamespaceSelector, RefreshButton)
-- 创建开发计划文档
-- 梳理已有功能和待开发功能
-- 制定四阶段开发计划
-- **完成迭代 1：Deployment 管理**
-  - 实现 Deployment CRUD API
-  - 实现 Deployment 管理页面
-  - 实现 Deployment 运维命令
-- **添加 Kind 测试环境**
-  - 创建 `deployment/kind/` 目录结构
-  - 添加 Kind 集群配置 (`cluster-config.yaml`)
-  - 添加 Kind 管理脚本 (`manage.sh`)
-  - 添加详细文档 (`README.md`)
-  - 配置 Klaw 连接 Kind 集群
-  - 部署测试应用 (nginx, httpbin, frontend)
-- **添加前端测试集**
-  - 创建 `web/src/__tests__/` 测试目录结构
-  - 配置 Vitest + MSW 测试框架
-  - 创建完整的 Mock 数据 (`mocks/data.ts`)
-  - 实现 API Mock Handlers (`mocks/handlers.ts`)
-  - 编写单元测试：
-    - ClusterDashboard.test.tsx
-    - DeploymentsPage.test.tsx
-    - PodsPage.test.tsx
-    - NodesPage.test.tsx
-  - 编写集成测试：
-    - api.test.ts (API 调用测试)
-    - error-handling.test.tsx (错误处理测试)
-  - 添加测试工具函数 (`test-utils/test-utils.tsx`)
-  - 创建测试运行脚本 (`test.sh`)
-  - 编写详细测试文档
-
+- 详细变更记录见 [CHANGELOG.md](./CHANGELOG.md)；本文档只维护「能力清单 + 迭代路线」。
+- 迭代 1（Deployment 管理）、迭代 2（Service 管理）于 2026-04 完成，明细见 CHANGELOG 与 git 历史。
