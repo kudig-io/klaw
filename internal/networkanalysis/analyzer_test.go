@@ -41,6 +41,12 @@ func TestAnalyzeNetwork(t *testing.T) {
 	if result.TotalServices != 2 {
 		t.Errorf("TotalServices = %d, want 2", result.TotalServices)
 	}
+	if result.ServicesByType["LoadBalancer"] != 1 || result.ServicesByType["ClusterIP"] != 1 {
+		t.Errorf("ServicesByType = %v, want LoadBalancer:1 ClusterIP:1", result.ServicesByType)
+	}
+	if result.PoliciesByNamespace["prod"][0] != "deny-all" {
+		t.Error("expected policy deny-all indexed under namespace prod")
+	}
 	if len(result.ExposedServices) != 1 {
 		t.Errorf("ExposedServices = %d, want 1 (LoadBalancer only)", len(result.ExposedServices))
 	}

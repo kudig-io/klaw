@@ -7,6 +7,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -494,4 +495,66 @@ func (r *Resources) GetServiceEndpoints(clusterName, namespace, serviceName stri
 	}
 
 	return endpoints, nil
+}
+
+// ========== Network/Storage 管理（Network/Storage 页面数据源） ==========
+
+// ListNetworkPolicies 列出 NetworkPolicy；namespace 为空时跨全部命名空间
+func (r *Resources) ListNetworkPolicies(clusterName, namespace string) ([]networkingv1.NetworkPolicy, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	policies, err := client.NetworkingV1().NetworkPolicies(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list network policies: %v", err)
+	}
+
+	return policies.Items, nil
+}
+
+// ListPVCs 列出 PVC；namespace 为空时跨全部命名空间
+func (r *Resources) ListPVCs(clusterName, namespace string) ([]corev1.PersistentVolumeClaim, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	pvcs, err := client.CoreV1().PersistentVolumeClaims(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list persistent volume claims: %v", err)
+	}
+
+	return pvcs.Items, nil
+}
+
+// ListPersistentVolumes 列出 PV
+func (r *Resources) ListPersistentVolumes(clusterName string) ([]corev1.PersistentVolume, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	pvs, err := client.CoreV1().PersistentVolumes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list persistent volumes: %v", err)
+	}
+
+	return pvs.Items, nil
+}
+
+// ListStorageClasses 列出 StorageClass
+func (r *Resources) ListStorageClasses(clusterName string) ([]storagev1.StorageClass, error) {
+	client, err := r.manager.GetClient(clusterName)
+	if err != nil {
+		return nil, err
+	}
+
+	scs, err := client.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list storage classes: %v", err)
+	}
+
+	return scs.Items, nil
 }

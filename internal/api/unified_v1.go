@@ -99,6 +99,17 @@ func (s *Server) setupUnifiedV1Routes() {
 	s.router.HandleFunc("/api/v1/clusters/{cluster}/rbac/analysis", s.handleAnalyzeRBAC).Methods("GET")
 	s.router.HandleFunc("/api/v1/analysis/logs", s.handleAnalyzeRawLogs).Methods("POST")
 
+	s.router.HandleFunc("/api/v1/analysis/network", s.handleNetworkAnalysis).Methods("GET")
+	s.router.HandleFunc("/api/v1/analysis/storage", s.handleStorageAnalysis).Methods("GET")
+	s.router.HandleFunc("/api/v1/clusters/{cluster}/ingresses", s.handleListIngresses).Methods("GET")
+	s.router.HandleFunc("/api/v1/clusters/{cluster}/namespaces/{namespace}/ingresses", s.handleListIngresses).Methods("GET")
+	s.router.HandleFunc("/api/v1/clusters/{cluster}/networkpolicies", s.handleListNetworkPolicies).Methods("GET")
+	s.router.HandleFunc("/api/v1/clusters/{cluster}/namespaces/{namespace}/networkpolicies", s.handleListNetworkPolicies).Methods("GET")
+	s.router.HandleFunc("/api/v1/clusters/{cluster}/persistentvolumeclaims", s.handleListPVCs).Methods("GET")
+	s.router.HandleFunc("/api/v1/clusters/{cluster}/namespaces/{namespace}/persistentvolumeclaims", s.handleListPVCs).Methods("GET")
+	s.router.HandleFunc("/api/v1/clusters/{cluster}/persistentvolumes", s.handleListPersistentVolumes).Methods("GET")
+	s.router.HandleFunc("/api/v1/clusters/{cluster}/storageclasses", s.handleListStorageClasses).Methods("GET")
+
 	s.router.HandleFunc("/api/v1/clusters/{cluster}/resources/{kind}", s.handleListUnifiedResources).Methods("GET")
 	s.router.HandleFunc("/api/v1/clusters/{cluster}/namespaces/{namespace}/resources/{kind}", s.handleListUnifiedResources).Methods("GET")
 	s.router.HandleFunc("/api/v1/clusters/{cluster}/resources/{kind}/{name}", s.handleGetUnifiedResource).Methods("GET")

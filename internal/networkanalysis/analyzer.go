@@ -30,7 +30,7 @@ type NetworkAnalysis struct {
 	TotalServices        int                 `json:"totalServices"`
 	TotalIngresses       int                 `json:"totalIngresses"`
 	PoliciesByNamespace  map[string][]string `json:"policiesByNamespace"`
-	ServicesByType       map[string][]string `json:"servicesByType"`
+	ServicesByType       map[string]int      `json:"servicesByType"`
 	IngressesByHost      map[string][]string `json:"ingressesByHost"`
 	ExposedServices      []ExposedService    `json:"exposedServices"`
 	Timestamp            time.Time           `json:"timestamp"`
@@ -71,7 +71,7 @@ func (a *Analyzer) AnalyzeNetwork(ctx context.Context) (*NetworkAnalysis, error)
 		TotalServices:        len(services.Items),
 		TotalIngresses:       len(ingresses.Items),
 		PoliciesByNamespace:  make(map[string][]string),
-		ServicesByType:       make(map[string][]string),
+		ServicesByType:       make(map[string]int),
 		IngressesByHost:      make(map[string][]string),
 		ExposedServices:      make([]ExposedService, 0),
 		Timestamp:            time.Now(),
@@ -83,7 +83,7 @@ func (a *Analyzer) AnalyzeNetwork(ctx context.Context) (*NetworkAnalysis, error)
 
 	for _, svc := range services.Items {
 		typeStr := string(svc.Spec.Type)
-		analysis.ServicesByType[typeStr] = append(analysis.ServicesByType[typeStr], svc.Name)
+		analysis.ServicesByType[typeStr]++
 		if isExposed(svc.Spec.Type) {
 			analysis.ExposedServices = append(analysis.ExposedServices, ExposedService{
 				Name:      svc.Name,

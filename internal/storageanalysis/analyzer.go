@@ -25,15 +25,24 @@ type CapacityInfo struct {
 }
 
 type StorageAnalysis struct {
-	TotalPVs            int                 `json:"totalPVs"`
-	TotalPVCs           int                 `json:"totalPVCs"`
-	TotalStorageClasses int                 `json:"totalStorageClasses"`
-	PVByStatus          map[string][]string `json:"pvByStatus"`
-	PVCByStatus         map[string][]string `json:"pvcByStatus"`
-	PVByStorageClass    map[string][]string `json:"pvByStorageClass"`
-	StorageCapacity     CapacityInfo        `json:"storageCapacity"`
-	SCByProvisioner     map[string][]string `json:"scByProvisioner"`
-	Timestamp           time.Time           `json:"timestamp"`
+	TotalPVs            int            `json:"totalPVs"`
+	TotalPVCs           int            `json:"totalPVCs"`
+	TotalStorageClasses int            `json:"totalStorageClasses"`
+	PVByStatus          map[string]int `json:"pvByStatus"`
+	PVCByStatus         map[string]int `json:"pvcByStatus"`
+	PVByStorageClass    map[string]int `json:"pvByStorageClass"`
+	StorageCapacity     CapacityInfo   `json:"storageCapacity"`
+	SCByProvisioner     map[string]int `json:"scByProvisioner"`
+	Timestamp           time.Time      `json:"timestamp"`
+}
+
+// ListPVCs 列出 PVC；ns 为空时跨全部命名空间
+func (a *Analyzer) ListPVCs(ctx context.Context, ns string) ([]corev1.PersistentVolumeClaim, error) {
+	list, err := a.clientset.CoreV1().PersistentVolumeClaims(ns).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return list.Items, nil
 }
 
 func (a *Analyzer) ListPersistentVolumes(ctx context.Context) ([]corev1.PersistentVolume, error) {
@@ -57,7 +66,7 @@ func (a *Analyzer) AnalyzeStorage(ctx context.Context) (*StorageAnalysis, error)
 	if err != nil {
 		return nil, err
 	}
-	pvcs, err := a.clientset.CoreV1().PersistentVolumeClaims("").List(ctx, metav1.ListOptions{})
+	pvcs, err := a.ListPVCs(ctx, "")
 	if err != nil {
 		return nil, err
 	}
@@ -68,37 +77,42 @@ func (a *Analyzer) AnalyzeStorage(ctx context.Context) (*StorageAnalysis, error)
 
 	analysis := &StorageAnalysis{
 		TotalPVs:            len(pvs),
-		TotalPVCs:           len(pvcs.Items),
+		TotalPVCs:           len(pvcs),
 		TotalStorageClasses: len(scs),
-		PVByStatus:          make(map[string][]string),
-		PVCByStatus:         make(map[string][]string),
-		PVByStorageClass:    make(map[string][]string),
-		SCByProvisioner:     make(map[string][]string),
+		PVByStatus:          make(map[string]int),
+		PVCByStatus:         make(map[string]int),
+		PVByStorageClass:    make(map[string]int),
+		SCByProvisioner:     make(map[string]int),
 		Timestamp:           time.Now(),
 	}
 
 	for _, pv := range pvs {
 		status := string(pv.Status.Phase)
-		analysis.PVByStatus[status] = append(analysis.PVByStatus[status], pv.Name)
+		analysis.PVByStatus[status]++
 
 		sc := pv.Spec.StorageClassName
 		if sc == "" {
 			sc = "<none>"
 		}
-		analysis.PVByStorageClass[sc] = append(analysis.PVByStorageClass[sc], pv.Name)
+		analysis.PVByStorageClass[sc]++
 
 		if cap, ok := pv.Spec.Capacity[corev1.ResourceStorage]; ok {
 			analysis.StorageCapacity.TotalBytes += cap.Value()
 		}
 	}
 
-	for _, pvc := range pvcs.Items {
+	for _, pvc := range pvcs {
 		status := string(pvc.Status.Phase)
-		analysis.PVCByStatus[status] = append(analysis.PVCByStatus[status], pvc.Name)
+		analysis.PVCByStatus[status]++
+
+		// 以 PVC 请求量近似已用容量（与前端 mock 同口径），供页面渲染容量条
+		if q, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
+			analysis.StorageCapacity.UsedBytes += q.Value()
+		}
 	}
 
 	for _, sc := range scs {
-		analysis.SCByProvisioner[sc.Provisioner] = append(analysis.SCByProvisioner[sc.Provisioner], sc.Name)
+		analysis.SCByProvisioner[sc.Provisioner]++
 	}
 
 	analysis.StorageCapacity.AvailableBytes = analysis.StorageCapacity.TotalBytes - analysis.StorageCapacity.UsedBytes
