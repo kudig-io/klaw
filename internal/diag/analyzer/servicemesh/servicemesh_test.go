@@ -85,9 +85,9 @@ func TestIstioAnalyzer_ProxyNotSynced(t *testing.T) {
 	a := NewIstioAnalyzer()
 	data := &types.DiagnosticData{
 		IstioInfo: &types.IstioInfo{
-			IstiodPods:  1,
-			IstiodReady: 1,
-			IngressPods: 1,
+			IstiodPods:   1,
+			IstiodReady:  1,
+			IngressPods:  1,
 			IngressReady: 1,
 			ProxyStatus: []types.IstioProxyStatus{
 				{PodName: "app-1", Namespace: "default", Synced: false, CDS: "SYNCED", LDS: "SYNCED", RDS: "SYNCED", EDS: "SYNCED"},

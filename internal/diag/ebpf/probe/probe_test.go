@@ -175,10 +175,10 @@ func TestDNSStats(t *testing.T) {
 
 func TestFileIOStats(t *testing.T) {
 	stats := &FileIOStats{
-		TotalReads:      1000,
-		TotalWrites:     500,
-		TotalReadBytes:  1024000,
-		TotalWriteBytes: 512000,
+		TotalReads:         1000,
+		TotalWrites:        500,
+		TotalReadBytes:     1024000,
+		TotalWriteBytes:    512000,
 		AvgLatencyMicrosec: 100,
 	}
 

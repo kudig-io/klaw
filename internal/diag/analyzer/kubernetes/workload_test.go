@@ -163,9 +163,9 @@ func TestStatefulSetAnalyzer(t *testing.T) {
 			Replicas: &replicas,
 		},
 		Status: appsv1.StatefulSetStatus{
-			ReadyReplicas:    3,
-			CurrentReplicas:  3,
-			UpdatedReplicas:  3,
+			ReadyReplicas:   3,
+			CurrentReplicas: 3,
+			UpdatedReplicas: 3,
 		},
 	})
 

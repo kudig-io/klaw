@@ -44,12 +44,12 @@ func (r *SarifReporter) Generate(issues []types.Issue, metadata *ReportMetadata)
 			{
 				"tool": map[string]interface{}{
 					"driver": map[string]interface{}{
-						"name":            "klaw",
-						"informationUri":  "https://github.com/kudig-io/klaw",
-						"fullName":        "klaw - Kubernetes All-in-One Operations Platform",
-						"version":         "2.0.0",
-						"organization":    "kudig-io",
-						"rules":           buildSarifRules(securityIssues),
+						"name":           "klaw",
+						"informationUri": "https://github.com/kudig-io/klaw",
+						"fullName":       "klaw - Kubernetes All-in-One Operations Platform",
+						"version":        "2.0.0",
+						"organization":   "kudig-io",
+						"rules":          buildSarifRules(securityIssues),
 					},
 				},
 				"results": buildSarifResults(securityIssues),

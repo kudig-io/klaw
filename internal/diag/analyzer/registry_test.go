@@ -199,8 +199,8 @@ func TestRegistryExecuteAll(t *testing.T) {
 
 func TestRegistryExecuteAllOnlineFilter(t *testing.T) {
 	r := NewRegistry()
-	r.Register(newMockAnalyzer())  // supports both modes
-	r.Register(&mockAnalyzer2{})   // supports only offline
+	r.Register(newMockAnalyzer()) // supports both modes
+	r.Register(&mockAnalyzer2{})  // supports only offline
 
 	data := &types.DiagnosticData{Mode: types.ModeOnline}
 	results, err := r.ExecuteAll(context.Background(), data)

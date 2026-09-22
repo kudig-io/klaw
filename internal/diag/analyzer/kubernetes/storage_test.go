@@ -8,8 +8,8 @@ import (
 	"github.com/kudig-io/klaw/internal/diag/types"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -124,7 +124,7 @@ func TestPVAnalyzer_Analyze_Failed(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
-	
+
 	hasFailed := false
 	for _, issue := range issues {
 		if issue.ENName == "PV_FAILED" {
@@ -165,7 +165,7 @@ func TestPVAnalyzer_Analyze_ReleasedLongTime(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
-	
+
 	hasReleasedLong := false
 	for _, issue := range issues {
 		if issue.ENName == "PV_RELEASED_LONG" {
@@ -183,7 +183,7 @@ func TestStorageClassAnalyzer_Analyze_NoDefault(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "standard",
 		},
-		Provisioner: "kubernetes.io/gce-pd",
+		Provisioner:   "kubernetes.io/gce-pd",
 		ReclaimPolicy: nil, // No reclaim policy set
 	}
 
@@ -196,7 +196,7 @@ func TestStorageClassAnalyzer_Analyze_NoDefault(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
-	
+
 	// 应该至少有 NO_DEFAULT_STORAGECLASS 问题
 	hasNoDefault := false
 	for _, issue := range issues {
@@ -232,7 +232,7 @@ func TestStorageClassAnalyzer_Analyze_WithDefault(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
-	
+
 	// 检查没有 NO_DEFAULT_STORAGECLASS 问题
 	hasNoDefault := false
 	for _, issue := range issues {

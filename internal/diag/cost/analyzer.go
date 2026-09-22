@@ -12,10 +12,10 @@ import (
 // CostAnalyzer analyzes resource costs
 type CostAnalyzer struct {
 	// Pricing configuration (USD per unit)
-	CPUPricePerCore     float64
-	MemoryPricePerGB    float64
-	StoragePricePerGB   float64
-	NetworkPricePerGB   float64
+	CPUPricePerCore   float64
+	MemoryPricePerGB  float64
+	StoragePricePerGB float64
+	NetworkPricePerGB float64
 }
 
 // NewCostAnalyzer creates a new cost analyzer with default AWS pricing
@@ -30,25 +30,25 @@ func NewCostAnalyzer() *CostAnalyzer {
 
 // ResourceCost represents the cost breakdown for a resource
 type ResourceCost struct {
-	Name           string  `json:"name"`
-	Namespace      string  `json:"namespace,omitempty"`
-	Type           string  `json:"type"`
-	CPUCores       float64 `json:"cpu_cores"`
-	MemoryGB       float64 `json:"memory_gb"`
-	StorageGB      float64 `json:"storage_gb"`
-	DailyCost      float64 `json:"daily_cost"`
-	MonthlyCost    float64 `json:"monthly_cost"`
-	YearlyCost     float64 `json:"yearly_cost"`
-	Efficiency     float64 `json:"efficiency"` // actual usage / requested
+	Name        string  `json:"name"`
+	Namespace   string  `json:"namespace,omitempty"`
+	Type        string  `json:"type"`
+	CPUCores    float64 `json:"cpu_cores"`
+	MemoryGB    float64 `json:"memory_gb"`
+	StorageGB   float64 `json:"storage_gb"`
+	DailyCost   float64 `json:"daily_cost"`
+	MonthlyCost float64 `json:"monthly_cost"`
+	YearlyCost  float64 `json:"yearly_cost"`
+	Efficiency  float64 `json:"efficiency"` // actual usage / requested
 }
 
 // AnalysisResult contains the full cost analysis
 type AnalysisResult struct {
-	Resources      []ResourceCost `json:"resources"`
-	TotalDailyCost float64        `json:"total_daily_cost"`
-	TotalMonthlyCost float64      `json:"total_monthly_cost"`
-	TotalYearlyCost  float64      `json:"total_yearly_cost"`
-	Recommendations []string      `json:"recommendations"`
+	Resources        []ResourceCost `json:"resources"`
+	TotalDailyCost   float64        `json:"total_daily_cost"`
+	TotalMonthlyCost float64        `json:"total_monthly_cost"`
+	TotalYearlyCost  float64        `json:"total_yearly_cost"`
+	Recommendations  []string       `json:"recommendations"`
 }
 
 // Analyze performs cost analysis on diagnostic data

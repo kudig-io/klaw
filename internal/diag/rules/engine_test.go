@@ -852,7 +852,7 @@ func TestEngineEvaluate_MetricThreshold_AllOperators(t *testing.T) {
 		{"lt_true", "lt", 1.0, 0.8, true},
 		{"lt_false", "lt", 5.0, 0.8, false},
 		{"lte_true", "lte", 3.2, 0.8, true},
-		{"eq_true", "eq", 3.2, 0.8, true},  // 3.2/4 = 0.8
+		{"eq_true", "eq", 3.2, 0.8, true}, // 3.2/4 = 0.8
 		{"eq_false", "eq", 5.0, 0.8, false},
 		{"ne_true", "ne", 5.0, 0.8, true},
 		{"ne_false", "ne", 3.2, 0.8, false},
@@ -1296,9 +1296,9 @@ func TestEngineEvaluate_UnknownConditionType(t *testing.T) {
 
 func TestTruncateString(t *testing.T) {
 	tests := []struct {
-		input   string
-		maxLen  int
-		want    string
+		input  string
+		maxLen int
+		want   string
 	}{
 		{"short", 100, "short"},
 		{"a very long string that needs to be truncated", 10, "a very lon..."},
@@ -1315,4 +1315,3 @@ func TestTruncateString(t *testing.T) {
 		}
 	}
 }
-

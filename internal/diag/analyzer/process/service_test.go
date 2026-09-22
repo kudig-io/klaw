@@ -106,7 +106,7 @@ func TestContainerRuntimeAnalyzerAnalyze_NoIssues(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOffline)
 	data.RawFiles = map[string][]byte{
-		"daemon_status/docker_status":    []byte("Active: active (running)"),
+		"daemon_status/docker_status":     []byte("Active: active (running)"),
 		"daemon_status/containerd_status": []byte("Active: active (running)"),
 	}
 
@@ -163,7 +163,7 @@ func TestContainerRuntimeAnalyzer_BothFailed(t *testing.T) {
 	a := NewContainerRuntimeAnalyzer()
 	data := types.NewDiagnosticData(types.ModeOffline)
 	data.RawFiles = map[string][]byte{
-		"daemon_status/docker_status":    []byte("Active: failed"),
+		"daemon_status/docker_status":     []byte("Active: failed"),
 		"daemon_status/containerd_status": []byte("Active: failed"),
 	}
 	issues, err := a.Analyze(context.Background(), data)
@@ -182,7 +182,7 @@ func TestContainerRuntimeAnalyzer_BothStopped(t *testing.T) {
 	a := NewContainerRuntimeAnalyzer()
 	data := types.NewDiagnosticData(types.ModeOffline)
 	data.RawFiles = map[string][]byte{
-		"daemon_status/docker_status":    []byte("Active: inactive (dead)"),
+		"daemon_status/docker_status":     []byte("Active: inactive (dead)"),
 		"daemon_status/containerd_status": []byte("Active: inactive (dead)"),
 	}
 	issues, err := a.Analyze(context.Background(), data)
@@ -213,7 +213,7 @@ func TestContainerRuntimeAnalyzer_OneRunning(t *testing.T) {
 	a := NewContainerRuntimeAnalyzer()
 	data := types.NewDiagnosticData(types.ModeOffline)
 	data.RawFiles = map[string][]byte{
-		"daemon_status/docker_status":    []byte("Active: active (running)"),
+		"daemon_status/docker_status":     []byte("Active: active (running)"),
 		"daemon_status/containerd_status": []byte("Active: failed"),
 	}
 	issues, err := a.Analyze(context.Background(), data)

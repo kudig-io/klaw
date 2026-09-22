@@ -25,11 +25,11 @@ const (
 
 // Entry represents a single diagnostic history entry
 type Entry struct {
-	ID        string        `json:"id"`
-	Timestamp time.Time     `json:"timestamp"`
-	Hostname  string        `json:"hostname"`
-	Mode      string        `json:"mode"`
-	Issues    []types.Issue `json:"issues"`
+	ID        string             `json:"id"`
+	Timestamp time.Time          `json:"timestamp"`
+	Hostname  string             `json:"hostname"`
+	Mode      string             `json:"mode"`
+	Issues    []types.Issue      `json:"issues"`
 	Summary   types.IssueSummary `json:"summary"`
 }
 

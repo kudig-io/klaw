@@ -13,7 +13,7 @@ import (
 func TestNewManager(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir := t.TempDir()
-	
+
 	mgr := NewManagerWithPath(tempDir)
 	if mgr == nil {
 		t.Fatal("Expected non-nil manager")
@@ -266,12 +266,12 @@ func TestManager_CleanupOldEntries(t *testing.T) {
 		t.Fatalf("Failed to unmarshal entry: %v", err)
 	}
 	oldEntry.Timestamp = time.Now().Add(-30 * 24 * time.Hour) // 30 days ago
-	
+
 	newData, err := json.MarshalIndent(oldEntry, "", "  ")
 	if err != nil {
 		t.Fatalf("Failed to marshal old entry: %v", err)
 	}
-	
+
 	if err := os.WriteFile(filename, newData, 0600); err != nil {
 		t.Fatalf("Failed to write old entry: %v", err)
 	}

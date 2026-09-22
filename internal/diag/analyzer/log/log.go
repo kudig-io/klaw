@@ -12,7 +12,7 @@ import (
 )
 
 // SyslogAnalyzer analyzes syslog for critical patterns
- type SyslogAnalyzer struct {
+type SyslogAnalyzer struct {
 	*analyzer.BaseAnalyzer
 }
 
@@ -157,7 +157,7 @@ func (a *SyslogAnalyzer) analyzeLogContent(content, source string) []types.Issue
 }
 
 // JournalCtlAnalyzer analyzes journalctl logs
- type JournalCtlAnalyzer struct {
+type JournalCtlAnalyzer struct {
 	*analyzer.BaseAnalyzer
 }
 
@@ -284,7 +284,7 @@ func (a *JournalCtlAnalyzer) analyzeJournalContent(content, source string) []typ
 }
 
 // KubeletLogAnalyzer analyzes kubelet logs for critical patterns
- type KubeletLogAnalyzer struct {
+type KubeletLogAnalyzer struct {
 	*analyzer.BaseAnalyzer
 }
 

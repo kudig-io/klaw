@@ -20,25 +20,25 @@ import (
 type Provider interface {
 	// Analyze analyzes issues and returns insights
 	Analyze(ctx context.Context, issues []types.Issue, hostname string) (*AnalysisResult, error)
-	
+
 	// GenerateSummary generates a summary of diagnostic results
 	GenerateSummary(ctx context.Context, issues []types.Issue) (string, error)
-	
+
 	// SuggestFixes suggests fixes for issues
 	SuggestFixes(ctx context.Context, issue types.Issue) ([]FixSuggestion, error)
-	
+
 	// Name returns the provider name
 	Name() string
 }
 
 // AnalysisResult contains the AI analysis result
 type AnalysisResult struct {
-	Summary      string           `json:"summary"`
-	RootCause    string           `json:"root_cause"`
-	Suggestions  []FixSuggestion  `json:"suggestions"`
-	Severity     types.Severity   `json:"severity"`
-	Confidence   float64          `json:"confidence"`
-	Language     string           `json:"language"`
+	Summary     string          `json:"summary"`
+	RootCause   string          `json:"root_cause"`
+	Suggestions []FixSuggestion `json:"suggestions"`
+	Severity    types.Severity  `json:"severity"`
+	Confidence  float64         `json:"confidence"`
+	Language    string          `json:"language"`
 }
 
 // FixSuggestion contains a suggested fix
@@ -54,13 +54,13 @@ type FixSuggestion struct {
 type Config struct {
 	// Provider: openai, qwen, ollama, mimo（均为 OpenAI 兼容协议；mimo 为小米 MiMo 开放平台）
 	// mimo 需区分计费套餐：sk- 按量 key 用 api.xiaomimimo.com；tp- Token Plan key 用 token-plan-cn.xiaomimimo.com
-	Provider    string `env:"KUDIG_AI_PROVIDER" default:"openai"`
-	APIKey      string `env:"KUDIG_AI_API_KEY"`
-	BaseURL     string `env:"KUDIG_AI_BASE_URL"` // for custom endpoints like Ollama
-	Model       string `env:"KUDIG_AI_MODEL" default:"gpt-4"`
-	Timeout     int    `env:"KUDIG_AI_TIMEOUT" default:"30"`
-	Language    string `env:"KUDIG_AI_LANGUAGE" default:"zh"` // zh or en
-	MaxTokens   int    `env:"KUDIG_AI_MAX_TOKENS" default:"2000"`
+	Provider    string  `env:"KUDIG_AI_PROVIDER" default:"openai"`
+	APIKey      string  `env:"KUDIG_AI_API_KEY"`
+	BaseURL     string  `env:"KUDIG_AI_BASE_URL"` // for custom endpoints like Ollama
+	Model       string  `env:"KUDIG_AI_MODEL" default:"gpt-4"`
+	Timeout     int     `env:"KUDIG_AI_TIMEOUT" default:"30"`
+	Language    string  `env:"KUDIG_AI_LANGUAGE" default:"zh"` // zh or en
+	MaxTokens   int     `env:"KUDIG_AI_MAX_TOKENS" default:"2000"`
 	Temperature float64 `env:"KUDIG_AI_TEMPERATURE" default:"0.3"`
 }
 
@@ -340,7 +340,7 @@ func (p *OpenAIProvider) buildAnalysisPrompt(issues []types.Issue, hostname stri
 		}
 		return i.CNName
 	}
-	
+
 	if p.config.Language == "zh" {
 		sb.WriteString(fmt.Sprintf("主机: %s\n", hostname))
 		sb.WriteString(fmt.Sprintf("发现 %d 个问题:\n\n", len(issues)))

@@ -10,8 +10,8 @@ func TestCommandRouter_ExpandCommand(t *testing.T) {
 	router := ops.NewCommandRouter(nil)
 
 	tests := map[string]string{
-		"p ls demo default":   "pod list demo default",
-		"s desc demo default": "service describe demo default",
+		"p ls demo default":              "pod list demo default",
+		"s desc demo default":            "service describe demo default",
 		"svc endpoints demo default web": "service endpoints demo default web",
 	}
 

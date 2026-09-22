@@ -95,11 +95,11 @@ func TestFormatResult(t *testing.T) {
 	result := &AnalysisResult{
 		Resources: []ResourceCost{
 			{
-				Name:       "test-node",
-				Type:       "node",
-				CPUCores:   4.0,
-				MemoryGB:   16.0,
-				DailyCost:  0.36,
+				Name:      "test-node",
+				Type:      "node",
+				CPUCores:  4.0,
+				MemoryGB:  16.0,
+				DailyCost: 0.36,
 			},
 		},
 		TotalDailyCost:   0.36,

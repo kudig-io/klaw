@@ -56,24 +56,24 @@ type PodInfo struct {
 
 // VirtualServiceInfo represents Istio VirtualService information
 type VirtualServiceInfo struct {
-	Name      string `json:"name" yaml:"name"`
-	Namespace string `json:"namespace" yaml:"namespace"`
-	Hosts     []string `json:"hosts,omitempty" yaml:"hosts,omitempty"`
-	Gateways  []string `json:"gateways,omitempty" yaml:"gateways,omitempty"`
+	Name      string          `json:"name" yaml:"name"`
+	Namespace string          `json:"namespace" yaml:"namespace"`
+	Hosts     []string        `json:"hosts,omitempty" yaml:"hosts,omitempty"`
+	Gateways  []string        `json:"gateways,omitempty" yaml:"gateways,omitempty"`
 	HTTP      []HTTPRouteInfo `json:"http,omitempty" yaml:"http,omitempty"`
-	TCP       []TCPRouteInfo `json:"tcp,omitempty" yaml:"tcp,omitempty"`
+	TCP       []TCPRouteInfo  `json:"tcp,omitempty" yaml:"tcp,omitempty"`
 }
 
 // HTTPRouteInfo represents HTTP route information
 type HTTPRouteInfo struct {
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
-	Match []string `json:"match,omitempty" yaml:"match,omitempty"`
+	Name  string            `json:"name,omitempty" yaml:"name,omitempty"`
+	Match []string          `json:"match,omitempty" yaml:"match,omitempty"`
 	Route []DestinationInfo `json:"route,omitempty" yaml:"route,omitempty"`
 }
 
 // TCPRouteInfo represents TCP route information
 type TCPRouteInfo struct {
-	Match []string `json:"match,omitempty" yaml:"match,omitempty"`
+	Match []string          `json:"match,omitempty" yaml:"match,omitempty"`
 	Route []DestinationInfo `json:"route,omitempty" yaml:"route,omitempty"`
 }
 
@@ -86,29 +86,29 @@ type DestinationInfo struct {
 
 // DestinationRuleInfo represents Istio DestinationRule information
 type DestinationRuleInfo struct {
-	Name      string `json:"name" yaml:"name"`
-	Namespace string `json:"namespace" yaml:"namespace"`
-	Host      string `json:"host" yaml:"host"`
-	Subsets   []SubsetInfo `json:"subsets,omitempty" yaml:"subsets,omitempty"`
+	Name          string             `json:"name" yaml:"name"`
+	Namespace     string             `json:"namespace" yaml:"namespace"`
+	Host          string             `json:"host" yaml:"host"`
+	Subsets       []SubsetInfo       `json:"subsets,omitempty" yaml:"subsets,omitempty"`
 	TrafficPolicy *TrafficPolicyInfo `json:"traffic_policy,omitempty" yaml:"traffic_policy,omitempty"`
 }
 
 // SubsetInfo represents subset information
 type SubsetInfo struct {
-	Name   string `json:"name" yaml:"name"`
+	Name   string            `json:"name" yaml:"name"`
 	Labels map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
 // TrafficPolicyInfo represents traffic policy information
 type TrafficPolicyInfo struct {
-	LoadBalancer string `json:"load_balancer,omitempty" yaml:"load_balancer,omitempty"`
+	LoadBalancer     string                `json:"load_balancer,omitempty" yaml:"load_balancer,omitempty"`
 	OutlierDetection *OutlierDetectionInfo `json:"outlier_detection,omitempty" yaml:"outlier_detection,omitempty"`
 }
 
 // OutlierDetectionInfo represents outlier detection information
 type OutlierDetectionInfo struct {
-	ConsecutiveErrors  int `json:"consecutive_errors,omitempty" yaml:"consecutive_errors,omitempty"`
-	IntervalSeconds    int `json:"interval_seconds,omitempty" yaml:"interval_seconds,omitempty"`
+	ConsecutiveErrors       int `json:"consecutive_errors,omitempty" yaml:"consecutive_errors,omitempty"`
+	IntervalSeconds         int `json:"interval_seconds,omitempty" yaml:"interval_seconds,omitempty"`
 	BaseEjectionTimeSeconds int `json:"base_ejection_time_seconds,omitempty" yaml:"base_ejection_time_seconds,omitempty"`
 }
 

@@ -17,39 +17,39 @@ import (
 // Styles for TUI
 var (
 	titleStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#FAFAFA")).
-		Background(lipgloss.Color("#7D56F4")).
-		PaddingLeft(2).
-		PaddingRight(2).
-		MarginBottom(1)
+			Bold(true).
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#7D56F4")).
+			PaddingLeft(2).
+			PaddingRight(2).
+			MarginBottom(1)
 
 	itemStyle = lipgloss.NewStyle().
-		PaddingLeft(2)
+			PaddingLeft(2)
 
 	selectedItemStyle = lipgloss.NewStyle().
-		PaddingLeft(2).
-		Foreground(lipgloss.Color("#7D56F4")).
-		Bold(true)
+				PaddingLeft(2).
+				Foreground(lipgloss.Color("#7D56F4")).
+				Bold(true)
 
 	infoStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#666666"))
+			Foreground(lipgloss.Color("#666666"))
 
 	errorStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FF5555"))
+			Foreground(lipgloss.Color("#FF5555"))
 
 	warningStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FFAA00"))
+			Foreground(lipgloss.Color("#FFAA00"))
 
 	successStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#55AA55"))
+			Foreground(lipgloss.Color("#55AA55"))
 
 	criticalStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FF0000")).
-		Bold(true)
+			Foreground(lipgloss.Color("#FF0000")).
+			Bold(true)
 
 	descriptionStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#AAAAAA"))
+				Foreground(lipgloss.Color("#AAAAAA"))
 )
 
 // MenuItem represents a menu item
@@ -93,11 +93,11 @@ func (i IssueItem) Description() string {
 // Model is the TUI application model
 type Model struct {
 	// State
-	state       AppState
-	width       int
-	height      int
-	context     context.Context
-	cancelFunc  context.CancelFunc
+	state      AppState
+	width      int
+	height     int
+	context    context.Context
+	cancelFunc context.CancelFunc
 
 	// Menu
 	menu        list.Model
@@ -105,13 +105,13 @@ type Model struct {
 	selectedIdx int
 
 	// Diagnosis
-	issues      []types.Issue
-	issuesList  list.Model
+	issues        []types.Issue
+	issuesList    list.Model
 	selectedIssue *types.Issue
-	spinner     spinner.Model
-	diagnosing  bool
-	diagError   error
-	diagResult  *types.DiagnosticData
+	spinner       spinner.Model
+	diagnosing    bool
+	diagError     error
+	diagResult    *types.DiagnosticData
 
 	// Inputs
 	kubeconfig   string
@@ -121,7 +121,7 @@ type Model struct {
 	onlineMode   bool
 
 	// Messages
-	message     string
+	message string
 }
 
 // AppState represents the current state of the TUI

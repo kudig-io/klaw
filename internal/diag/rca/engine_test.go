@@ -137,11 +137,11 @@ func TestFormatRootCauses_Empty(t *testing.T) {
 func TestFormatRootCauses_WithCauses(t *testing.T) {
 	rootCauses := []RootCause{
 		{
-			Title:           "Test Root Cause",
-			Confidence:      0.85,
-			Category:        "test",
-			Description:     "Test description",
-			RelatedIssues:   []string{"ISSUE_1"},
+			Title:            "Test Root Cause",
+			Confidence:       0.85,
+			Category:         "test",
+			Description:      "Test description",
+			RelatedIssues:    []string{"ISSUE_1"},
 			SuggestedActions: []string{"Do something"},
 		},
 	}

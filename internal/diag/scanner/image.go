@@ -98,14 +98,14 @@ func (s *ImageScanner) parseTrivyOutput(image string, output []byte) (*ScanResul
 	var trivyResult struct {
 		Results []struct {
 			Vulnerabilities []struct {
-				VulnerabilityID string `json:"VulnerabilityID"`
-				Severity        string `json:"Severity"`
-				Title           string `json:"Title"`
-				Description     string `json:"Description"`
-				PkgName         string `json:"PkgName"`
-				InstalledVersion string `json:"InstalledVersion"`
-				FixedVersion    string `json:"FixedVersion"`
-				References      []string `json:"References"`
+				VulnerabilityID  string   `json:"VulnerabilityID"`
+				Severity         string   `json:"Severity"`
+				Title            string   `json:"Title"`
+				Description      string   `json:"Description"`
+				PkgName          string   `json:"PkgName"`
+				InstalledVersion string   `json:"InstalledVersion"`
+				FixedVersion     string   `json:"FixedVersion"`
+				References       []string `json:"References"`
 			} `json:"Vulnerabilities"`
 		} `json:"Results"`
 	}

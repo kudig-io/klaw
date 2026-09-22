@@ -12,7 +12,7 @@ func TestNewConfigFromEnv(t *testing.T) {
 	// Save and restore environment variables
 	oldSlackURL := ""
 	oldMinSev := ""
-	
+
 	// Set test environment variables
 	t.Setenv("KUDIG_SLACK_WEBHOOK_URL", "https://hooks.slack.com/test")
 	t.Setenv("KUDIG_NOTIFY_MIN_SEVERITY", "warning")

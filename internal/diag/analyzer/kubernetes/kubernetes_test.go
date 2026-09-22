@@ -443,7 +443,7 @@ func TestNodeStatusAnalyzerAnalyze_Online_NodeNotReady(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
 	data.NodeName = "test-node"
-	
+
 	// Create fake client with NotReady node
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -478,7 +478,7 @@ func TestNodeStatusAnalyzerAnalyze_Online_DiskPressure(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
 	data.NodeName = "test-node"
-	
+
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-node",
@@ -486,8 +486,8 @@ func TestNodeStatusAnalyzerAnalyze_Online_DiskPressure(t *testing.T) {
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionTrue,
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 				{
 					Type:    corev1.NodeDiskPressure,
@@ -516,7 +516,7 @@ func TestNodeStatusAnalyzerAnalyze_Online_MemoryPressure(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
 	data.NodeName = "test-node"
-	
+
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-node",
@@ -524,8 +524,8 @@ func TestNodeStatusAnalyzerAnalyze_Online_MemoryPressure(t *testing.T) {
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionTrue,
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 				{
 					Type:    corev1.NodeMemoryPressure,
@@ -554,7 +554,7 @@ func TestNodeStatusAnalyzerAnalyze_Online_PIDPressure(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
 	data.NodeName = "test-node"
-	
+
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-node",
@@ -562,8 +562,8 @@ func TestNodeStatusAnalyzerAnalyze_Online_PIDPressure(t *testing.T) {
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionTrue,
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 				{
 					Type:    corev1.NodePIDPressure,
@@ -592,7 +592,7 @@ func TestNodeStatusAnalyzerAnalyze_Online_NetworkUnavailable(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
 	data.NodeName = "test-node"
-	
+
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-node",
@@ -600,8 +600,8 @@ func TestNodeStatusAnalyzerAnalyze_Online_NetworkUnavailable(t *testing.T) {
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
 				{
-					Type:    corev1.NodeReady,
-					Status:  corev1.ConditionTrue,
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 				{
 					Type:    corev1.NodeNetworkUnavailable,
@@ -633,7 +633,7 @@ func TestNodeStatusAnalyzerAnalyze_Online_Unschedulable(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
 	data.NodeName = "test-node"
-	
+
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-node",
@@ -677,7 +677,7 @@ func TestNodeStatusAnalyzerAnalyze_Online_ListAllNodes(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
 	// No specific node name, should list all nodes
-	
+
 	node1 := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node-1",
@@ -835,7 +835,7 @@ func TestImagePullAnalyzerAnalyze_Online_ImagePullBackOff(t *testing.T) {
 	a := NewImagePullAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pod",
@@ -873,7 +873,7 @@ func TestImagePullAnalyzerAnalyze_Online_ErrImagePull(t *testing.T) {
 	a := NewImagePullAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pod",
@@ -908,7 +908,7 @@ func TestImagePullAnalyzerAnalyze_Online_MultipleImages(t *testing.T) {
 	a := NewImagePullAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pod",
@@ -994,7 +994,7 @@ func TestPodStatusAnalyzerAnalyze_CrashLoopBackOff(t *testing.T) {
 	a := NewPodStatusAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crash-pod",
@@ -1032,7 +1032,7 @@ func TestPodStatusAnalyzerAnalyze_MultiplePendingPods(t *testing.T) {
 	a := NewPodStatusAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	// Create 6 pending pods
 	var pods []corev1.Pod
 	for i := 0; i < 6; i++ {
@@ -1046,7 +1046,7 @@ func TestPodStatusAnalyzerAnalyze_MultiplePendingPods(t *testing.T) {
 			},
 		})
 	}
-	
+
 	client := fake.NewSimpleClientset()
 	for i := range pods {
 		_, err := client.CoreV1().Pods("default").Create(ctx, &pods[i], metav1.CreateOptions{})
@@ -1072,7 +1072,7 @@ func TestPodStatusAnalyzerAnalyze_FailedPods(t *testing.T) {
 	a := NewPodStatusAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "failed-pod",
@@ -1100,7 +1100,7 @@ func TestPodStatusAnalyzerAnalyze_HighRestartCount(t *testing.T) {
 	a := NewPodStatusAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "restarting-pod",
@@ -1139,7 +1139,7 @@ func TestPodStatusAnalyzerAnalyze_FilterByNode(t *testing.T) {
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
 	data.NodeName = "worker-1"
-	
+
 	// Create pods on different nodes
 	pod1 := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1194,7 +1194,7 @@ func TestEventAnalyzerAnalyze_FailedScheduling(t *testing.T) {
 	a := NewEventAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	// Create multiple events with same reason to exceed threshold
 	var events []corev1.Event
 	for i := 0; i < 5; i++ {
@@ -1207,7 +1207,7 @@ func TestEventAnalyzerAnalyze_FailedScheduling(t *testing.T) {
 			Reason: "FailedScheduling",
 		})
 	}
-	
+
 	client := fake.NewSimpleClientset()
 	for i := range events {
 		_, err := client.CoreV1().Events("default").Create(ctx, &events[i], metav1.CreateOptions{})
@@ -1233,7 +1233,7 @@ func TestEventAnalyzerAnalyze_FailedMount(t *testing.T) {
 	a := NewEventAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	var events []corev1.Event
 	for i := 0; i < 5; i++ {
 		events = append(events, corev1.Event{
@@ -1245,7 +1245,7 @@ func TestEventAnalyzerAnalyze_FailedMount(t *testing.T) {
 			Reason: "FailedMount",
 		})
 	}
-	
+
 	client := fake.NewSimpleClientset()
 	for i := range events {
 		_, err := client.CoreV1().Events("default").Create(ctx, &events[i], metav1.CreateOptions{})
@@ -1271,7 +1271,7 @@ func TestEventAnalyzerAnalyze_NodeNotReady(t *testing.T) {
 	a := NewEventAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	var events []corev1.Event
 	for i := 0; i < 5; i++ {
 		events = append(events, corev1.Event{
@@ -1283,7 +1283,7 @@ func TestEventAnalyzerAnalyze_NodeNotReady(t *testing.T) {
 			Reason: "NodeNotReady",
 		})
 	}
-	
+
 	client := fake.NewSimpleClientset()
 	for i := range events {
 		_, err := client.CoreV1().Events("default").Create(ctx, &events[i], metav1.CreateOptions{})
@@ -1312,7 +1312,7 @@ func TestEventAnalyzerAnalyze_NetworkNotReady(t *testing.T) {
 	a := NewEventAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	var events []corev1.Event
 	for i := 0; i < 5; i++ {
 		events = append(events, corev1.Event{
@@ -1324,7 +1324,7 @@ func TestEventAnalyzerAnalyze_NetworkNotReady(t *testing.T) {
 			Reason: "NetworkNotReady",
 		})
 	}
-	
+
 	client := fake.NewSimpleClientset()
 	for i := range events {
 		_, err := client.CoreV1().Events("default").Create(ctx, &events[i], metav1.CreateOptions{})
@@ -1350,7 +1350,7 @@ func TestEventAnalyzerAnalyze_BelowThreshold(t *testing.T) {
 	a := NewEventAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	// Only 2 events, below threshold of 3
 	var events []corev1.Event
 	for i := 0; i < 2; i++ {
@@ -1363,7 +1363,7 @@ func TestEventAnalyzerAnalyze_BelowThreshold(t *testing.T) {
 			Reason: "FailedScheduling",
 		})
 	}
-	
+
 	client := fake.NewSimpleClientset()
 	for i := range events {
 		_, err := client.CoreV1().Events("default").Create(ctx, &events[i], metav1.CreateOptions{})
@@ -1386,7 +1386,7 @@ func TestEventAnalyzerAnalyze_NormalEvent(t *testing.T) {
 	a := NewEventAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	// Normal event, not Warning type (create multiple to exceed threshold)
 	var events []corev1.Event
 	for i := 0; i < 10; i++ {
@@ -1399,7 +1399,7 @@ func TestEventAnalyzerAnalyze_NormalEvent(t *testing.T) {
 			Reason: "Scheduled",
 		})
 	}
-	
+
 	client := fake.NewSimpleClientset()
 	for i := range events {
 		_, err := client.CoreV1().Events("default").Create(ctx, &events[i], metav1.CreateOptions{})
@@ -1422,10 +1422,10 @@ func TestEventAnalyzerAnalyze_MultipleIssues(t *testing.T) {
 	a := NewEventAnalyzer()
 	ctx := context.Background()
 	data := types.NewDiagnosticData(types.ModeOnline)
-	
+
 	// Create multiple events for each reason to exceed threshold
 	client := fake.NewSimpleClientset()
-	
+
 	// 5 FailedScheduling events
 	for i := 0; i < 5; i++ {
 		event := &corev1.Event{
@@ -1441,7 +1441,7 @@ func TestEventAnalyzerAnalyze_MultipleIssues(t *testing.T) {
 			t.Fatalf("Failed to create event: %v", err)
 		}
 	}
-	
+
 	// 4 FailedMount events
 	for i := 0; i < 4; i++ {
 		event := &corev1.Event{
@@ -1457,7 +1457,7 @@ func TestEventAnalyzerAnalyze_MultipleIssues(t *testing.T) {
 			t.Fatalf("Failed to create event: %v", err)
 		}
 	}
-	
+
 	// 6 Unhealthy events
 	for i := 0; i < 6; i++ {
 		event := &corev1.Event{
@@ -1473,7 +1473,7 @@ func TestEventAnalyzerAnalyze_MultipleIssues(t *testing.T) {
 			t.Fatalf("Failed to create event: %v", err)
 		}
 	}
-	
+
 	data.K8sClient = client
 
 	issues, err := a.Analyze(ctx, data)

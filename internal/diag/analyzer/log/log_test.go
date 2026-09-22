@@ -231,8 +231,8 @@ func TestSyslogAnalyzerAnalyze_MultipleIssues(t *testing.T) {
 	data.RawFiles = map[string][]byte{
 		"logs/syslog": []byte(
 			"segfault at 0\n" +
-			"Out of memory: Killed process 1234\n" +
-			"I/O error, dev sda\n",
+				"Out of memory: Killed process 1234\n" +
+				"I/O error, dev sda\n",
 		),
 	}
 

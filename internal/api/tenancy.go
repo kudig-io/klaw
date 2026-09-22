@@ -85,11 +85,11 @@ func (s *Server) handleCreateTenantUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	s.logAudit(r, "tenancy", "tenant-user.create", map[string]string{
-		"userId":         item.ID,
-		"tenantId":       item.TenantID,
-		"username":       item.Username,
-		"subjectKind":    item.SubjectKind,
-		"subjectName":    item.SubjectName,
+		"userId":           item.ID,
+		"tenantId":         item.TenantID,
+		"username":         item.Username,
+		"subjectKind":      item.SubjectKind,
+		"subjectName":      item.SubjectName,
 		"subjectNamespace": item.SubjectNamespace,
 	}, "success", map[string]interface{}{"namespaces": item.Namespaces})
 	s.respondJSON(w, item, http.StatusCreated)

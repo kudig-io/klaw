@@ -41,12 +41,12 @@ func TestTenancyManagerLifecycle(t *testing.T) {
 	}
 
 	user, err := manager.AddUser(TenantUser{
-		TenantID:     tenant.ID,
-		Username:     "alice",
-		Role:         "admin",
-		SubjectKind:  "service-account",
-		SubjectName:  "tenant-operator",
-		Namespaces:   []string{"team-a"},
+		TenantID:    tenant.ID,
+		Username:    "alice",
+		Role:        "admin",
+		SubjectKind: "service-account",
+		SubjectName: "tenant-operator",
+		Namespaces:  []string{"team-a"},
 	})
 	if err != nil {
 		t.Fatalf("AddUser() error = %v", err)

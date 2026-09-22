@@ -591,7 +591,7 @@ func TestDiskAnalyzerAnalyze_MixedUsage(t *testing.T) {
 	if len(issues) != 2 {
 		t.Fatalf("Expected 2 issues, got %d", len(issues))
 	}
-	
+
 	// Check that we have one warning and one critical
 	var warningCount, criticalCount int
 	for _, issue := range issues {
@@ -1043,8 +1043,8 @@ func TestProcessStateAnalyzerAnalyze_MultipleDStateProcesses(t *testing.T) {
 	data.RawFiles = map[string][]byte{
 		"ps_command_status": []byte(
 			"process nginx is in State D\n" +
-			"process php-fpm is in State D\n" +
-			"process mysql is in State D",
+				"process php-fpm is in State D\n" +
+				"process mysql is in State D",
 		),
 	}
 
@@ -1068,7 +1068,7 @@ func TestProcessStateAnalyzerAnalyze_BothIssues(t *testing.T) {
 	data.RawFiles = map[string][]byte{
 		"ps_command_status": []byte(
 			"ps -ef command is hung\n" +
-			"process nginx is in State D",
+				"process nginx is in State D",
 		),
 	}
 
@@ -1079,7 +1079,7 @@ func TestProcessStateAnalyzerAnalyze_BothIssues(t *testing.T) {
 	if len(issues) != 2 {
 		t.Fatalf("Expected 2 issues, got %d", len(issues))
 	}
-	
+
 	var hasHung, hasDState bool
 	for _, issue := range issues {
 		switch issue.ENName {

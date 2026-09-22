@@ -91,10 +91,10 @@ type DNSStats struct {
 }
 
 type FileIOStats struct {
-	TotalReads        uint64
-	TotalWrites       uint64
-	TotalReadBytes    uint64
-	TotalWriteBytes   uint64
+	TotalReads         uint64
+	TotalWrites        uint64
+	TotalReadBytes     uint64
+	TotalWriteBytes    uint64
 	AvgLatencyMicrosec uint64
 }
 
