@@ -79,3 +79,7 @@ Thumbs.db
 *.kubeconfig
 configs/config.yaml
 !configs/config.yaml.example
+
+# Finder 复制副本（同名文件粘贴产生的 "xxx 2" / "xxx 2.ext"）
+* 2
+* 2.*

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - 清理 git 误跟踪的 macOS 复制残留:`web/src/pages/NetworkPage 2.tsx`、`NodesPage 2.tsx`、`ServicesPage 2.tsx`(均为旧版快照)、`.hallmark/log 2.json`;删除空目录 `pkg/models`、`pkg/utils`。
+- 清理剩余 6 个误跟踪的「2」副本:`README 2.md`、`README.en 2.md`、`web/src/pages/NodesPage 2.tsx`、`web/src/pages/ServicesPage 2.tsx`、`web/src/__tests__/integration/api.test 2.ts`、`web/src/__tests__/mocks/handlers/monitoring 2.ts`(均为旧版快照);`.gitignore` 新增 `* 2` / `* 2.*` 防复发规则。
 
 ### Changed
 
