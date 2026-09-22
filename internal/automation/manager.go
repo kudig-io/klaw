@@ -20,16 +20,29 @@ type Manager struct {
 	history   []ScriptExecution
 	mu        sync.RWMutex
 	clientset kubernetes.Interface
+	guard     *Guard
+	auditLog  func(action, detail string)
 }
 
 func NewManager(store *storage.Store) *Manager {
-	m := &Manager{store: store}
+	m := &Manager{store: store, guard: NewGuard(true)}
 	m.load()
 	if len(m.scripts) == 0 {
 		m.scripts = defaultScripts()
 		_ = m.saveLocked()
 	}
 	return m
+}
+
+// WithGuardEnabled 控制危险命令防护开关（automation.guard.enabled）
+func (m *Manager) WithGuardEnabled(enabled bool) *Manager {
+	m.guard.SetEnabled(enabled)
+	return m
+}
+
+// SetAuditLog 注入审计回调：防护拦截等安全事件落审计日志
+func (m *Manager) SetAuditLog(fn func(action, detail string)) {
+	m.auditLog = fn
 }
 
 func (m *Manager) WithClientset(cs kubernetes.Interface) *Manager {
@@ -235,6 +248,10 @@ func (m *Manager) executeCustom(ctx context.Context, command string, timeoutSec 
 	if command == "" {
 		return "", fmt.Errorf("custom script is empty")
 	}
+	if err := m.guard.Check(command); err != nil {
+		m.logGuardBlocked(command, err)
+		return "", err
+	}
 	if timeoutSec <= 0 {
 		timeoutSec = 300
 	}
@@ -256,6 +273,17 @@ func (m *Manager) executeCustom(ctx context.Context, command string, timeoutSec 
 		return string(out), fmt.Errorf("script failed: %w", err)
 	}
 	return string(out), nil
+}
+
+func (m *Manager) logGuardBlocked(command string, checkErr error) {
+	if m.auditLog == nil {
+		return
+	}
+	excerpt := command
+	if len(excerpt) > 200 {
+		excerpt = excerpt[:200] + "..."
+	}
+	m.auditLog("automation.guard.blocked", fmt.Sprintf("%v | command: %s", checkErr, excerpt))
 }
 
 func mergeParams(base, override map[string]interface{}) map[string]interface{} {

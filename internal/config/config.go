@@ -16,6 +16,23 @@ type Config struct {
 	Server     ServerConfig     `yaml:"server"`
 	Events     EventConfig      `yaml:"events"`
 	SOS        SOSConfig        `yaml:"sos"`
+	Automation AutomationConfig `yaml:"automation"`
+}
+
+// AutomationConfig 自动化脚本引擎配置
+type AutomationConfig struct {
+	Guard GuardConfig `yaml:"guard"`
+}
+
+// GuardConfig 自定义脚本危险命令防护
+// Enabled 默认开启（未配置视为 true）；置 false 关闭拦截，仅建议在受信任环境使用
+type GuardConfig struct {
+	Enabled *bool `yaml:"enabled"`
+}
+
+// IsEnabled 未配置时默认开启
+func (g GuardConfig) IsEnabled() bool {
+	return g.Enabled == nil || *g.Enabled
 }
 
 // KubernetesConfig Kubernetes配置

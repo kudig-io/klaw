@@ -90,3 +90,10 @@ sos:
     voice: ""              # 可选音色
   faq_file: ""             # 可选外部语料路径
   instructions_prefix: ""
+
+# 自动化脚本引擎
+automation:
+  guard:
+    # 自定义脚本危险命令防护(删根/格盘/写设备/远程脚本落地执行等),
+    # 命中即拦截并记审计日志;默认开启,置 false 关闭(仅建议受信任环境)
+    enabled: true

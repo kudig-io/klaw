@@ -46,7 +46,7 @@ type Server struct {
 	httpServer        *http.Server
 }
 
-func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service, serverCfg config.ServerConfig, sosCfg config.SOSConfig) (*Server, error) {
+func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Service, serverCfg config.ServerConfig, sosCfg config.SOSConfig, autoCfg config.AutomationConfig) (*Server, error) {
 	if serverCfg.Auth.Enabled && serverCfg.Auth.Token == "" {
 		return nil, fmt.Errorf("server.auth.enabled is true but no API token configured (set server.auth.token or KLAW_API_TOKEN)")
 	}
@@ -55,7 +55,7 @@ func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Ser
 	if err != nil {
 		return nil, fmt.Errorf("init storage: %w", err)
 	}
-	autoMgr := automation.NewManager(store)
+	autoMgr := automation.NewManager(store).WithGuardEnabled(autoCfg.Guard.IsEnabled())
 	if client, err := k8sManager.GetClient(""); err == nil {
 		autoMgr.WithClientset(client)
 	}
@@ -99,6 +99,20 @@ func NewServer(k8sManager *kubernetes.Manager, monitoringService *monitoring.Ser
 			})
 		})
 	}
+	// 自动化脚本审计注入：危险命令防护拦截等安全事件落审计日志
+	autoMgr.SetAuditLog(func(action, detail string) {
+		if s.auditLogger == nil {
+			return
+		}
+		s.auditLogger.Log(audit.AuditEvent{
+			EventType: action,
+			Category:  "automation",
+			Severity:  "warning",
+			Source:    "automation",
+			Action:    action,
+			Details:   map[string]interface{}{"detail": detail},
+		})
+	})
 	s.SetupRoutes()
 	return s, nil
 }

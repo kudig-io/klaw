@@ -148,7 +148,7 @@ func runServer(_ context.Context) error {
 		fmt.Println("✓ OpenClaw manager started")
 	}
 
-	apiServer, err := api.NewServer(k8sManager, monitoringService, cfg.Server, cfg.SOS)
+	apiServer, err := api.NewServer(k8sManager, monitoringService, cfg.Server, cfg.SOS, cfg.Automation)
 	if err != nil {
 		log.Fatalf("Failed to create API server: %v", err)
 	}
