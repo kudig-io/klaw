@@ -89,7 +89,7 @@ func (m *Manager) ListTenants(cluster, name, namespace string) []Tenant {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var result []Tenant
+	var result = make([]Tenant, 0, len(m.tenants))
 	for _, tenant := range m.tenants {
 		if cluster != "" && tenant.Cluster != cluster {
 			continue
@@ -225,7 +225,7 @@ func (m *Manager) ListUsers(tenantID, role string) []TenantUser {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var result []TenantUser
+	var result = make([]TenantUser, 0, len(m.users))
 	for _, user := range m.users {
 		if tenantID != "" && user.TenantID != tenantID {
 			continue

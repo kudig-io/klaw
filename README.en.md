@@ -354,7 +354,7 @@ $EDITOR configs/config.yaml
 Open <http://localhost:8080>.
 
 > Auth is on by default (`server.auth.enabled: true`); requests to `/api/*` need `Authorization: Bearer <token>`.
-> See [Known Limitations](#known-limitations) — the Web UI does not currently inject this header automatically.
+> The Web UI ships with a built-in auth gate: enter the token when prompted in the browser — it is stored in localStorage and attached to subsequent requests automatically.
 
 ### Option 2: Docker
 
@@ -1009,7 +1009,6 @@ Full list and progress in [DEVELOPMENT_PLAN.md](./DEVELOPMENT_PLAN.md):
 - [ ] Cluster lifecycle management (create / delete / upgrade)
 - [ ] Full OpenClaw skill execution (`ExecuteSkill` implementation)
 - [ ] Log enhancements (multi-container Pod log selection, log download, stronger filter/search)
-- [ ] Web UI Bearer token injection (fixes [Known Limitations](#known-limitations) #1)
 
 ---
 
@@ -1039,26 +1038,21 @@ A lightweight etcd backup/restore client library for reuse by upper layers.
 
 ## Known Limitations
 
-1. **The Web UI does not automatically carry the Bearer token.**
-   The axios instance in `web/src/lib/api.ts` currently has no request interceptor, so when `server.auth.enabled: true`, browser access gets
-   `401 Unauthorized: missing bearer token`. The current workaround is to disable auth for local development (`values-kind.yaml` disables it by default);
-   in production, put Klaw behind a reverse proxy / Ingress with authentication. A proper fix needs token input + persistence + a request interceptor in the frontend.
+1. **eBPF diagnostics are Linux-only.** The related analyzers are isolated via build tags; compilation succeeds on macOS / Windows but the probes don't register.
 
-2. **eBPF diagnostics are Linux-only.** The related analyzers are isolated via build tags; compilation succeeds on macOS / Windows but the probes don't register.
+2. **OpenClaw skill execution is a reserved interface.** `internal/openclaw` currently does directory scanning and skill loading; execution logic is pending.
 
-3. **OpenClaw skill execution is a reserved interface.** `internal/openclaw` currently does directory scanning and skill loading; execution logic is pending.
-
-4. **Legacy `/api/*` routes will be removed on 2026-12-31.** Please migrate to `/api/v1/*`.
+3. **Legacy `/api/*` routes will be removed on 2026-12-31.** Please migrate to `/api/v1/*`.
 
 ---
 
 ## FAQ
 
 **Q: The Web UI shows `401 Unauthorized: missing bearer token` everywhere?**
-A: See [Known Limitations #1](#known-limitations) — the frontend doesn't inject the token yet. For local dev, set `server.auth.enabled: false` (`values-kind.yaml` disables it by default); in production, put Klaw behind a reverse proxy / Ingress with auth.
+A: Auth is enabled on the backend (`server.auth.enabled: true`) and no valid token has been submitted yet. The Web UI should pop up its auth gate — enter the token there. For raw API calls, send `Authorization: Bearer <token>`. For local development without auth, set `server.auth.enabled: false` (`values-kind.yaml` disables it by default).
 
 **Q: Why do eBPF analyzers produce no results?**
-A: eBPF probes are Linux-only, isolated via build tags; compilation succeeds on macOS / Windows but the probes don't register ([Known Limitations #2](#known-limitations)).
+A: eBPF probes are Linux-only, isolated via build tags; compilation succeeds on macOS / Windows but the probes don't register ([Known Limitations #1](#known-limitations)).
 
 **Q: After onboarding ACK Serverless (ECI), node-level diagnostics return no data?**
 A: Serverless clusters have only `virtual-kubelet` nodes. Basic management works fully, but analyzers that depend on real node system data (kernel / network / log categories) get no raw data — a platform characteristic, not a bug. See [Onboarding External Clusters](#onboarding-external-clusters-multi-cluster).

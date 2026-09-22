@@ -91,7 +91,7 @@ func (l *Logger) List(filter AuditFilter) []AuditEvent {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
-	var result []AuditEvent
+	var result = make([]AuditEvent, 0, len(l.logs))
 	for _, event := range l.logs {
 		if filter.EventType != "" && event.EventType != filter.EventType {
 			continue

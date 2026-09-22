@@ -90,7 +90,7 @@ func (l *Logger) GetSecurityEvents(filter SecurityEventFilter) []SecurityEvent {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
-	var result []SecurityEvent
+	var result = make([]SecurityEvent, 0, len(l.securityEvents))
 	for _, e := range l.securityEvents {
 		if filter.Type != "" && e.Type != filter.Type {
 			continue

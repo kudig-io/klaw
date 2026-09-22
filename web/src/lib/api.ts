@@ -1,4 +1,5 @@
-import axios from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { getAuthToken, notifyUnauthorized } from './auth'
 
 export const api = axios.create({
   baseURL: '/api',
@@ -13,6 +14,29 @@ export const v1Api = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+// 认证：请求自动携带 Bearer token，401 时广播让 AuthContext 弹出认证门
+function attachAuth(instance: ReturnType<typeof axios.create>): void {
+  instance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+    const token = getAuthToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  })
+  instance.interceptors.response.use(
+    (response) => response,
+    (error: AxiosError) => {
+      if (error.response?.status === 401) {
+        notifyUnauthorized()
+      }
+      return Promise.reject(error)
+    },
+  )
+}
+
+attachAuth(api)
+attachAuth(v1Api)
 
 export interface Cluster {
   name: string

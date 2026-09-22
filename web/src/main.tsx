@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, HashRouter } from 'react-router-dom'
 import App from './App.tsx'
 import { ToastProvider } from './contexts/ToastContext.tsx'
+import { AuthProvider } from './contexts/AuthContext.tsx'
+import AuthGate from './components/AuthGate.tsx'
 import './index.css'
 
 async function bootstrap() {
@@ -25,7 +27,11 @@ async function bootstrap() {
     <React.StrictMode>
       <Router>
         <ToastProvider>
-          <App />
+          <AuthProvider>
+            <AuthGate>
+              <App />
+            </AuthGate>
+          </AuthProvider>
         </ToastProvider>
       </Router>
     </React.StrictMode>,

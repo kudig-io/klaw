@@ -356,7 +356,7 @@ $EDITOR configs/config.yaml
 访问 <http://localhost:8080>。
 
 > 认证默认开启（`server.auth.enabled: true`），请求 `/api/*` 需带 `Authorization: Bearer <token>`。
-> 详见[已知限制](#已知限制)——Web UI 当前不会自动注入该 header。
+> Web UI 内置认证门：浏览器访问时在弹出的认证页输入 Token 即可，Token 保存在 localStorage 并自动注入后续请求。
 
 ### 方式二：Docker
 
@@ -1008,7 +1008,6 @@ make help             # 查看全部目标
 - [ ] 集群生命周期管理（create / delete / upgrade）
 - [ ] OpenClaw 技能完整执行（`ExecuteSkill` 落地）
 - [ ] 日志增强（多容器 Pod 日志选择、日志下载、更强的过滤搜索）
-- [ ] Web UI Bearer Token 注入（修复[已知限制](#已知限制) #1）
 
 ---
 
@@ -1038,26 +1037,21 @@ CRD 驱动的声明式诊断编排，基于 controller-runtime 0.16.3。
 
 ## 已知限制
 
-1. **Web UI 不会自动携带 Bearer Token。**
-   `web/src/lib/api.ts` 的 axios 实例目前没有请求拦截器，因此当 `server.auth.enabled: true` 时，浏览器访问会收到
-   `401 Unauthorized: missing bearer token`。当前的规避方式是本地开发关闭认证（`values-kind.yaml` 已默认关闭），
-   生产环境请置于反向代理 / Ingress 认证之后。彻底修复需要给前端补 token 输入与持久化 + 请求拦截器。
+1. **eBPF 诊断仅在 Linux 可用。** 相关分析器通过 build tag 隔离，macOS / Windows 上编译不会失败，但探针不会注册。
 
-2. **eBPF 诊断仅在 Linux 可用。** 相关分析器通过 build tag 隔离，macOS / Windows 上编译不会失败，但探针不会注册。
+2. **OpenClaw 技能执行为预留接口。** `internal/openclaw` 当前完成目录扫描与技能加载，执行逻辑待补全。
 
-3. **OpenClaw 技能执行为预留接口。** `internal/openclaw` 当前完成目录扫描与技能加载，执行逻辑待补全。
-
-4. **`/api/*` 旧版路由将于 2026-12-31 下线。** 请迁移到 `/api/v1/*`。
+3. **`/api/*` 旧版路由将于 2026-12-31 下线。** 请迁移到 `/api/v1/*`。
 
 ---
 
 ## FAQ
 
 **Q：打开 Web UI 全是 `401 Unauthorized: missing bearer token`？**
-A：见[已知限制 #1](#已知限制)——前端尚未自动注入 token。本地开发可设 `server.auth.enabled: false`（`values-kind.yaml` 已默认关闭）；生产环境请置于反向代理 / Ingress 认证之后。
+A：说明后端开启了认证（`server.auth.enabled: true`）而浏览器尚未提交有效 Token。正常情况下页面会自动弹出认证门，输入 Token 即可；若停留在 401 文本（如直接调 API），请带上 `Authorization: Bearer <token>` 请求头。本地开发不想开认证可设 `server.auth.enabled: false`（`values-kind.yaml` 已默认关闭）。
 
 **Q：eBPF 相关分析器为什么没有运行结果？**
-A：eBPF 探针仅在 Linux 可用，通过 build tag 隔离；macOS / Windows 上编译不会失败，但探针不会注册（[已知限制 #2](#已知限制)）。
+A：eBPF 探针仅在 Linux 可用，通过 build tag 隔离；macOS / Windows 上编译不会失败，但探针不会注册（[已知限制 #1](#已知限制)）。
 
 **Q：接入 ACK Serverless（ECI）后，节点类诊断拿不到数据？**
 A：Serverless 集群的节点全部是 `virtual-kubelet`，基础管理完全可用，但依赖节点真实系统数据的分析器（内核 / 网络 / 日志类）拿不到原始数据，属于平台特性而非故障。详见[接入外部集群](#接入外部集群多集群)。

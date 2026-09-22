@@ -96,6 +96,7 @@ func (s *Server) setupUnifiedV1Routes() {
 	s.router.HandleFunc("/api/v1/tenant-users/{id}", s.handleDeleteTenantUser).Methods("DELETE")
 	s.router.HandleFunc("/api/v1/audit/logs", s.handleAuditLogs).Methods("GET")
 	s.router.HandleFunc("/api/v1/audit/stats", s.handleAuditStats).Methods("GET")
+	s.router.HandleFunc("/api/v1/auth/verify", s.handleAuthVerify).Methods("GET")
 	s.router.HandleFunc("/api/v1/clusters/{cluster}/rbac/analysis", s.handleAnalyzeRBAC).Methods("GET")
 	s.router.HandleFunc("/api/v1/analysis/logs", s.handleAnalyzeRawLogs).Methods("POST")
 

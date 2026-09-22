@@ -85,7 +85,7 @@ func (m *Manager) GetRules(cluster string) []Rule {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var result []Rule
+	var result = make([]Rule, 0, len(m.rules))
 	for _, rule := range m.rules {
 		if rule.Cluster == "" || rule.Cluster == cluster {
 			result = append(result, rule)
@@ -150,7 +150,7 @@ func (m *Manager) GetHistory(cluster string, limit int) []Record {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	var result []Record
+	var result = make([]Record, 0, len(m.history))
 	for _, record := range m.history {
 		if cluster == "" || record.Cluster == cluster {
 			result = append(result, record)

@@ -124,7 +124,8 @@ func (m *Manager) List(cluster string) []Backup {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	items := append([]Backup(nil), m.backups[cluster]...)
+	items := make([]Backup, len(m.backups[cluster]))
+	copy(items, m.backups[cluster])
 	return items
 }
 

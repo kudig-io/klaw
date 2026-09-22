@@ -14,6 +14,7 @@ import { StoragePage } from './pages/StoragePage'
 import DiagnosticsPage from './pages/DiagnosticsPage'
 import SosCallPage from './pages/SosCallPage'
 import SosFloatingButton from './components/SosFloatingButton'
+import AuthStatusButton from './components/AuthStatusButton'
 import { Menu, X, Moon, Sun, Database, Server, Activity, AlertCircle, Boxes, Beaker, Globe, Network, HardDrive, DatabaseBackup, Shield, Stethoscope, Siren, ExternalLink } from 'lucide-react'
 
 /* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
@@ -176,6 +177,7 @@ function App() {
               </div>
 
               <div className="flex items-center gap-1">
+                <AuthStatusButton />
                 <button
                   onClick={toggleMockMode}
                   title={isMockMode ? '关闭 Mock 模式' : '开启 Mock 模式'}
