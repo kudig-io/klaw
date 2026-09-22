@@ -24,11 +24,11 @@ func NewGenerator(width, height int) *Generator {
 
 // ChartData 图表数据
 type ChartData struct {
-	Title       string
-	XLabels     []string
-	YLabel      string
-	Datasets    []Dataset
-	ShowLegend  bool
+	Title      string
+	XLabels    []string
+	YLabel     string
+	Datasets   []Dataset
+	ShowLegend bool
 }
 
 // Dataset 数据集

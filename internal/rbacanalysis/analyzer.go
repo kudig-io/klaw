@@ -37,14 +37,14 @@ type RoleBindingInfo struct {
 }
 
 type RBACAnalysis struct {
-	TotalRoles           int                             `json:"totalRoles"`
-	TotalClusterRoles    int                             `json:"totalClusterRoles"`
-	TotalBindings        int                             `json:"totalBindings"`
-	TotalClusterBindings int                             `json:"totalClusterBindings"`
-	RolesByNamespace     map[string][]string             `json:"rolesByNamespace"`
-	BindingsBySubject    map[string][]SubjectBinding     `json:"bindingsBySubject"`
-	BindingsByRole       map[string][]RoleBindingInfo    `json:"bindingsByRole"`
-	Timestamp            time.Time                       `json:"timestamp"`
+	TotalRoles           int                          `json:"totalRoles"`
+	TotalClusterRoles    int                          `json:"totalClusterRoles"`
+	TotalBindings        int                          `json:"totalBindings"`
+	TotalClusterBindings int                          `json:"totalClusterBindings"`
+	RolesByNamespace     map[string][]string          `json:"rolesByNamespace"`
+	BindingsBySubject    map[string][]SubjectBinding  `json:"bindingsBySubject"`
+	BindingsByRole       map[string][]RoleBindingInfo `json:"bindingsByRole"`
+	Timestamp            time.Time                    `json:"timestamp"`
 }
 
 func (a *Analyzer) AnalyzeRBAC(ctx context.Context) (*RBACAnalysis, error) {

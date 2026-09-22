@@ -14,10 +14,10 @@ import (
 
 // Manager 监控管理器
 type Manager struct {
-	k8sManager   *kubernetes.Manager
+	k8sManager     *kubernetes.Manager
 	dingtalkClient *dingtalk.Client
 	feishuClient   *feishu.Client
-	alerts        map[string]*Alert
+	alerts         map[string]*Alert
 }
 
 // Alert 告警信息

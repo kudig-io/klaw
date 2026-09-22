@@ -31,7 +31,7 @@ type Notifier struct {
 	dedup        *EventDedup
 	aggregator   *EventAggregator
 	mu           sync.RWMutex
-	channels     map[string][]string   // 事件源（及其集群名）-> 通信频道列表
+	channels     map[string][]string     // 事件源（及其集群名）-> 通信频道列表
 	subscribed   map[string]EventHandler // 事件源 -> 已注册的 handler（用于可靠退订）
 }
 
@@ -314,15 +314,15 @@ func (ea *EventAggregator) Add(event *Event) *Event {
 		agg.firstTime = time.Now()
 
 		return &Event{
-			ID:           event.ID,
-			Type:         event.Type,
-			ResourceType: event.ResourceType,
-			ResourceName: fmt.Sprintf("%s (and %d similar events)", event.ResourceName, count-1),
-			Namespace:    event.Namespace,
-			Cluster:      event.Cluster,
-			Reason:       event.Reason,
-			Message:      fmt.Sprintf("[%d similar events in %v] %s", count, ea.window, event.Message),
-			Timestamp:    time.Now(),
+			ID:             event.ID,
+			Type:           event.Type,
+			ResourceType:   event.ResourceType,
+			ResourceName:   fmt.Sprintf("%s (and %d similar events)", event.ResourceName, count-1),
+			Namespace:      event.Namespace,
+			Cluster:        event.Cluster,
+			Reason:         event.Reason,
+			Message:        fmt.Sprintf("[%d similar events in %v] %s", count, ea.window, event.Message),
+			Timestamp:      time.Now(),
 			InvolvedObject: event.InvolvedObject,
 		}
 	}

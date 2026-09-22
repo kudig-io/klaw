@@ -141,7 +141,7 @@ func (m *Manager) cleanupTenantUserLocked(tenant Tenant, user TenantUser) error 
 	return nil
 }
 
-func applyTenantUserBinding(client *kubernetes.Clientset, namespace string, tenant Tenant, user TenantUser) error {
+func applyTenantUserBinding(client kubernetes.Interface, namespace string, tenant Tenant, user TenantUser) error {
 	ctx := context.Background()
 	bindingName := managedName(tenant.ID, "user-"+user.ID)
 	roleName := managedName(tenant.ID, "role")
@@ -179,7 +179,7 @@ func applyTenantUserBinding(client *kubernetes.Clientset, namespace string, tena
 	return err
 }
 
-func deleteTenantUserBinding(client *kubernetes.Clientset, namespace, tenantID, userID string) error {
+func deleteTenantUserBinding(client kubernetes.Interface, namespace, tenantID, userID string) error {
 	ctx := context.Background()
 	err := client.RbacV1().RoleBindings(namespace).Delete(ctx, managedName(tenantID, "user-"+userID), metav1.DeleteOptions{})
 	if apierrors.IsNotFound(err) {

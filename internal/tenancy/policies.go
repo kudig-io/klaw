@@ -98,7 +98,7 @@ func (m *Manager) reconcileTenantLocked(oldTenant, newTenant Tenant) error {
 	return nil
 }
 
-func ensureNamespace(client *kubernetes.Clientset, namespace, tenantID string) error {
+func ensureNamespace(client kubernetes.Interface, namespace, tenantID string) error {
 	ctx := context.Background()
 	labels := managedLabels(tenantID)
 
@@ -133,7 +133,7 @@ func ensureNamespace(client *kubernetes.Clientset, namespace, tenantID string) e
 	return err
 }
 
-func applyResourceQuota(client *kubernetes.Clientset, namespace string, tenant Tenant) error {
+func applyResourceQuota(client kubernetes.Interface, namespace string, tenant Tenant) error {
 	ctx := context.Background()
 	name := managedName(tenant.ID, "quota")
 	quota := &corev1.ResourceQuota{
@@ -167,7 +167,7 @@ func applyResourceQuota(client *kubernetes.Clientset, namespace string, tenant T
 	return err
 }
 
-func applyDefaultDenyPolicy(client *kubernetes.Clientset, namespace string, tenant Tenant) error {
+func applyDefaultDenyPolicy(client kubernetes.Interface, namespace string, tenant Tenant) error {
 	ctx := context.Background()
 	name := managedName(tenant.ID, "default-deny")
 	policy := &networkingv1.NetworkPolicy{
@@ -199,7 +199,7 @@ func applyDefaultDenyPolicy(client *kubernetes.Clientset, namespace string, tena
 	return err
 }
 
-func applyTenantRBAC(client *kubernetes.Clientset, namespace string, tenant Tenant) error {
+func applyTenantRBAC(client kubernetes.Interface, namespace string, tenant Tenant) error {
 	ctx := context.Background()
 	roleName := managedName(tenant.ID, "role")
 	bindingName := managedName(tenant.ID, "binding")
@@ -260,7 +260,7 @@ func applyTenantRBAC(client *kubernetes.Clientset, namespace string, tenant Tena
 	return err
 }
 
-func deleteTenantManagedResources(client *kubernetes.Clientset, namespace, tenantID string) error {
+func deleteTenantManagedResources(client kubernetes.Interface, namespace, tenantID string) error {
 	ctx := context.Background()
 	resources := []func() error{
 		func() error {

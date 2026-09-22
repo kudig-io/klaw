@@ -25,11 +25,11 @@ type fakeCommunicator struct {
 	sent []sentMessage
 }
 
-func (f *fakeCommunicator) Name() string  { return f.name }
-func (f *fakeCommunicator) Start() error  { return nil }
-func (f *fakeCommunicator) Stop() error   { return nil }
+func (f *fakeCommunicator) Name() string                               { return f.name }
+func (f *fakeCommunicator) Start() error                               { return nil }
+func (f *fakeCommunicator) Stop() error                                { return nil }
 func (f *fakeCommunicator) RegisterHandler(_ messaging.MessageHandler) {}
-func (f *fakeCommunicator) IsHealthy() bool { return true }
+func (f *fakeCommunicator) IsHealthy() bool                            { return true }
 func (f *fakeCommunicator) SendMessage(channelID string, resp *messaging.Response) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -145,9 +145,9 @@ func TestNotifierAggregation(t *testing.T) {
 		t.Fatalf("subscribe: %v", err)
 	}
 
-	n.handleEvent(testEvent("BackOff"))    // 首条透传
-	n.handleEvent(testEvent("BackOff"))    // 攒批
-	n.handleEvent(testEvent("BackOff"))    // 达到阈值 → 聚合事件
+	n.handleEvent(testEvent("BackOff")) // 首条透传
+	n.handleEvent(testEvent("BackOff")) // 攒批
+	n.handleEvent(testEvent("BackOff")) // 达到阈值 → 聚合事件
 
 	if dingtalk.count() != 2 {
 		t.Fatalf("expected 2 deliveries (first + aggregated), got %d", dingtalk.count())

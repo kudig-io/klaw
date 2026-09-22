@@ -28,15 +28,15 @@ const (
 type BackupPhase string
 
 const (
-	BackupPhasePending             BackupPhase = "Pending"
-	BackupPhaseValidating          BackupPhase = "Validating"
-	BackupPhasePreparing           BackupPhase = "Preparing"
-	BackupPhaseSnapshotting        BackupPhase = "Snapshotting"
-	BackupPhaseUploading           BackupPhase = "Uploading"
-	BackupPhaseValidatingSnapshot  BackupPhase = "Validating_Snapshot"
-	BackupPhaseTriggeringVelero    BackupPhase = "TriggeringVelero"
-	BackupPhaseCompleted           BackupPhase = "Completed"
-	BackupPhaseFailed              BackupPhase = "Failed"
+	BackupPhasePending            BackupPhase = "Pending"
+	BackupPhaseValidating         BackupPhase = "Validating"
+	BackupPhasePreparing          BackupPhase = "Preparing"
+	BackupPhaseSnapshotting       BackupPhase = "Snapshotting"
+	BackupPhaseUploading          BackupPhase = "Uploading"
+	BackupPhaseValidatingSnapshot BackupPhase = "Validating_Snapshot"
+	BackupPhaseTriggeringVelero   BackupPhase = "TriggeringVelero"
+	BackupPhaseCompleted          BackupPhase = "Completed"
+	BackupPhaseFailed             BackupPhase = "Failed"
 )
 
 type StorageLocation struct {
@@ -75,18 +75,18 @@ type ValidationResult struct {
 }
 
 type Backup struct {
-	Name              string            `json:"name"`
-	Cluster           string            `json:"cluster"`
-	Phase             BackupPhase       `json:"phase"`
-	Spec              BackupSpec        `json:"spec"`
-	SnapshotSize      int64             `json:"snapshotSize"`
-	SnapshotLocation  string            `json:"snapshotLocation"`
-	EtcdRevision      int64             `json:"etcdRevision"`
-	ValidationResult  *ValidationResult `json:"validationResult,omitempty"`
-	StartTime         time.Time         `json:"startTime"`
-	CompletionTime    *time.Time        `json:"completionTime,omitempty"`
-	Message           string            `json:"message,omitempty"`
-	CreatedAt         time.Time         `json:"createdAt"`
+	Name             string            `json:"name"`
+	Cluster          string            `json:"cluster"`
+	Phase            BackupPhase       `json:"phase"`
+	Spec             BackupSpec        `json:"spec"`
+	SnapshotSize     int64             `json:"snapshotSize"`
+	SnapshotLocation string            `json:"snapshotLocation"`
+	EtcdRevision     int64             `json:"etcdRevision"`
+	ValidationResult *ValidationResult `json:"validationResult,omitempty"`
+	StartTime        time.Time         `json:"startTime"`
+	CompletionTime   *time.Time        `json:"completionTime,omitempty"`
+	Message          string            `json:"message,omitempty"`
+	CreatedAt        time.Time         `json:"createdAt"`
 }
 
 type CreateBackupRequest struct {
@@ -99,10 +99,10 @@ type CreateBackupRequest struct {
 }
 
 type Summary struct {
-	Total      int            `json:"total"`
-	ByPhase    map[string]int `json:"byPhase"`
-	ByMode     map[string]int `json:"byMode"`
-	Recent24h  int            `json:"recent24h"`
+	Total     int            `json:"total"`
+	ByPhase   map[string]int `json:"byPhase"`
+	ByMode    map[string]int `json:"byMode"`
+	Recent24h int            `json:"recent24h"`
 }
 
 type Manager struct {

@@ -7,15 +7,15 @@ import (
 
 // Message 表示收到的消息
 type Message struct {
-	ID        string
-	Content   string
-	SenderID  string
-	SenderName string
-	ChannelID string
+	ID          string
+	Content     string
+	SenderID    string
+	SenderName  string
+	ChannelID   string
 	ChannelName string
-	Timestamp int64
-	IsGroup   bool
-	Mentioned bool // 是否被@提及
+	Timestamp   int64
+	IsGroup     bool
+	Mentioned   bool // 是否被@提及
 }
 
 // Response 表示发送的响应
@@ -30,18 +30,18 @@ type Response struct {
 type FormatType string
 
 const (
-	FormatPlain     FormatType = "plain"     // 纯文本
-	FormatMarkdown  FormatType = "markdown"  // Markdown
-	FormatJSON      FormatType = "json"      // JSON 代码块
-	FormatTable     FormatType = "table"     // 表格
-	FormatImage     FormatType = "image"     // 图片
+	FormatPlain    FormatType = "plain"    // 纯文本
+	FormatMarkdown FormatType = "markdown" // Markdown
+	FormatJSON     FormatType = "json"     // JSON 代码块
+	FormatTable    FormatType = "table"    // 表格
+	FormatImage    FormatType = "image"    // 图片
 )
 
 // InteractiveComponent 交互式组件
 type InteractiveComponent struct {
-	Type       ComponentType
-	Buttons    []Button
-	Menus      []Menu
+	Type    ComponentType
+	Buttons []Button
+	Menus   []Menu
 }
 
 type ComponentType string
@@ -73,19 +73,19 @@ type MenuOption struct {
 type Communicator interface {
 	// Name 返回通信平台名称
 	Name() string
-	
+
 	// Start 启动通信客户端
 	Start() error
-	
+
 	// Stop 停止通信客户端
 	Stop() error
-	
+
 	// SendMessage 发送消息到指定频道/用户
 	SendMessage(channelID string, response *Response) error
-	
+
 	// RegisterHandler 注册消息处理器
 	RegisterHandler(handler MessageHandler)
-	
+
 	// IsHealthy 检查连接健康状态
 	IsHealthy() bool
 }

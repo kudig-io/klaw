@@ -19,7 +19,7 @@ type KubernetesSource struct {
 	BaseSource
 	k8sManager  *kubernetes.Manager
 	clusterName string
-	client      *k8sclient.Clientset
+	client      k8sclient.Interface
 	stopCh      chan struct{}
 	watchers    map[string]watch.Interface
 }
@@ -30,7 +30,7 @@ func NewKubernetesSource(clusterName string, k8sManager *kubernetes.Manager) (*K
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client for cluster %s: %v", clusterName, err)
 	}
-	
+
 	return &KubernetesSource{
 		BaseSource:  *NewBaseSource(fmt.Sprintf("kubernetes-%s", clusterName)),
 		k8sManager:  k8sManager,
@@ -68,7 +68,7 @@ func (s *KubernetesSource) Start(ctx context.Context) error {
 
 	// 启动 Deployment Watch
 	go s.watchDeployments(s.ctx)
-	
+
 	fmt.Printf("Kubernetes event source started for cluster: %s\n", s.clusterName)
 	return nil
 }
@@ -77,24 +77,24 @@ func (s *KubernetesSource) Start(ctx context.Context) error {
 func (s *KubernetesSource) Stop() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if !s.running {
 		return nil
 	}
-	
+
 	s.running = false
 	close(s.stopCh)
-	
+
 	// 停止所有 watchers 并清空，避免重启后对已停接口重复 Stop
 	for name, w := range s.watchers {
 		w.Stop()
 		delete(s.watchers, name)
 	}
-	
+
 	if s.cancel != nil {
 		s.cancel()
 	}
-	
+
 	fmt.Printf("Kubernetes event source stopped for cluster: %s\n", s.clusterName)
 	return nil
 }
@@ -116,7 +116,7 @@ func (s *KubernetesSource) watchEvents(ctx context.Context) {
 	}
 	s.watchers["events"] = watchInterface
 	s.mu.Unlock()
-	
+
 	// 处理事件
 	for {
 		select {
@@ -129,20 +129,20 @@ func (s *KubernetesSource) watchEvents(ctx context.Context) {
 				go s.watchEvents(ctx)
 				return
 			}
-			
+
 			if event.Type == watch.Error {
 				fmt.Printf("Watch error: %v\n", event.Object)
 				continue
 			}
-			
+
 			k8sEvent, ok := event.Object.(*corev1.Event)
 			if !ok {
 				continue
 			}
-			
+
 			// 转换为统一事件格式
 			ev := s.convertK8sEvent(k8sEvent)
-			
+
 			// 处理事件类型
 			switch event.Type {
 			case watch.Added, watch.Modified:
@@ -162,14 +162,14 @@ func (s *KubernetesSource) watchPods(ctx context.Context) {
 		fmt.Printf("Failed to watch pods: %v\n", err)
 		return
 	}
-	
+
 	s.mu.Lock()
 	if old := s.watchers["pods"]; old != nil {
 		old.Stop()
 	}
 	s.watchers["pods"] = watchInterface
 	s.mu.Unlock()
-	
+
 	for {
 		select {
 		case <-s.stopCh:
@@ -180,28 +180,28 @@ func (s *KubernetesSource) watchPods(ctx context.Context) {
 				go s.watchPods(ctx)
 				return
 			}
-			
+
 			if event.Type == watch.Error {
 				continue
 			}
-			
+
 			pod, ok := event.Object.(*corev1.Pod)
 			if !ok {
 				continue
 			}
-			
+
 			// 只处理特定的 Pod 事件
 			if event.Type == watch.Deleted {
 				ev := &Event{
-					ID:        string(pod.UID),
-					Type:      EventTypeDelete,
+					ID:           string(pod.UID),
+					Type:         EventTypeDelete,
 					ResourceType: ResourcePod,
 					ResourceName: pod.Name,
-					Namespace: pod.Namespace,
-					Cluster:   s.clusterName,
-					Reason:    "Deleted",
-					Message:   fmt.Sprintf("Pod %s/%s was deleted", pod.Namespace, pod.Name),
-					Timestamp: time.Now(),
+					Namespace:    pod.Namespace,
+					Cluster:      s.clusterName,
+					Reason:       "Deleted",
+					Message:      fmt.Sprintf("Pod %s/%s was deleted", pod.Namespace, pod.Name),
+					Timestamp:    time.Now(),
 					InvolvedObject: InvolvedObject{
 						Kind:      "Pod",
 						Name:      pod.Name,
@@ -225,14 +225,14 @@ func (s *KubernetesSource) watchDeployments(ctx context.Context) {
 		fmt.Printf("Failed to watch deployments: %v\n", err)
 		return
 	}
-	
+
 	s.mu.Lock()
 	if old := s.watchers["deployments"]; old != nil {
 		old.Stop()
 	}
 	s.watchers["deployments"] = watchInterface
 	s.mu.Unlock()
-	
+
 	for {
 		select {
 		case <-s.stopCh:
@@ -243,11 +243,11 @@ func (s *KubernetesSource) watchDeployments(ctx context.Context) {
 				go s.watchDeployments(ctx)
 				return
 			}
-			
+
 			if event.Type == watch.Error {
 				continue
 			}
-			
+
 			// 简化处理，不转换为 Event
 			// 详细的 Deployment 事件通过 Event Watch 获取
 		}
@@ -260,21 +260,21 @@ func (s *KubernetesSource) convertK8sEvent(k8sEvent *corev1.Event) *Event {
 	if k8sEvent.Type == "Warning" {
 		eventType = EventTypeWarning
 	}
-	
+
 	// 映射资源类型
 	resourceType := ResourceType(k8sEvent.InvolvedObject.Kind)
-	
+
 	return &Event{
-		ID:        string(k8sEvent.UID),
-		Type:      eventType,
+		ID:           string(k8sEvent.UID),
+		Type:         eventType,
 		ResourceType: resourceType,
 		ResourceName: k8sEvent.InvolvedObject.Name,
-		Namespace: k8sEvent.InvolvedObject.Namespace,
-		Cluster:   s.clusterName,
-		Reason:    k8sEvent.Reason,
-		Message:   k8sEvent.Message,
-		Timestamp: k8sEvent.LastTimestamp.Time,
-		Count:     k8sEvent.Count,
+		Namespace:    k8sEvent.InvolvedObject.Namespace,
+		Cluster:      s.clusterName,
+		Reason:       k8sEvent.Reason,
+		Message:      k8sEvent.Message,
+		Timestamp:    k8sEvent.LastTimestamp.Time,
+		Count:        k8sEvent.Count,
 		InvolvedObject: InvolvedObject{
 			Kind:       k8sEvent.InvolvedObject.Kind,
 			Name:       k8sEvent.InvolvedObject.Name,
@@ -286,5 +286,3 @@ func (s *KubernetesSource) convertK8sEvent(k8sEvent *corev1.Event) *Event {
 		Annotations: k8sEvent.Annotations,
 	}
 }
-
-

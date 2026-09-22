@@ -7,31 +7,31 @@ import (
 
 	"github.com/kudig-io/klaw/internal/chart"
 	"github.com/kudig-io/klaw/internal/kubernetes"
-	"github.com/kudig-io/klaw/internal/metrics"
 	"github.com/kudig-io/klaw/internal/messaging/dingtalk"
 	"github.com/kudig-io/klaw/internal/messaging/feishu"
+	"github.com/kudig-io/klaw/internal/metrics"
 )
 
 // Service 监控服务
 type Service struct {
-	k8sManager      *kubernetes.Manager
+	k8sManager       *kubernetes.Manager
 	dingtalkClient   *dingtalk.Client
 	feishuClient     *feishu.Client
-	metricsCollector  *metrics.Collector
+	metricsCollector *metrics.Collector
 	chartGenerator   *chart.Generator
-	alerts          map[string]*Alert
+	alerts           map[string]*Alert
 	metricsHistory   map[string][]*metrics.ClusterMetrics
-	historyMutex    sync.RWMutex
+	historyMutex     sync.RWMutex
 }
 
 // NewService 创建监控服务
 func NewService(k8sManager *kubernetes.Manager) *Service {
 	return &Service{
-		k8sManager:     k8sManager,
+		k8sManager:       k8sManager,
 		metricsCollector: metrics.NewCollector(k8sManager),
-		chartGenerator:  chart.NewGenerator(800, 600),
-		alerts:         make(map[string]*Alert),
-		metricsHistory: make(map[string][]*metrics.ClusterMetrics),
+		chartGenerator:   chart.NewGenerator(800, 600),
+		alerts:           make(map[string]*Alert),
+		metricsHistory:   make(map[string][]*metrics.ClusterMetrics),
 	}
 }
 

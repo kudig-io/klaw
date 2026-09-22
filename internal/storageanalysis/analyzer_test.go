@@ -33,7 +33,7 @@ func TestAnalyzeStorage(t *testing.T) {
 			Status: corev1.PersistentVolumeClaimStatus{Phase: corev1.ClaimBound},
 		},
 		&storagev1.StorageClass{
-			ObjectMeta: metav1.ObjectMeta{Name: "fast-ssd"},
+			ObjectMeta:  metav1.ObjectMeta{Name: "fast-ssd"},
 			Provisioner: "kubernetes.io/aws-ebs",
 		},
 	)

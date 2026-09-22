@@ -11,52 +11,52 @@ import (
 type EventType string
 
 const (
-	EventTypeNormal   EventType = "Normal"
-	EventTypeWarning  EventType = "Warning"
-	EventTypeError    EventType = "Error"
-	EventTypeCreate   EventType = "Created"
-	EventTypeUpdate   EventType = "Updated"
-	EventTypeDelete   EventType = "Deleted"
+	EventTypeNormal  EventType = "Normal"
+	EventTypeWarning EventType = "Warning"
+	EventTypeError   EventType = "Error"
+	EventTypeCreate  EventType = "Created"
+	EventTypeUpdate  EventType = "Updated"
+	EventTypeDelete  EventType = "Deleted"
 )
 
 // ResourceType 资源类型
 type ResourceType string
 
 const (
-	ResourcePod         ResourceType = "Pod"
-	ResourceDeployment  ResourceType = "Deployment"
-	ResourceService     ResourceType = "Service"
-	ResourceNode        ResourceType = "Node"
-	ResourceConfigMap   ResourceType = "ConfigMap"
-	ResourceSecret      ResourceType = "Secret"
-	ResourceIngress     ResourceType = "Ingress"
-	ResourcePersistentVolume ResourceType = "PersistentVolume"
+	ResourcePod                   ResourceType = "Pod"
+	ResourceDeployment            ResourceType = "Deployment"
+	ResourceService               ResourceType = "Service"
+	ResourceNode                  ResourceType = "Node"
+	ResourceConfigMap             ResourceType = "ConfigMap"
+	ResourceSecret                ResourceType = "Secret"
+	ResourceIngress               ResourceType = "Ingress"
+	ResourcePersistentVolume      ResourceType = "PersistentVolume"
 	ResourcePersistentVolumeClaim ResourceType = "PersistentVolumeClaim"
 )
 
 // Event 统一事件结构
 type Event struct {
-	ID            string
-	Type          EventType
-	ResourceType  ResourceType
-	ResourceName  string
-	Namespace     string
-	Cluster       string
-	Reason        string
-	Message       string
-	Timestamp     time.Time
-	Count         int32
+	ID             string
+	Type           EventType
+	ResourceType   ResourceType
+	ResourceName   string
+	Namespace      string
+	Cluster        string
+	Reason         string
+	Message        string
+	Timestamp      time.Time
+	Count          int32
 	InvolvedObject InvolvedObject
-	Labels        map[string]string
-	Annotations   map[string]string
+	Labels         map[string]string
+	Annotations    map[string]string
 }
 
 // InvolvedObject 涉及的对象
 type InvolvedObject struct {
-	Kind      string
-	Name      string
-	Namespace string
-	UID       string
+	Kind       string
+	Name       string
+	Namespace  string
+	UID        string
 	APIVersion string
 }
 
@@ -84,7 +84,7 @@ func (e *Event) GetSeverity() Severity {
 // ToMarkdown 转换为 Markdown 格式
 func (e *Event) ToMarkdown() string {
 	icon := "ℹ️"
-	
+
 	switch e.GetSeverity() {
 	case SeverityCritical:
 		icon = "🔴"
@@ -93,7 +93,7 @@ func (e *Event) ToMarkdown() string {
 	default:
 		icon = "🟢"
 	}
-	
+
 	return fmt.Sprintf(`%s **%s** - %s
 
 **资源：** %s/%s
@@ -125,12 +125,12 @@ func (e *Event) ToSummary() string {
 	case SeverityWarning:
 		icon = "🟡"
 	}
-	
-	return fmt.Sprintf("%s [%s] %s/%s: %s", 
-		icon, 
-		e.Type, 
-		e.InvolvedObject.Kind, 
-		e.ResourceName, 
+
+	return fmt.Sprintf("%s [%s] %s/%s: %s",
+		icon,
+		e.Type,
+		e.InvolvedObject.Kind,
+		e.ResourceName,
 		e.Reason,
 	)
 }
@@ -160,7 +160,7 @@ func (f *FilterConfig) ShouldFilter(event *Event) bool {
 			return true
 		}
 	}
-	
+
 	// 检查资源类型
 	if len(f.ResourceTypes) > 0 {
 		found := false
@@ -174,7 +174,7 @@ func (f *FilterConfig) ShouldFilter(event *Event) bool {
 			return true
 		}
 	}
-	
+
 	// 检查事件类型
 	// 兼容历史配置：K8s Event 只有 Normal/Warning 两类，
 	// 老版本文档中的 "Error" 类型实际不会出现，归一化映射到 Warning
@@ -190,7 +190,7 @@ func (f *FilterConfig) ShouldFilter(event *Event) bool {
 			return true
 		}
 	}
-	
+
 	// 检查原因
 	if len(f.Reasons) > 0 {
 		found := false
@@ -204,14 +204,14 @@ func (f *FilterConfig) ShouldFilter(event *Event) bool {
 			return true
 		}
 	}
-	
+
 	// 检查排除的原因
 	for _, reason := range f.ExcludeReasons {
 		if reason == event.Reason {
 			return true
 		}
 	}
-	
+
 	// 检查严重级别
 	severity := event.GetSeverity()
 	if f.MinSeverity != "" {
@@ -224,7 +224,7 @@ func (f *FilterConfig) ShouldFilter(event *Event) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -232,22 +232,22 @@ func (f *FilterConfig) ShouldFilter(event *Event) bool {
 type Source interface {
 	// Name 返回事件源名称
 	Name() string
-	
+
 	// Start 启动事件监听
 	Start(ctx context.Context) error
-	
+
 	// Stop 停止事件监听
 	Stop() error
-	
+
 	// Subscribe 订阅事件
 	Subscribe(handler EventHandler)
-	
+
 	// Unsubscribe 取消订阅
 	Unsubscribe(handler EventHandler)
-	
+
 	// SetFilter 设置事件过滤器
 	SetFilter(filter *FilterConfig)
-	
+
 	// IsHealthy 检查健康状态
 	IsHealthy() bool
 }
@@ -257,13 +257,13 @@ type EventHandler func(event *Event)
 
 // BaseSource 基础事件源实现
 type BaseSource struct {
-	name        string
-	handlers    []EventHandler
-	filter      *FilterConfig
-	mu          sync.RWMutex
-	ctx         context.Context
-	cancel      context.CancelFunc
-	running     bool
+	name     string
+	handlers []EventHandler
+	filter   *FilterConfig
+	mu       sync.RWMutex
+	ctx      context.Context
+	cancel   context.CancelFunc
+	running  bool
 }
 
 // NewBaseSource 创建基础事件源
@@ -291,7 +291,7 @@ func (s *BaseSource) Subscribe(handler EventHandler) {
 func (s *BaseSource) Unsubscribe(handler EventHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// 简单的线性查找移除
 	for i, h := range s.handlers {
 		// 比较函数指针（简化处理）
@@ -323,12 +323,12 @@ func (s *BaseSource) emit(event *Event) {
 	handlers := make([]EventHandler, len(s.handlers))
 	copy(handlers, s.handlers)
 	s.mu.RUnlock()
-	
+
 	// 应用过滤器
 	if filter != nil && filter.ShouldFilter(event) {
 		return
 	}
-	
+
 	// 发送到所有订阅者（异步；单个 handler 的 panic 不能拖垮进程）
 	for _, handler := range handlers {
 		go func(h EventHandler) {
@@ -366,7 +366,7 @@ func (m *Manager) Register(source Source) {
 func (m *Manager) Unregister(name string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if source, ok := m.sources[name]; ok {
 		source.Stop()
 		delete(m.sources, name)
@@ -389,13 +389,13 @@ func (m *Manager) StartAll(ctx context.Context) error {
 		sources = append(sources, s)
 	}
 	m.mu.RUnlock()
-	
+
 	for _, source := range sources {
 		if err := source.Start(ctx); err != nil {
 			return fmt.Errorf("failed to start source %s: %v", source.Name(), err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -407,7 +407,7 @@ func (m *Manager) StopAll() {
 		sources = append(sources, s)
 	}
 	m.mu.RUnlock()
-	
+
 	for _, source := range sources {
 		source.Stop()
 	}

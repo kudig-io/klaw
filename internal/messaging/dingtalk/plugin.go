@@ -23,12 +23,12 @@ const (
 
 // Config 钉钉配置
 type Config struct {
-	Enabled      bool   `yaml:"enabled" json:"enabled"`
-	AppKey       string `yaml:"app_key" json:"app_key"`
-	AppSecret    string `yaml:"app_secret" json:"app_secret"`
-	Webhook      string `yaml:"webhook" json:"webhook"`
-	Secret       string `yaml:"secret" json:"secret"`
-	WebhookPort  int    `yaml:"webhook_port" json:"webhook_port"` // 接收消息的端口
+	Enabled     bool   `yaml:"enabled" json:"enabled"`
+	AppKey      string `yaml:"app_key" json:"app_key"`
+	AppSecret   string `yaml:"app_secret" json:"app_secret"`
+	Webhook     string `yaml:"webhook" json:"webhook"`
+	Secret      string `yaml:"secret" json:"secret"`
+	WebhookPort int    `yaml:"webhook_port" json:"webhook_port"` // 接收消息的端口
 }
 
 // Plugin 钉钉通信插件
@@ -151,13 +151,13 @@ type DingTalkWebhookMessage struct {
 	Text    struct {
 		Content string `json:"content"`
 	} `json:"text"`
-	SenderStaffID   string `json:"senderStaffId"`
-	SenderNick      string `json:"senderNick"`
-	ConversationID  string `json:"conversationId"`
+	SenderStaffID     string `json:"senderStaffId"`
+	SenderNick        string `json:"senderNick"`
+	ConversationID    string `json:"conversationId"`
 	ConversationTitle string `json:"conversationTitle"`
-	CreateAt        int64  `json:"createAt"`
-	ChatbotUserID   string `json:"chatbotUserId"`
-	AtUsers         []struct {
+	CreateAt          int64  `json:"createAt"`
+	ChatbotUserID     string `json:"chatbotUserId"`
+	AtUsers           []struct {
 		StaffID string `json:"staffId"`
 	} `json:"atUsers"`
 	IsAdmin    bool `json:"isAdmin"`
@@ -175,7 +175,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if p.config.Secret != "" {
 		timestamp := r.Header.Get("timestamp")
 		sign := r.Header.Get("sign")
-		
+
 		if !p.verifySignature(timestamp, sign) {
 			http.Error(w, "Invalid signature", http.StatusUnauthorized)
 			return
@@ -213,7 +213,7 @@ func (p *Plugin) handleWebhook(w http.ResponseWriter, r *http.Request) {
 // processMessage 处理消息
 func (p *Plugin) processMessage(msg *messaging.Message) {
 	ctx := context.Background()
-	
+
 	p.mu.RLock()
 	handlers := make([]messaging.MessageHandler, len(p.handlers))
 	copy(handlers, p.handlers)
@@ -226,7 +226,7 @@ func (p *Plugin) processMessage(msg *messaging.Message) {
 			p.sendTextMessage(fmt.Sprintf("❌ 执行出错: %v", err))
 			continue
 		}
-		
+
 		if response != nil {
 			// 发送响应
 			if err := p.SendMessage(msg.ChannelID, response); err != nil {

@@ -199,11 +199,11 @@ func (c *Client) SendImage(imageData []byte, message string) error {
 	requestBody := map[string]interface{}{
 		"receive_id_type": "chat_id",
 		"receive_id":      "oc_abcdefg",
-		"msg_type":       "post",
+		"msg_type":        "post",
 		"content": map[string]interface{}{
 			"post": map[string]interface{}{
 				"zh_cn": map[string]interface{}{
-					"title":   "Kubernetes监控图表",
+					"title": "Kubernetes监控图表",
 					"content": [][]map[string]interface{}{
 						{
 							{
@@ -213,8 +213,8 @@ func (c *Client) SendImage(imageData []byte, message string) error {
 						},
 						{
 							{
-								"tag":      "img",
-								"img_key":  base64.StdEncoding.EncodeToString(imageData),
+								"tag":     "img",
+								"img_key": base64.StdEncoding.EncodeToString(imageData),
 								"alt": map[string]interface{}{
 									"tag":     "plain_text",
 									"content": "监控图表",

@@ -15,7 +15,7 @@ func TestAnalyzeNetwork(t *testing.T) {
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{Name: "svc-lb", Namespace: "default"},
 			Spec: corev1.ServiceSpec{
-				Type: corev1.ServiceTypeLoadBalancer,
+				Type:  corev1.ServiceTypeLoadBalancer,
 				Ports: []corev1.ServicePort{{Port: 80}},
 			},
 		},

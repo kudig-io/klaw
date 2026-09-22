@@ -2,8 +2,8 @@ package kubernetes
 
 import (
 	"fmt"
-	"path/filepath"
 	"os"
+	"path/filepath"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -18,14 +18,14 @@ const InClusterKubeconfig = "in-cluster"
 
 // Manager Kubernetes管理器
 type Manager struct {
-	clients map[string]*kubernetes.Clientset
+	clients  map[string]kubernetes.Interface
 	clusters []config.ClusterConfig
 }
 
 // NewManager 创建Kubernetes管理器
 func NewManager(cfg config.KubernetesConfig) (*Manager, error) {
 	m := &Manager{
-		clients: make(map[string]*kubernetes.Clientset),
+		clients:  make(map[string]kubernetes.Interface),
 		clusters: cfg.Clusters,
 	}
 
@@ -41,8 +41,17 @@ func NewManager(cfg config.KubernetesConfig) (*Manager, error) {
 	return m, nil
 }
 
+// NewManagerWithClient 以预构建的客户端构造管理器（测试注入 fake clientset 用）。
+// 该集群同时作为默认集群（GetClient("") 命中）。
+func NewManagerWithClient(name string, client kubernetes.Interface) *Manager {
+	return &Manager{
+		clients:  map[string]kubernetes.Interface{name: client},
+		clusters: []config.ClusterConfig{{Name: name}},
+	}
+}
+
 // initClient 初始化集群客户端
-func (m *Manager) initClient(cluster config.ClusterConfig) (*kubernetes.Clientset, error) {
+func (m *Manager) initClient(cluster config.ClusterConfig) (kubernetes.Interface, error) {
 	// in-cluster 模式：显式声明，或未指定 kubeconfig 且运行在 Pod 内时自动启用
 	if cluster.Kubeconfig == InClusterKubeconfig || (cluster.Kubeconfig == "" && isRunningInCluster()) {
 		clientConfig, err := rest.InClusterConfig()
@@ -103,7 +112,7 @@ func isRunningInCluster() bool {
 }
 
 // GetClient 获取集群客户端；clusterName 为空时回退到配置中的第一个集群
-func (m *Manager) GetClient(clusterName string) (*kubernetes.Clientset, error) {
+func (m *Manager) GetClient(clusterName string) (kubernetes.Interface, error) {
 	if clusterName == "" {
 		if len(m.clusters) == 0 {
 			return nil, fmt.Errorf("no cluster configured")

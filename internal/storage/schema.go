@@ -159,12 +159,12 @@ func (s *Store) MigrateFromDocuments() error {
 // ---------------------------------------------------------------------------
 
 type AlertRuleRow struct {
-	ID          string    `json:"id"`
-	Cluster     string    `json:"cluster"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Enabled     bool      `json:"enabled"`
-	Severity    string    `json:"severity"`
+	ID          string `json:"id"`
+	Cluster     string `json:"cluster"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+	Severity    string `json:"severity"`
 	Condition   struct {
 		Type       string      `json:"type"`
 		Field      string      `json:"field"`
@@ -206,24 +206,24 @@ func (s *Store) migrateAlertRules() error {
 // ---------------------------------------------------------------------------
 
 type AlertRecordRow struct {
-	ID             string     `json:"id"`
-	Cluster        string     `json:"cluster"`
-	RuleID         string     `json:"ruleId"`
-	RuleName       string     `json:"ruleName"`
-	RuleType       string     `json:"ruleType"`
-	ResourceKind   string     `json:"resourceKind"`
-	ResourceName   string     `json:"resourceName"`
-	Namespace      string     `json:"namespace"`
-	Severity       string     `json:"severity"`
+	ID             string      `json:"id"`
+	Cluster        string      `json:"cluster"`
+	RuleID         string      `json:"ruleId"`
+	RuleName       string      `json:"ruleName"`
+	RuleType       string      `json:"ruleType"`
+	ResourceKind   string      `json:"resourceKind"`
+	ResourceName   string      `json:"resourceName"`
+	Namespace      string      `json:"namespace"`
+	Severity       string      `json:"severity"`
 	Value          interface{} `json:"value"`
 	Threshold      interface{} `json:"threshold"`
-	Operator       string     `json:"operator"`
-	Message        string     `json:"message"`
-	Acknowledged   bool       `json:"acknowledged"`
-	Resolved       bool       `json:"resolved"`
-	CreatedAt      time.Time  `json:"createdAt"`
-	AcknowledgedAt *time.Time `json:"acknowledgedAt"`
-	ResolvedAt     *time.Time `json:"resolvedAt"`
+	Operator       string      `json:"operator"`
+	Message        string      `json:"message"`
+	Acknowledged   bool        `json:"acknowledged"`
+	Resolved       bool        `json:"resolved"`
+	CreatedAt      time.Time   `json:"createdAt"`
+	AcknowledgedAt *time.Time  `json:"acknowledgedAt"`
+	ResolvedAt     *time.Time  `json:"resolvedAt"`
 }
 
 func (s *Store) migrateAlertHistory() error {

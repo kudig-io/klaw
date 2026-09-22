@@ -34,24 +34,24 @@ type Rule struct {
 }
 
 type Record struct {
-	ID            string      `json:"id"`
-	Cluster       string      `json:"cluster"`
-	RuleID        string      `json:"ruleId"`
-	RuleName      string      `json:"ruleName"`
-	RuleType      string      `json:"ruleType"`
-	ResourceKind  string      `json:"resourceKind"`
-	ResourceName  string      `json:"resourceName"`
-	Namespace     string      `json:"namespace,omitempty"`
-	Severity      string      `json:"severity"`
-	Value         interface{} `json:"value"`
-	Threshold     interface{} `json:"threshold"`
-	Operator      string      `json:"operator"`
-	Message       string      `json:"message"`
-	Acknowledged  bool        `json:"acknowledged"`
-	Resolved      bool        `json:"resolved"`
-	CreatedAt     time.Time   `json:"createdAt"`
-	AcknowledgedAt *time.Time `json:"acknowledgedAt,omitempty"`
-	ResolvedAt    *time.Time  `json:"resolvedAt,omitempty"`
+	ID             string      `json:"id"`
+	Cluster        string      `json:"cluster"`
+	RuleID         string      `json:"ruleId"`
+	RuleName       string      `json:"ruleName"`
+	RuleType       string      `json:"ruleType"`
+	ResourceKind   string      `json:"resourceKind"`
+	ResourceName   string      `json:"resourceName"`
+	Namespace      string      `json:"namespace,omitempty"`
+	Severity       string      `json:"severity"`
+	Value          interface{} `json:"value"`
+	Threshold      interface{} `json:"threshold"`
+	Operator       string      `json:"operator"`
+	Message        string      `json:"message"`
+	Acknowledged   bool        `json:"acknowledged"`
+	Resolved       bool        `json:"resolved"`
+	CreatedAt      time.Time   `json:"createdAt"`
+	AcknowledgedAt *time.Time  `json:"acknowledgedAt,omitempty"`
+	ResolvedAt     *time.Time  `json:"resolvedAt,omitempty"`
 }
 
 type Stats struct {
