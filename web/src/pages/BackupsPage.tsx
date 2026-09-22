@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { backupApi, clusterApi, type BackupItem, type BackupSummary, type CreateBackupRequest } from '../lib/api'
+import { isAxiosError } from 'axios'
+import { backupApi, clusterApi, type BackupItem, type BackupSummary, type Cluster, type CreateBackupRequest } from '../lib/api'
 import { formatDate } from '../lib/utils'
 import { DatabaseBackup, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react'
 
@@ -49,7 +50,7 @@ const getPhaseBadgeClass = (phase: string) => {
 }
 
 const BackupsPage: React.FC = () => {
-  const [clusters, setClusters] = useState<any[]>([])
+  const [clusters, setClusters] = useState<Cluster[]>([])
   const [selectedCluster, setSelectedCluster] = useState('')
   const [backups, setBackups] = useState<BackupItem[]>([])
   const [summary, setSummary] = useState<BackupSummary | null>(null)
@@ -62,7 +63,7 @@ const BackupsPage: React.FC = () => {
     const loadClusters = async () => {
       try {
         const response = await clusterApi.getClusters()
-        setClusters(response.data)
+        setClusters(response.data ?? [])
         if (response.data.length > 0) {
           setSelectedCluster(response.data[0].name)
         }
@@ -88,7 +89,7 @@ const BackupsPage: React.FC = () => {
         backupApi.list(cluster),
         backupApi.summary(cluster),
       ])
-      setBackups(listResponse.data)
+      setBackups(listResponse.data ?? [])
       setSummary(summaryResponse.data)
     } catch (err) {
       console.error(err)
@@ -117,9 +118,9 @@ const BackupsPage: React.FC = () => {
       await backupApi.create(selectedCluster, request)
       setRequest(defaultRequest)
       await loadBackups(selectedCluster)
-    } catch (err: any) {
+    } catch (err) {
       console.error(err)
-      setError(err?.response?.data?.error || '创建备份失败')
+      setError(isAxiosError<{ error?: string }>(err) && err.response?.data?.error ? err.response.data.error : '创建备份失败')
     } finally {
       setSubmitting(false)
     }
@@ -148,7 +149,7 @@ const BackupsPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <select value={selectedCluster} onChange={(e) => setSelectedCluster(e.target.value)} className="input w-44 shrink-0">
             <option value="">选择集群</option>
-            {clusters.map((cluster: any) => (
+            {clusters.map((cluster) => (
               <option key={cluster.name} value={cluster.name}>{cluster.name}</option>
             ))}
           </select>

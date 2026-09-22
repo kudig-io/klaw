@@ -2,7 +2,7 @@
 
 import { http, HttpResponse } from 'msw'
 import { derive } from '../data/index'
-import type { BackupItem } from '../../../lib/api'
+import type { BackupItem, CreateBackupRequest } from '../../../lib/api'
 import { store, appendAudit, nextBackupName, now } from '../store'
 
 export const backupHandlers = [
@@ -15,7 +15,7 @@ export const backupHandlers = [
     return b ? HttpResponse.json(b) : new HttpResponse(null, { status: 404 })
   }),
   http.post('/api/v1/clusters/:cluster/backups', async ({ params, request }) => {
-    const body = await request.json() as any
+    const body = await request.json() as Partial<CreateBackupRequest>
     const revision = 12868_990 + store.backups.length * 47
     const backup: BackupItem = {
       name: body.name || nextBackupName(),

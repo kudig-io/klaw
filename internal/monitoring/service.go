@@ -246,7 +246,7 @@ func (s *Service) GetMetricsHistory(clusterName string) []*metrics.ClusterMetric
 	if history, ok := s.metricsHistory[clusterName]; ok {
 		return history
 	}
-	return nil
+	return []*metrics.ClusterMetrics{}
 }
 
 // GetAlerts 获取所有告警

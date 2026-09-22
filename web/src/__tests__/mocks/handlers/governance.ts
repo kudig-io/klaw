@@ -1,6 +1,7 @@
 // 租户 + 用户 + 审计 handlers
 
 import { http, HttpResponse } from 'msw'
+import type { Tenant, TenantUser } from '../../../lib/api'
 import { derive } from '../data/index'
 import { store, appendAudit, nextTenantId, nextUserId, now } from '../store'
 
@@ -24,12 +25,12 @@ export const tenancyHandlers = [
     return t ? HttpResponse.json(t) : new HttpResponse(null, { status: 404 })
   }),
   http.post('/api/v1/tenants', async ({ request }) => {
-    const body = await request.json() as any
+    const body = await request.json() as Partial<Tenant>
     const tenant = {
       id: nextTenantId(),
-      cluster: body.cluster,
-      name: body.name,
-      description: body.description,
+      cluster: body.cluster ?? '',
+      name: body.name ?? '',
+      description: body.description ?? '',
       namespaces: body.namespaces || [],
       resourceQuotas: body.resourceQuotas || { cpu: '8', memory: '16Gi', pods: '100', services: '40', persistentVolumeClaims: '20' },
       networkPolicies: body.networkPolicies || { enabled: true, defaultDeny: false },
@@ -79,17 +80,17 @@ export const tenancyHandlers = [
     return HttpResponse.json(list)
   }),
   http.post('/api/v1/tenant-users', async ({ request }) => {
-    const body = await request.json() as any
+    const body = await request.json() as Partial<TenantUser>
     const user = {
       id: nextUserId(),
-      tenantId: body.tenantId,
-      username: body.username,
-      email: body.email,
-      role: body.role,
+      tenantId: body.tenantId ?? '',
+      username: body.username ?? '',
+      email: body.email ?? '',
+      role: body.role ?? '',
       namespaces: body.namespaces || [],
       subjectKind: body.subjectKind || 'User',
-      subjectName: body.subjectName || body.username,
-      subjectNamespace: body.subjectKind === 'ServiceAccount' ? body.subjectNamespace : undefined,
+      subjectName: body.subjectName || body.username || '',
+      subjectNamespace: body.subjectKind === 'ServiceAccount' ? (body.subjectNamespace ?? '') : undefined,
       createdAt: now(),
     }
     store.users.unshift(user)

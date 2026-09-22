@@ -97,9 +97,9 @@ export const eventHandlers = [
   http.get('/api/v1/clusters/:cluster/events', ({ request }) => {
     const url = new URL(request.url)
     const namespace = url.searchParams.get('namespace')
-    return HttpResponse.json(namespace ? mockEvents.filter((e: any) => e.metadata.namespace === namespace) : mockEvents)
+    return HttpResponse.json(namespace ? mockEvents.filter((e) => e.metadata.namespace === namespace) : mockEvents)
   }),
   http.get('/api/v1/clusters/:cluster/namespaces/:namespace/events', ({ params }) => {
-    return HttpResponse.json(mockEvents.filter((e: any) => e.metadata.namespace === params.namespace))
+    return HttpResponse.json(mockEvents.filter((e) => e.metadata.namespace === params.namespace))
   }),
 ]

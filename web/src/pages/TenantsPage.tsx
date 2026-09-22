@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { auditApi, clusterApi, tenancyApi, type AuditLog, type AuditStatistics, type Cluster, type Tenant, type TenantStatistics, type TenantUser } from '../lib/api'
 import { formatDate } from '../lib/utils'
 import { Loader2, Plus, Shield, Trash2, Users } from 'lucide-react'
@@ -55,7 +55,7 @@ const TenantsPage = () => {
 
   const selectedTenant = tenants.find((tenant) => tenant.id === userForm.tenantId)
 
-  const loadData = async (cluster = selectedCluster) => {
+  const loadData = useCallback(async (cluster: string) => {
     setLoading(true)
     setError(null)
     try {
@@ -66,10 +66,10 @@ const TenantsPage = () => {
         auditApi.listLogs({ category: 'tenancy', limit: 20 }),
         auditApi.stats(),
       ])
-      setTenants(tenantsRes.data)
-      setUsers(usersRes.data)
+      setTenants(tenantsRes.data ?? [])
+      setUsers(usersRes.data ?? [])
       setStats(statsRes.data)
-      setAuditLogs(logsRes.data)
+      setAuditLogs(logsRes.data ?? [])
       setAuditStats(auditStatsRes.data)
     } catch (err) {
       console.error(err)
@@ -77,13 +77,13 @@ const TenantsPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const loadInitial = async () => {
       try {
         const response = await clusterApi.getClusters()
-        setClusters(response.data)
+        setClusters(response.data ?? [])
         const nextCluster = response.data[0]?.name || ''
         setSelectedCluster(nextCluster)
         await loadData(nextCluster)
@@ -93,13 +93,13 @@ const TenantsPage = () => {
       }
     }
     void loadInitial()
-  }, [])
+  }, [loadData])
 
   useEffect(() => {
     if (selectedCluster) {
       void loadData(selectedCluster)
     }
-  }, [selectedCluster])
+  }, [loadData, selectedCluster])
 
   const createTenant = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,7 +126,7 @@ const TenantsPage = () => {
         },
       })
       setTenantForm(defaultTenant)
-      await loadData()
+      await loadData(selectedCluster)
     } catch (err) {
       console.error(err)
       setError('创建租户失败')
@@ -147,7 +147,7 @@ const TenantsPage = () => {
         subjectNamespace: userForm.subjectKind === 'ServiceAccount' ? userForm.subjectNamespace.trim() || undefined : undefined,
       })
       setUserForm(defaultUser)
-      await loadData()
+      await loadData(selectedCluster)
     } catch (err) {
       console.error(err)
       setError('创建租户用户失败')
@@ -157,13 +157,13 @@ const TenantsPage = () => {
   const deleteTenant = async (tenant: Tenant) => {
     if (!confirm(`确定要删除租户 ${tenant.name} 吗？`)) return
     await tenancyApi.deleteTenant(tenant.id)
-    await loadData()
+    await loadData(selectedCluster)
   }
 
   const deleteUser = async (user: TenantUser) => {
     if (!confirm(`确定要删除用户 ${user.username} 吗？`)) return
     await tenancyApi.deleteUser(user.id)
-    await loadData()
+    await loadData(selectedCluster)
   }
 
   return (

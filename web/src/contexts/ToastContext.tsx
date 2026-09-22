@@ -43,6 +43,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
+// Context + useXxx 同文件导出是本仓库约定（与 AuthContext 一致），HMR 边界代价可接受
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
   const context = useContext(ToastContext)
   if (context === undefined) {

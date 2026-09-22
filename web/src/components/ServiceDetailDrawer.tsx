@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { X, Globe, Network, Link2, Server, MapPin, Copy } from 'lucide-react'
 import { type Service, serviceApi, type ServiceEndpoints } from '../lib/api'
 import { useToast } from '../contexts/ToastContext'
@@ -17,13 +17,7 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
   const [activeTab, setActiveTab] = useState<'overview' | 'ports' | 'endpoints'>('overview')
   const tabLabels = { overview: '概览', ports: '端口', endpoints: '端点' } as const
 
-  useEffect(() => {
-    if (isOpen && cluster) {
-      loadEndpoints()
-    }
-  }, [isOpen, cluster, service])
-
-  async function loadEndpoints() {
+  const loadEndpoints = useCallback(async () => {
     setIsLoadingEndpoints(true)
     try {
       const response = await serviceApi.getServiceEndpoints(
@@ -37,7 +31,13 @@ export function ServiceDetailDrawer({ isOpen, onClose, service, cluster }: Servi
     } finally {
       setIsLoadingEndpoints(false)
     }
-  }
+  }, [cluster, service])
+
+  useEffect(() => {
+    if (isOpen && cluster) {
+      loadEndpoints()
+    }
+  }, [isOpen, cluster, loadEndpoints])
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text)

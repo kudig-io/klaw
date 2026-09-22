@@ -4,16 +4,27 @@ import { http, HttpResponse } from 'msw'
 import { buildDiagResponse, mockSosStatus, mockSosFallback, mockNodes } from '../data/index'
 import { store } from '../store'
 
+// 与 buildDiagIssues 输出同构的诊断 issue
+type DiagIssue = {
+  severity: string
+  cn_name: string
+  en_name: string
+  analyzer_name: string
+  location: string
+  details: string
+  remediation: { suggestion: string }
+}
+
 export const diagHandlers = [
   http.get('/api/v1/diag/run', ({ request }) => {
     const url = new URL(request.url)
     const node = url.searchParams.get('node') || undefined
     // 先以 base mock issue 集为底；再基于 store 当前状态追加动态 issue
     const base = buildDiagResponse(node)
-    const dynamic: any[] = []
+    const dynamic: DiagIssue[] = []
     // 如果 worker2 MemoryPressure 真实在 nodes 里反映，加入对应 issue
     const worker2 = mockNodes.find((n) => n.metadata.name === 'kind-test-worker2')
-    if (worker2?.status.conditions.find((c: any) => c.type === 'MemoryPressure' && c.status === 'True')) {
+    if (worker2?.status.conditions.find((c) => c.type === 'MemoryPressure' && c.status === 'True')) {
       // 已包含
     }
     // 如果 mall-frontend 有 CrashLoop pod，加入 issue

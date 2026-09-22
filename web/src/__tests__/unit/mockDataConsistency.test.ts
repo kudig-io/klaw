@@ -186,7 +186,7 @@ describe('Mock 关联性不变量', () => {
 // ── 信息量扩展不变量（字段完备性 + 深层交叉引用）──────────────
 describe('Mock 信息量扩展不变量', () => {
   // containerStatuses 按 phase 有不同形状（running/waiting/lastState 分支），测试中放宽为动态访问
-  const csOf = (p: (typeof mockPods)[number]) => p.status.containerStatuses[0] as Record<string, any>
+  const csOf = (p: (typeof mockPods)[number]) => p.status.containerStatuses[0] as { ready?: boolean; restartCount?: number; state?: { running?: unknown; waiting?: { reason?: string } }; lastState?: { terminated?: { exitCode?: number; reason?: string } } }
 
   it('Pod 容器完备：image/resources 齐备，containerStatuses 与 containers 一一对应，qosClass=Burstable', () => {
     for (const p of mockPods) {
@@ -235,16 +235,16 @@ describe('Mock 信息量扩展不变量', () => {
       const cs = csOf(p)
       if (p.status.phase === 'Running') {
         expect(cs.ready).toBe(true)
-        expect(cs.state.running).toBeDefined()
+        expect(cs.state?.running).toBeDefined()
         expect(cs.restartCount).toBe(0)
       } else if (p.status.phase === 'Pending') {
         expect(cs.ready).toBe(false)
-        expect(cs.state.waiting?.reason).toBe('ContainerCreating')
+        expect(cs.state?.waiting?.reason).toBe('ContainerCreating')
         expect(cs.lastState).toBeUndefined()
       } else {
         expect(p.status.phase).toBe('CrashLoopBackOff')
         expect(cs.ready).toBe(false)
-        expect(cs.state.waiting?.reason).toBe('CrashLoopBackOff')
+        expect(cs.state?.waiting?.reason).toBe('CrashLoopBackOff')
         expect(cs.lastState?.terminated?.exitCode).toBe(1)
       }
     }

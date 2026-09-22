@@ -656,7 +656,7 @@ func (s *Server) handleGetMonitorAlerts(w http.ResponseWriter, r *http.Request) 
 	clusterName := vars["cluster"]
 
 	alerts := s.monitoringService.GetAlerts()
-	var clusterAlerts []monitoring.Alert
+	clusterAlerts := make([]monitoring.Alert, 0, len(alerts))
 	for _, alert := range alerts {
 		if alert.Cluster == clusterName {
 			clusterAlerts = append(clusterAlerts, *alert)

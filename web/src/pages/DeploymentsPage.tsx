@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react'
-import { clusterApi, deploymentApi, Deployment, DeploymentStatus } from '../lib/api'
+import React, { useState, useEffect, useCallback } from 'react'
+import { clusterApi, deploymentApi, Deployment, DeploymentStatus, type Cluster, type Namespace } from '../lib/api'
 import { cn, formatDate } from '../lib/utils'
 import { Search, RefreshCw, Loader2, ChevronDown, ChevronUp, RotateCcw, Plus, Minus, Server, Box } from 'lucide-react'
 
 const DeploymentsPage: React.FC = () => {
-  const [clusters, setClusters] = useState<any[]>([])
+  const [clusters, setClusters] = useState<Cluster[]>([])
   const [selectedCluster, setSelectedCluster] = useState<string>('')
-  const [namespaces, setNamespaces] = useState<any[]>([])
+  const [namespaces, setNamespaces] = useState<Namespace[]>([])
   const [selectedNamespace, setSelectedNamespace] = useState<string>('')
   const [deployments, setDeployments] = useState<Deployment[]>([])
   const [loading, setLoading] = useState(false)
@@ -20,14 +20,10 @@ const DeploymentsPage: React.FC = () => {
 
   const getDeploymentNamespace = (deployment: Deployment) => selectedNamespace || deployment.metadata.namespace
 
-  useEffect(() => {
-    fetchClusters()
-  }, [])
-
-  const fetchClusters = async () => {
+  const fetchClusters = useCallback(async () => {
     try {
       const response = await clusterApi.getClusters()
-      setClusters(response.data)
+      setClusters(response.data ?? [])
       if (response.data.length > 0) {
         setSelectedCluster(response.data[0].name)
       }
@@ -35,45 +31,49 @@ const DeploymentsPage: React.FC = () => {
       setError('获取集群列表失败')
       console.error('Error fetching clusters:', err)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    if (selectedCluster) {
-      fetchNamespaces()
-    }
-  }, [selectedCluster])
+    fetchClusters()
+  }, [fetchClusters])
 
-  const fetchNamespaces = async () => {
+  const fetchNamespaces = useCallback(async () => {
     try {
       const response = await clusterApi.getNamespaces(selectedCluster)
-      setNamespaces(response.data)
+      setNamespaces(response.data ?? [])
       // 默认选择 "All Namespaces" (空字符串)
       setSelectedNamespace('')
     } catch (err) {
       setError('获取命名空间列表失败')
       console.error('Error fetching namespaces:', err)
     }
-  }
+  }, [selectedCluster])
 
   useEffect(() => {
     if (selectedCluster) {
-      fetchDeployments()
+      fetchNamespaces()
     }
-  }, [selectedCluster, selectedNamespace])
+  }, [fetchNamespaces, selectedCluster])
 
-  const fetchDeployments = async () => {
+  const fetchDeployments = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
       const response = await deploymentApi.listDeployments(selectedCluster, selectedNamespace)
-      setDeployments(response.data)
+      setDeployments(response.data ?? [])
     } catch (err) {
       setError('获取部署列表失败')
       console.error('Error fetching deployments:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCluster, selectedNamespace])
+
+  useEffect(() => {
+    if (selectedCluster) {
+      fetchDeployments()
+    }
+  }, [fetchDeployments, selectedCluster, selectedNamespace])
 
   const fetchDeploymentStatus = async (deployment: Deployment) => {
     const deploymentName = deployment.metadata.name

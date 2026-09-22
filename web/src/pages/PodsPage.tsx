@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react'
-import { clusterApi, podApi, type LogAnalysis } from '../lib/api'
+import React, { useState, useEffect, useCallback } from 'react'
+import { clusterApi, podApi, type Cluster, type Namespace, type Pod, type LogAnalysis } from '../lib/api'
 import { getStatusColor, formatDate, cn } from '../lib/utils'
 import { Search, RefreshCw, Loader2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 
+// containerStatuses[].state 的形状（由 Pod 接口推导，用于收敛 `|| {}` 分支的类型）
+type PodContainerStatus = NonNullable<Pod['status']['containerStatuses']>[number]
+type PodContainerState = NonNullable<PodContainerStatus['state']>
+
 const PodsPage: React.FC = () => {
-  const [clusters, setClusters] = useState<any[]>([])
+  const [clusters, setClusters] = useState<Cluster[]>([])
   const [selectedCluster, setSelectedCluster] = useState<string>('')
-  const [namespaces, setNamespaces] = useState<any[]>([])
+  const [namespaces, setNamespaces] = useState<Namespace[]>([])
   const [selectedNamespace, setSelectedNamespace] = useState<string>('')
-  const [pods, setPods] = useState<any[]>([])
+  const [pods, setPods] = useState<Pod[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [expandedPod, setExpandedPod] = useState<string | null>(null)
@@ -35,13 +39,7 @@ const PodsPage: React.FC = () => {
     }
   }
 
-  useEffect(() => {
-    if (selectedCluster) {
-      fetchNamespaces()
-    }
-  }, [selectedCluster])
-
-  const fetchNamespaces = async () => {
+  const fetchNamespaces = useCallback(async () => {
     try {
       const response = await clusterApi.getNamespaces(selectedCluster)
       setNamespaces(response.data)
@@ -51,15 +49,15 @@ const PodsPage: React.FC = () => {
       setError('获取命名空间列表失败')
       console.error('Error fetching namespaces:', err)
     }
-  }
+  }, [selectedCluster])
 
   useEffect(() => {
     if (selectedCluster) {
-      fetchPods()
+      fetchNamespaces()
     }
-  }, [selectedCluster, selectedNamespace])
+  }, [selectedCluster, fetchNamespaces])
 
-  const fetchPods = async () => {
+  const fetchPods = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -71,14 +69,20 @@ const PodsPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCluster, selectedNamespace])
 
-  const getPodNamespace = (pod: any) => selectedNamespace || pod.metadata.namespace
+  useEffect(() => {
+    if (selectedCluster) {
+      fetchPods()
+    }
+  }, [selectedCluster, fetchPods])
 
-  const getPodRestarts = (pod: any) =>
-    (pod.status.containerStatuses || []).reduce((sum: number, cs: any) => sum + (cs.restartCount || 0), 0)
+  const getPodNamespace = (pod: Pod) => selectedNamespace || pod.metadata.namespace
 
-  const fetchPodLogs = async (pod: any) => {
+  const getPodRestarts = (pod: Pod) =>
+    (pod.status.containerStatuses || []).reduce((sum, cs) => sum + (cs.restartCount || 0), 0)
+
+  const fetchPodLogs = async (pod: Pod) => {
     const podName = pod.metadata.name
     const namespace = getPodNamespace(pod)
     try {
@@ -92,7 +96,7 @@ const PodsPage: React.FC = () => {
     }
   }
 
-  const fetchPodAnalysis = async (pod: any) => {
+  const fetchPodAnalysis = async (pod: Pod) => {
     const podName = pod.metadata.name
     const namespace = getPodNamespace(pod)
     try {
@@ -106,7 +110,7 @@ const PodsPage: React.FC = () => {
     }
   }
 
-  const deletePod = async (pod: any) => {
+  const deletePod = async (pod: Pod) => {
     const podName = pod.metadata.name
     const namespace = getPodNamespace(pod)
     if (!confirm(`确定要删除容器组 ${podName} 吗？`)) {
@@ -122,7 +126,7 @@ const PodsPage: React.FC = () => {
     }
   }
 
-  const togglePodDetails = (pod: any) => {
+  const togglePodDetails = (pod: Pod) => {
     const podName = pod.metadata.name
     if (expandedPod === podName) {
       setExpandedPod(null)
@@ -311,9 +315,9 @@ const PodsPage: React.FC = () => {
                             <div className="mb-4">
                               <h4 className="text-sm font-semibold mb-2">容器明细</h4>
                               <div className="space-y-2">
-                                {pod.spec.containers.map((c: any) => {
-                                  const cs = (pod.status.containerStatuses || []).find((s: any) => s.name === c.name)
-                                  const state = cs?.state || {}
+                                {pod.spec.containers.map((c) => {
+                                  const cs = (pod.status.containerStatuses || []).find((s) => s.name === c.name)
+                                  const state: PodContainerState = cs?.state || {}
                                   const stateText = state.running
                                     ? 'Running'
                                     : state.waiting
@@ -365,7 +369,7 @@ const PodsPage: React.FC = () => {
                             <div className="mb-4">
                               <h4 className="text-sm font-semibold mb-2">状态条件（Conditions）</h4>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                {pod.status.conditions.map((cond: any) => (
+                                {pod.status.conditions.map((cond) => (
                                   <div key={cond.type} className="bg-white dark:bg-gray-800 rounded p-2 text-xs">
                                     <div className="font-medium">{cond.type}</div>
                                     <div className={cond.status === 'True' ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'}>

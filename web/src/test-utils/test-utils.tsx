@@ -1,4 +1,5 @@
-// 测试工具函数
+// 测试工具文件非组件模块，react-refresh 规则不适用
+/* eslint-disable react-refresh/only-export-components */
 
 import React from 'react'
 import { render as rtlRender, RenderOptions } from '@testing-library/react'
@@ -17,6 +18,9 @@ function AllTheProviders({ children }: { children: React.ReactNode }) {
 function render(ui: React.ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
   return rtlRender(ui, { wrapper: AllTheProviders, ...options })
 }
+
+// 测试工具文件非组件模块，react-refresh 规则不适用
+/* eslint-disable react-refresh/only-export-components */
 
 // 重新导出 @testing-library/react
 export * from '@testing-library/react'

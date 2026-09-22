@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react'
-import { clusterApi, nodeApi } from '../lib/api'
+import React, { useState, useEffect, useCallback } from 'react'
+import { clusterApi, nodeApi, type Cluster, type Node, type NodeMetrics } from '../lib/api'
 import { formatDate, getStatusColor } from '../lib/utils'
 import { RefreshCw, Loader2, Server, Cpu, HardDrive } from 'lucide-react'
 
 const NodesPage: React.FC = () => {
-  const [clusters, setClusters] = useState<any[]>([])
+  const [clusters, setClusters] = useState<Cluster[]>([])
   const [selectedCluster, setSelectedCluster] = useState<string>('')
-  const [nodes, setNodes] = useState<any[]>([])
-  const [metrics, setMetrics] = useState<Record<string, any>>({})
+  const [nodes, setNodes] = useState<Node[]>([])
+  const [metrics, setMetrics] = useState<Record<string, NodeMetrics>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,14 +28,7 @@ const NodesPage: React.FC = () => {
     }
   }
 
-  useEffect(() => {
-    if (selectedCluster) {
-      fetchNodes()
-      fetchNodeMetrics()
-    }
-  }, [selectedCluster])
-
-  const fetchNodes = async () => {
+  const fetchNodes = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -47,20 +40,27 @@ const NodesPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCluster])
 
-  const fetchNodeMetrics = async () => {
+  const fetchNodeMetrics = useCallback(async () => {
     try {
       const response = await nodeApi.getNodeMetrics(selectedCluster)
       setMetrics(response.data)
     } catch (err) {
       console.error('Error fetching node metrics:', err)
     }
-  }
+  }, [selectedCluster])
 
-  const getNodeStatus = (node: any) => {
+  useEffect(() => {
+    if (selectedCluster) {
+      fetchNodes()
+      fetchNodeMetrics()
+    }
+  }, [selectedCluster, fetchNodes, fetchNodeMetrics])
+
+  const getNodeStatus = (node: Node) => {
     const readyCondition = node.status.conditions.find(
-      (cond: any) => cond.type === 'Ready'
+      (cond) => cond.type === 'Ready'
     )
     return readyCondition ? readyCondition.status : 'Unknown'
   }
@@ -110,7 +110,7 @@ const NodesPage: React.FC = () => {
           {nodes.map((node) => {
             const nodeMetric = metrics[node.metadata.name]
             const status = getNodeStatus(node)
-            const internalIP = node.status.addresses?.find((a: any) => a.type === 'InternalIP')?.address
+            const internalIP = node.status.addresses?.find((a) => a.type === 'InternalIP')?.address
             const isControlPlane = Object.keys(node.metadata.labels || {}).some((k) => k === 'node-role.kubernetes.io/control-plane')
             return (
               <div key={node.metadata.name} className="card p-6">
@@ -209,7 +209,7 @@ const NodesPage: React.FC = () => {
                 <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                   <h3 className="text-sm font-medium mb-3">状态条件（Conditions）</h3>
                   <div className="space-y-2">
-                    {node.status.conditions.map((condition: any) => {
+                    {node.status.conditions.map((condition) => {
                       const isReady = condition.type === 'Ready'
                       const pressure = !isReady && condition.status === 'True'
                       const label = pressure ? '压力告警' : isReady ? (condition.status === 'True' ? '就绪' : '未就绪') : '正常'

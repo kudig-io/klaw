@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react'
-import { clusterApi } from '../lib/api'
+import { useState, useEffect, useCallback } from 'react'
+import { clusterApi, type Namespace } from '../lib/api'
+
+// 兼容历史接口：部分响应可能直接返回 { name } 而非完整的 Namespace 对象
+type NamespaceLike = Namespace & { name?: string }
 
 interface NamespaceSelectorProps {
   cluster: string
@@ -10,26 +13,21 @@ interface NamespaceSelectorProps {
 
 const ALL_NAMESPACES = '_all'
 
-export function NamespaceSelector({ 
-  cluster, 
-  selected, 
-  onSelect, 
-  showAllNamespaces = false 
+export function NamespaceSelector({
+  cluster,
+  selected,
+  onSelect,
+  showAllNamespaces = false
 }: NamespaceSelectorProps) {
   const [namespaces, setNamespaces] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    if (cluster) {
-      loadNamespaces()
-    }
-  }, [cluster])
-
-  async function loadNamespaces() {
+  const loadNamespaces = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await clusterApi.getNamespaces(cluster)
-      const nsList = response.data.map((ns: any) => ns.metadata?.name || ns.name).sort()
+      // 历史接口兜底：metadata.name 缺失时回退到顶层 name（缺失项保持 undefined 原样，不做过滤）
+      const nsList = response.data.map((ns: NamespaceLike) => ns.metadata?.name || ns.name).sort() as string[]
       setNamespaces(nsList)
     } catch (error) {
       console.error('Failed to load namespaces:', error)
@@ -37,7 +35,13 @@ export function NamespaceSelector({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [cluster])
+
+  useEffect(() => {
+    if (cluster) {
+      loadNamespaces()
+    }
+  }, [cluster, loadNamespaces])
 
   const handleChange = (value: string) => {
     // Convert '_all' back to empty string for API

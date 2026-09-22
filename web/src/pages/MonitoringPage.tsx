@@ -1,41 +1,53 @@
-import React, { useState, useEffect } from 'react'
-import { alertingApi, clusterApi, monitoringApi, type AlertRecord, type AlertRule, type AlertStats } from '../lib/api'
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  alertingApi,
+  clusterApi,
+  monitoringApi,
+  type AlertRecord,
+  type AlertRule,
+  type AlertStats,
+  type Cluster,
+  type MonitorStatus,
+} from '../lib/api'
 import { cn, formatDate } from '../lib/utils'
 import { RefreshCw, Loader2, AlertCircle, Activity, Clock, AlertTriangle, Siren, CheckCircle2 } from 'lucide-react'
 
+// 运行状态卡里还展示了采集/评估间隔等扩展字段
+interface MonitorStatusDetail extends MonitorStatus {
+  interval?: number
+  evalInterval?: number
+  rulesEnabled?: number
+  rulesTotal?: number
+  lastEvaluation?: string
+}
+
 const MonitoringPage: React.FC = () => {
-  const [clusters, setClusters] = useState<any[]>([])
+  const [clusters, setClusters] = useState<Cluster[]>([])
   const [selectedCluster, setSelectedCluster] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [status, setStatus] = useState<any>({ active: false, cluster: '', dataPoints: 0 })
+  const [status, setStatus] = useState<MonitorStatusDetail>({ active: false, cluster: '', dataPoints: 0 })
   const [alerts, setAlerts] = useState<AlertRecord[]>([])
   const [rules, setRules] = useState<AlertRule[]>([])
   const [stats, setStats] = useState<AlertStats | null>(null)
   const [lastTriggered, setLastTriggered] = useState<AlertRecord[]>([])
 
-  useEffect(() => {
-    fetchClusters()
-  }, [])
-
-  const fetchClusters = async () => {
+  const fetchClusters = useCallback(async () => {
     try {
       const response = await clusterApi.getClusters()
-      setClusters(response.data)
+      setClusters(response.data ?? [])
       if (response.data.length > 0) {
         setSelectedCluster(response.data[0].name)
       }
     } catch (err) {
       console.error('Error:', err)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    if (selectedCluster) {
-      loadData()
-    }
-  }, [selectedCluster])
+    fetchClusters()
+  }, [fetchClusters])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const [statusRes, historyRes, statsRes, rulesRes] = await Promise.all([
@@ -46,15 +58,21 @@ const MonitoringPage: React.FC = () => {
       ])
 
       setStatus(statusRes.data)
-      setAlerts(historyRes.data)
+      setAlerts(historyRes.data ?? [])
       setStats(statsRes.data)
-      setRules(rulesRes.data)
+      setRules(rulesRes.data ?? [])
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCluster])
+
+  useEffect(() => {
+    if (selectedCluster) {
+      loadData()
+    }
+  }, [loadData, selectedCluster])
 
   const evaluateAlerts = async () => {
     if (!selectedCluster) return
@@ -97,7 +115,7 @@ const MonitoringPage: React.FC = () => {
             className="input w-44 shrink-0"
           >
             <option value="">选择集群</option>
-            {clusters.map((c: any) => (
+            {clusters.map((c) => (
               <option key={c.name} value={c.name}>{c.name}</option>
             ))}
           </select>

@@ -75,10 +75,41 @@ export interface Pod {
   }
   spec: {
     nodeName: string
+    containers?: Array<{
+      name: string
+      image: string
+      resources?: {
+        requests?: {
+          cpu?: string
+          memory?: string
+        }
+        limits?: {
+          cpu?: string
+          memory?: string
+        }
+      }
+    }>
   }
   status: {
     phase: string
     podIP: string
+    qosClass?: string
+    startTime?: string
+    containerStatuses?: Array<{
+      name: string
+      restartCount: number
+      state?: {
+        running?: { startedAt?: string }
+        waiting?: { reason: string; message?: string }
+        terminated?: { reason: string; message?: string }
+      }
+    }>
+    conditions?: Array<{
+      type: string
+      status: string
+      reason?: string
+      message?: string
+    }>
   }
 }
 
@@ -86,6 +117,7 @@ export interface Node {
   metadata: {
     name: string
     creationTimestamp: string
+    labels?: Record<string, string>
   }
   status: {
     capacity: {
@@ -235,10 +267,50 @@ export const eventApi = {
     v1Api.get<Event[]>(namespace ? `/clusters/${cluster}/namespaces/${namespace}/events` : `/clusters/${cluster}/events`),
 }
 
+export interface MonitorStatus {
+  cluster: string
+  active: boolean
+  dataPoints: number
+}
+
+// 对应 Go monitoring.Alert（json tag 为 snake_case）
+export interface MonitorAlert {
+  id: string
+  cluster: string
+  type: string
+  level: string
+  message: string
+  created_at: string
+  resolved: boolean
+}
+
+// 对应 Go metrics.ClusterMetrics（无 json tag，字段为 Go 命名）
+export interface ClusterMetricsPoint {
+  ClusterName: string
+  Timestamp: string
+  Nodes: { Total: number; Ready: number; NotReady: number; Unreachable: number }
+  Pods: Record<string, number>
+  Resources: Record<string, unknown>
+  Events: unknown[]
+}
+
+// getClusterMetrics 响应中 ClusterDashboard 实际消费的字段。
+// 后端 Go 结构体无 json tag（线上字段为 PascalCase，如 ClusterName/Timestamp/Nodes.Total），
+// 此处按 ClusterDashboard 当前实际读取的键名定义，保持运行时行为不变。
+export interface ClusterMetricsSummary {
+  timestamp: string
+  resources?: {
+    usedCPU: string
+    totalCPU: string
+    usedMemory: string
+    totalMemory: string
+  }
+}
+
 export const monitoringApi = {
-  getStatus: (cluster: string) => v1Api.get<any>(`/clusters/${cluster}/monitor/status`),
-  getAlerts: (cluster: string) => v1Api.get<any[]>(`/clusters/${cluster}/monitor/alerts`),
-  getHistory: (cluster: string) => v1Api.get<any[]>(`/clusters/${cluster}/monitor/history`),
+  getStatus: (cluster: string) => v1Api.get<MonitorStatus>(`/clusters/${cluster}/monitor/status`),
+  getAlerts: (cluster: string) => v1Api.get<MonitorAlert[]>(`/clusters/${cluster}/monitor/alerts`),
+  getHistory: (cluster: string) => v1Api.get<ClusterMetricsPoint[]>(`/clusters/${cluster}/monitor/history`),
 }
 
 export const deploymentApi = {
@@ -364,9 +436,9 @@ export const unifiedResourceApi = {
     }
     return v1Api.get<UnifiedResourceInfo>(`/clusters/${cluster}/resources/${kind}/${name}`)
   },
-  getMonitorStatus: (cluster: string) => v1Api.get(`/clusters/${cluster}/monitor/status`),
-  getMonitorAlerts: (cluster: string) => v1Api.get(`/clusters/${cluster}/monitor/alerts`),
-  getMonitorHistory: (cluster: string) => v1Api.get(`/clusters/${cluster}/monitor/history`),
+  getMonitorStatus: (cluster: string) => v1Api.get<MonitorStatus>(`/clusters/${cluster}/monitor/status`),
+  getMonitorAlerts: (cluster: string) => v1Api.get<MonitorAlert[]>(`/clusters/${cluster}/monitor/alerts`),
+  getMonitorHistory: (cluster: string) => v1Api.get<ClusterMetricsPoint[]>(`/clusters/${cluster}/monitor/history`),
 }
 
 export const serviceApi = {

@@ -1,6 +1,7 @@
 // 监控 + 告警（rules / evaluate / history / stats / acknowledge / resolve）
 
 import { http, HttpResponse } from 'msw'
+import type { AlertRecord } from '../../../lib/api'
 import { mockMetricsHistory, mockAlertRules, mockAlerts, derive } from '../data/index'
 import { store, appendAudit, nextAlertId, now } from '../store'
 
@@ -21,7 +22,7 @@ export const monitorHandlers = [
     })
   }),
   http.get('/api/v1/clusters/:cluster/monitor/alerts', ({ params }) => {
-    return HttpResponse.json(mockAlerts.filter((a: any) => a.cluster === params.cluster))
+    return HttpResponse.json(mockAlerts.filter((a) => a.cluster === params.cluster))
   }),
   http.get('/api/v1/clusters/:cluster/monitor/history', ({ params }) => {
     return HttpResponse.json(
@@ -46,7 +47,7 @@ export const alertHandlers = [
 
   // 求值：根据当前 store 状态评估规则，生成新的 active alert（去重）
   http.post('/api/v1/clusters/:cluster/alerts/evaluate', ({ params }) => {
-    const triggered: any[] = []
+    const triggered: AlertRecord[] = []
     const ts = now()
     for (const rule of mockAlertRules.filter((r) => r.cluster === 'kind-test' || !r.cluster)) {
       if (!rule.enabled) continue

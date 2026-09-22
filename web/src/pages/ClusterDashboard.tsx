@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { analysisApi, clusterApi, type RBACAnalysis } from '../lib/api'
+import { isAxiosError } from 'axios'
+import { analysisApi, clusterApi, type Cluster, type ClusterStatus, type ClusterMetricsSummary, type RBACAnalysis } from '../lib/api'
 import { cn, formatDate } from '../lib/utils'
 import { RefreshCw, Loader2, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
 
 const ClusterDashboard: React.FC = () => {
-  const [clusters, setClusters] = useState<any[]>([])
-  const [statuses, setStatuses] = useState<Record<string, any>>({})
+  const [clusters, setClusters] = useState<Cluster[]>([])
+  const [statuses, setStatuses] = useState<Record<string, ClusterStatus>>({})
   const [rbacSummaries, setRbacSummaries] = useState<Record<string, RBACAnalysis>>({})
-  const [metricsSummaries, setMetricsSummaries] = useState<Record<string, any>>({})
+  const [metricsSummaries, setMetricsSummaries] = useState<Record<string, ClusterMetricsSummary | null>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,11 +20,11 @@ const ClusterDashboard: React.FC = () => {
       const clustersResponse = await clusterApi.getClusters()
       setClusters(clustersResponse.data)
 
-      const statusPromises = clustersResponse.data.map(async (cluster: any) => {
+      const statusPromises = clustersResponse.data.map(async (cluster) => {
         const statusResponse = await clusterApi.getClusterStatus(cluster.name)
         return { [cluster.name]: statusResponse.data }
       })
-      const rbacPromises = clustersResponse.data.map(async (cluster: any) => {
+      const rbacPromises = clustersResponse.data.map(async (cluster) => {
         try {
           const response = await analysisApi.analyzeRBAC(cluster.name)
           return { [cluster.name]: response.data }
@@ -31,10 +32,10 @@ const ClusterDashboard: React.FC = () => {
           return { [cluster.name]: null }
         }
       })
-      const metricsPromises = clustersResponse.data.map(async (cluster: any) => {
+      const metricsPromises = clustersResponse.data.map(async (cluster) => {
         try {
           const response = await clusterApi.getClusterMetrics(cluster.name)
-          return { [cluster.name]: response.data }
+          return { [cluster.name]: response.data as ClusterMetricsSummary }
         } catch {
           return { [cluster.name]: null }
         }
@@ -45,25 +46,27 @@ const ClusterDashboard: React.FC = () => {
         Promise.all(rbacPromises),
         Promise.all(metricsPromises),
       ])
-      const statusMap: Record<string, any> = {}
-      statusResults.forEach((result: Record<string, any>) => {
+      const statusMap: Record<string, ClusterStatus> = {}
+      statusResults.forEach((result) => {
         Object.assign(statusMap, result)
       })
       setStatuses(statusMap)
 
       const rbacMap: Record<string, RBACAnalysis> = {}
-      rbacResults.forEach((result: Record<string, any>) => {
+      rbacResults.forEach((result) => {
         Object.assign(rbacMap, result)
       })
       setRbacSummaries(rbacMap)
 
-      const metricsMap: Record<string, any> = {}
-      metricsResults.forEach((result: Record<string, any>) => {
+      const metricsMap: Record<string, ClusterMetricsSummary | null> = {}
+      metricsResults.forEach((result) => {
         Object.assign(metricsMap, result)
       })
       setMetricsSummaries(metricsMap)
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.message || String(err)
+    } catch (err) {
+      const errorMsg =
+        (isAxiosError<{ error?: string }>(err) && err.response?.data?.error) ||
+        (err instanceof Error ? err.message : String(err))
       setError(`集群数据获取失败：${errorMsg}`)
       console.error('Error fetching cluster data:', err)
     } finally {
@@ -233,7 +236,7 @@ const ClusterDashboard: React.FC = () => {
                             </div>
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 text-right">
-                            采样时间：{formatDate(metrics.timestamp)}
+                            采样时间：{formatDate(metrics?.timestamp ?? '')}
                           </div>
                         </div>
                       ) : (

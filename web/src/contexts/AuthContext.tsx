@@ -97,6 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// Context + useXxx 同文件导出是本仓库约定（与 ToastContext 一致），HMR 边界代价可接受
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)
   if (context === undefined) {

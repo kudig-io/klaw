@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   clusterApi,
   storageApi,
@@ -36,7 +36,8 @@ function formatBytes(bytes: number): string {
 }
 
 export function StoragePage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const { showToast } = useToast()
 
   const [clusters, setClusters] = useState<Array<{ name: string }>>([])
@@ -49,35 +50,24 @@ export function StoragePage() {
   const [analysis, setAnalysis] = useState<StorageAnalysis | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    loadClusters()
-  }, [])
-
-  useEffect(() => {
-    const params: Record<string, string> = {}
-    if (selectedCluster) params.cluster = selectedCluster
-    if (selectedNamespace && selectedNamespace !== ALL_NAMESPACES) params.namespace = selectedNamespace
-    setSearchParams(params)
-
-    if (selectedCluster) {
-      loadStorage()
-    }
-  }, [selectedCluster, selectedNamespace])
-
-  async function loadClusters() {
+  const loadClusters = useCallback(async () => {
     try {
       const response = await clusterApi.getClusters()
-      setClusters(response.data)
-      if (response.data.length > 0 && !selectedCluster) {
-        setSelectedCluster(response.data[0].name)
+      setClusters(response.data ?? [])
+      if (response.data.length > 0) {
+        setSelectedCluster((prev) => prev || response.data[0].name)
       }
     } catch (error) {
       console.error('Failed to load clusters:', error)
       showToast('加载集群列表失败', 'error')
     }
-  }
+  }, [showToast])
 
-  async function loadStorage() {
+  useEffect(() => {
+    loadClusters()
+  }, [loadClusters])
+
+  const loadStorage = useCallback(async () => {
     if (!selectedCluster) return
 
     setIsLoading(true)
@@ -103,7 +93,19 @@ export function StoragePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [selectedCluster, selectedNamespace, showToast])
+
+  // Update URL when selection changes
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (selectedCluster) params.cluster = selectedCluster
+    if (selectedNamespace && selectedNamespace !== ALL_NAMESPACES) params.namespace = selectedNamespace
+    navigate(`?${new URLSearchParams(params).toString()}`)
+
+    if (selectedCluster) {
+      loadStorage()
+    }
+  }, [loadStorage, navigate, selectedCluster, selectedNamespace])
 
   function formatAge(timestamp: string): string {
     const date = new Date(timestamp)

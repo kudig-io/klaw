@@ -24,70 +24,70 @@ func NewCollector(k8sManager *kubernetes.Manager) *Collector {
 
 // ClusterMetrics 集群指标
 type ClusterMetrics struct {
-	ClusterName    string
-	Timestamp     time.Time
-	Nodes         NodeMetricsSummary
-	Pods          PodMetricsSummary
-	Resources     ResourceMetrics
-	Events        []EventMetric
+	ClusterName string             `json:"clusterName"`
+	Timestamp   time.Time          `json:"timestamp"`
+	Nodes       NodeMetricsSummary `json:"nodes"`
+	Pods        PodMetricsSummary  `json:"pods"`
+	Resources   ResourceMetrics    `json:"resources"`
+	Events      []EventMetric      `json:"events"`
 }
 
 // NodeMetricsSummary 节点指标摘要
 type NodeMetricsSummary struct {
-	Total       int
-	Ready       int
-	NotReady    int
-	Unreachable int
-	Details     []NodeDetail
+	Total       int          `json:"total"`
+	Ready       int          `json:"ready"`
+	NotReady    int          `json:"notReady"`
+	Unreachable int          `json:"unreachable"`
+	Details     []NodeDetail `json:"details"`
 }
 
 // NodeDetail 节点详情
 type NodeDetail struct {
-	Name              string
-	CPUUsage          string
-	MemoryUsage       string
-	CPUUsagePercent   float64
-	MemoryUsagePercent float64
-	Conditions        []corev1.NodeCondition
+	Name               string                 `json:"name"`
+	CPUUsage           string                 `json:"cpuUsage"`
+	MemoryUsage        string                 `json:"memoryUsage"`
+	CPUUsagePercent    float64                `json:"cpuUsagePercent"`
+	MemoryUsagePercent float64                `json:"memoryUsagePercent"`
+	Conditions         []corev1.NodeCondition `json:"conditions"`
 }
 
 // PodMetricsSummary Pod指标摘要
 type PodMetricsSummary struct {
-	Total      int
-	Running    int
-	Pending    int
-	Failed     int
-	Succeeded  int
-	Details    []PodDetail
+	Total     int         `json:"total"`
+	Running   int         `json:"running"`
+	Pending   int         `json:"pending"`
+	Failed    int         `json:"failed"`
+	Succeeded int         `json:"succeeded"`
+	Details   []PodDetail `json:"details"`
 }
 
 // PodDetail Pod详情
 type PodDetail struct {
-	Name         string
-	Namespace    string
-	Status       string
-	RestartCount int32
-	Age          time.Duration
+	Name         string        `json:"name"`
+	Namespace    string        `json:"namespace"`
+	Status       string        `json:"status"`
+	RestartCount int32         `json:"restartCount"`
+	Age          time.Duration `json:"age"`
 }
 
 // ResourceMetrics 资源指标
 type ResourceMetrics struct {
-	TotalCPU     string
-	TotalMemory  string
-	UsedCPU      string
-	UsedMemory   string
-	AvailableCPU string
-	AvailableMemory string
+	TotalCPU        string `json:"totalCPU"`
+	TotalMemory     string `json:"totalMemory"`
+	UsedCPU         string `json:"usedCPU"`
+	UsedMemory      string `json:"usedMemory"`
+	AvailableCPU    string `json:"availableCPU"`
+	AvailableMemory string `json:"availableMemory"`
 }
 
 // EventMetric 事件指标
 type EventMetric struct {
-	Type      string
-	Reason    string
-	Message   string
-	Count     int32
-	FirstSeen time.Time
-	LastSeen  time.Time
+	Type      string    `json:"type"`
+	Reason    string    `json:"reason"`
+	Message   string    `json:"message"`
+	Count     int32     `json:"count"`
+	FirstSeen time.Time `json:"firstSeen"`
+	LastSeen  time.Time `json:"lastSeen"`
 }
 
 // CollectClusterMetrics 收集集群指标
@@ -99,7 +99,7 @@ func (c *Collector) CollectClusterMetrics(clusterName string) (*ClusterMetrics, 
 
 	metrics := &ClusterMetrics{
 		ClusterName: clusterName,
-		Timestamp:  time.Now(),
+		Timestamp:   time.Now(),
 	}
 
 	// 收集节点指标
@@ -147,10 +147,10 @@ func (c *Collector) collectNodeMetrics(client k8sclient.Interface) (*NodeMetrics
 
 	for _, node := range nodes.Items {
 		detail := NodeDetail{
-			Name:       node.Name,
-			CPUUsage:   node.Status.Capacity.Cpu().String(),
+			Name:        node.Name,
+			CPUUsage:    node.Status.Capacity.Cpu().String(),
 			MemoryUsage: node.Status.Capacity.Memory().String(),
-			Conditions: node.Status.Conditions,
+			Conditions:  node.Status.Conditions,
 		}
 
 		// 计算节点状态

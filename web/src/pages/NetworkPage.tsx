@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { clusterApi, networkApi, type Ingress, type NetworkPolicy, type NetworkAnalysis } from '../lib/api'
 import { ClusterSelector } from '../components/ClusterSelector'
 import { NamespaceSelector } from '../components/NamespaceSelector'
@@ -10,7 +10,8 @@ import { useToast } from '../contexts/ToastContext'
 const ALL_NAMESPACES = '_all' // Special value for all namespaces
 
 export function NetworkPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const { showToast } = useToast()
 
   const [clusters, setClusters] = useState<Array<{ name: string }>>([])
@@ -22,35 +23,24 @@ export function NetworkPage() {
   const [analysis, setAnalysis] = useState<NetworkAnalysis | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  useEffect(() => {
-    loadClusters()
-  }, [])
-
-  useEffect(() => {
-    const params: Record<string, string> = {}
-    if (selectedCluster) params.cluster = selectedCluster
-    if (selectedNamespace && selectedNamespace !== ALL_NAMESPACES) params.namespace = selectedNamespace
-    setSearchParams(params)
-
-    if (selectedCluster) {
-      loadNetwork()
-    }
-  }, [selectedCluster, selectedNamespace])
-
-  async function loadClusters() {
+  const loadClusters = useCallback(async () => {
     try {
       const response = await clusterApi.getClusters()
-      setClusters(response.data)
-      if (response.data.length > 0 && !selectedCluster) {
-        setSelectedCluster(response.data[0].name)
+      setClusters(response.data ?? [])
+      if (response.data.length > 0) {
+        setSelectedCluster((prev) => prev || response.data[0].name)
       }
     } catch (error) {
       console.error('Failed to load clusters:', error)
       showToast('加载集群列表失败', 'error')
     }
-  }
+  }, [showToast])
 
-  async function loadNetwork() {
+  useEffect(() => {
+    loadClusters()
+  }, [loadClusters])
+
+  const loadNetwork = useCallback(async () => {
     if (!selectedCluster) return
 
     setIsLoading(true)
@@ -73,7 +63,19 @@ export function NetworkPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [selectedCluster, selectedNamespace, showToast])
+
+  // Update URL when selection changes
+  useEffect(() => {
+    const params: Record<string, string> = {}
+    if (selectedCluster) params.cluster = selectedCluster
+    if (selectedNamespace && selectedNamespace !== ALL_NAMESPACES) params.namespace = selectedNamespace
+    navigate(`?${new URLSearchParams(params).toString()}`)
+
+    if (selectedCluster) {
+      loadNetwork()
+    }
+  }, [loadNetwork, navigate, selectedCluster, selectedNamespace])
 
   function formatAge(timestamp: string): string {
     const date = new Date(timestamp)

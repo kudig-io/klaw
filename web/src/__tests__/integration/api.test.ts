@@ -39,7 +39,7 @@ describe('API Integration Tests', () => {
     it('should fetch namespaces', async () => {
       const response = await clusterApi.getNamespaces('kind-test')
       expect(response.data.length).toBeGreaterThan(0)
-      expect(response.data.some((ns: any) => ns.metadata.name === 'default')).toBe(true)
+      expect(response.data.some((ns) => ns.metadata.name === 'default')).toBe(true)
     })
   })
 
@@ -79,7 +79,7 @@ describe('API Integration Tests', () => {
     it('should fetch deployments', async () => {
       const response = await deploymentApi.listDeployments('kind-test', 'klaw-test')
       expect(response.data.length).toBeGreaterThan(0)
-      expect(response.data.some((d: any) => d.metadata.name === 'nginx')).toBe(true)
+      expect(response.data.some((d) => d.metadata.name === 'nginx')).toBe(true)
     })
 
     it('should fetch deployment status', async () => {
