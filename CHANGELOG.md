@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Quality Hardening（2026-09-23 质量加固批次）
+
+- **前端认证闭环**（修复原已知限制 #1）：新增 `GET /api/v1/auth/verify` 探测端点；Web 端新增认证门（登录门/凭证管理双模式）、`lib/auth.ts` Token 持久化（复用 SOS 的 `klaw_token` 约定）、axios 请求拦截器自动注入 Bearer、401 广播联动；Mock 模式自动跳过。README 双语已知限制与 FAQ 同步更新。
+- **自动化脚本危险命令防护**：`internal/automation/guard.go` 内置 14 条危险模式（删根/格盘/dd 写设备/远程脚本管道执行/关机/抹除历史等），命中即拦截并落审计日志（`automation.guard.blocked`）；`automation.guard.enabled` 默认开启，可显式关闭。
+- **测试补强**：`kubernetes.Manager` 改为基于 `kubernetes.Interface` 并新增 `NewManagerWithClient` 测试注入构造器；新增 API/tenancy/storage 测试 34 个用例（fake clientset 打通 HTTP 层字段级断言），覆盖率 api 4.3%→9.3%、tenancy 34.3%→51.5%、storage 68.3%。
+- **前端 lint 零容忍恢复**：全部显式 `any` 清零（含测试侧）、16 处 `react-hooks/exhaustive-deps` 以 useCallback 消化、`no-explicit-any` 升为 error、lint 脚本恢复 `--max-warnings 0`（取代本批次前"仅可见不阻断"策略）；移除空挂的 `test:e2e` 脚本。
+
+### Fixed - Quality Hardening（2026-09-23）
+
+- **仪表盘资源用量真实数据不显示**：`internal/metrics` 结构体无 json tag（序列化为 PascalCase），与前端/MSW 小写契约不匹配——补 camelCase tag 后浏览器实测真实渲染（CPU/内存/节点/Pod 统计）。
+- **空集合序列化为 null**：alerting history/rules、backups、tenant-users、tenants、audit logs、monitor alerts/history 等列表端点空结果由 `null` 统一为 `[]`（`/monitoring` 页面曾因 `null.length` 白屏）。
+- **大文件拆分（纯代码移动）**：`ops/handler.go` 925→356、`tenancy/manager.go` 912→366、`diag/analyzer/kubernetes/kubernetes.go` 797→18、`api/server.go` 734→277，按命令域/职责拆为 20 个文件；拆分后全仓最大 Go 文件 366 行。
+- **gofmt 清零**：`internal/` 既有格式漂移（尾随空格/对齐）全部消化，`gofmt -l internal/ cmd/` 无输出。
+
 ### Fixed - Security & CI
 
 - **依赖安全修复**:升级 `golang.org/x/net` v0.46.0 → v0.55.0、`golang.org/x/text` v0.30.0 → v0.39.0,消除 GO-2026-4918 / GO-2026-5026 / GO-2026-5970 三个漏洞;CI 中 govulncheck 去掉 `|| true`,漏洞扫描变为阻断门槛。根模块 go directive 随之升至 1.25.0,CI(`setup-go` 1.25)、Dockerfile(`golang:1.25-alpine`)、README/CONTRIBUTING 版本说明同步。

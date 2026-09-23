@@ -3,7 +3,7 @@
 本文档记录 Klaw 作为开箱即用的 Kubernetes 运维工具的开发计划和进度。
 
 > 创建时间：2026-04-01
-> 最后更新：2026-09-22
+> 最后更新：2026-09-23
 
 ---
 
@@ -42,7 +42,7 @@
 | 租户 | ✅ | 租户/租户用户 CRUD 与统计 |
 | 审计 | ✅ | 审计日志与统计 |
 | RBAC 分析 | ✅ | `/rbac/analysis` 权限分析 |
-| 网络与存储 | 🚧 | 页面与 mock 契约已就绪，Go API 待实现（见迭代 3） |
+| 网络与存储 | ✅ | NetworkPolicy/Ingress/PV/PVC/StorageClass 列表与统计分析（2026-09-23 核实已全部落地并接通真实 API） |
 | SOS 语音代理 | ✅ | dashscope（Qwen-Omni-Realtime）/ glm（GLM-Realtime）双 provider |
 
 #### 运维命令（钉钉/飞书）
@@ -56,24 +56,33 @@
 | 项 | 状态 | 说明 |
 |------|------|------|
 | CI 安全门槛 | ✅ | govulncheck 阻断（2026-09-11 起）；依赖升级消除 GO-2026-4918/5026/5970 |
-| 前端 lint 门槛 | ✅ | CI 增加 eslint（19 处历史 exhaustive-deps warning 可见不阻断） |
-| 前端测试 | ✅ | Vitest + MSW，119 用例全绿 |
+| 前端 lint 门槛 | ✅ | `--max-warnings 0` 零容忍（2026-09-23 恢复）：`any` 全清零 + 16 处 exhaustive-deps 以 useCallback 消化，`no-explicit-any` 升为 error |
+| 前端测试 | ✅ | Vitest + MSW，123 用例全绿（含认证门 4 例） |
+| 前端认证闭环 | ✅ | Token 输入门 + axios 拦截器 + 401 联动（2026-09-23），原已知限制 #1 关闭 |
+| 脚本执行防护 | ✅ | 危险模式黑名单 + 审计留痕（`automation.guard.enabled` 默认开启） |
+| 后端测试覆盖 | ✅ | fake clientset 打通 API 层 HTTP 断言；api 9.3% / tenancy 51.5% / storage 68.3% |
+| 大文件治理 | ✅ | 4 个 700+ 行文件拆分，全仓最大 Go 文件 366 行；`gofmt -l` 清零 |
 | 子模块化 | ✅ | etcd-guardian 以 git submodule 接入，CI fetch submodules |
 
 ---
 
+## ✅ 已完成迭代
+
+### 迭代 3：网络与存储后端真实化（2026-09-23 核实完成）
+
+经代码核实（commit f957c17），以下四项均已落地，DEVELOPMENT_PLAN 此前未同步：
+
+- [x] **Go API**：`/api/v1/analysis/network`、`/api/v1/analysis/storage` 与 NetworkPolicy / Ingress / PV / PVC / StorageClass 列表路由（`internal/api/unified_v1.go`）
+- [x] **K8s 数据采集**：`internal/kubernetes/resources.go` 对应采集方法 + `internal/networkanalysis` / `internal/storageanalysis` 分析器
+- [x] **前端切换**：`web/src/lib/api.ts` networkApi/storageApi 真实客户端，页面走真实 API（mock 保留给测试，MSW 路径与真实路由一致）
+- [x] **端到端验证**：本地二进制 + 真实集群浏览器实测（列表/统计渲染正常，纳入 2026-09-23 质量加固批次回归）
+
+### 迭代 1（Deployment 管理）、迭代 2（Service 管理）
+2026-04 完成，明细见 CHANGELOG 与 git 历史。
+
+---
+
 ## 🚧 待开发功能
-
-### 迭代 3：网络与存储后端真实化（进行中，最高优先级）
-
-Web 端 Network/Storage 页面、mock 契约与单测均已就绪，但 Go 后端尚无对应路由，页面只能跑 mock 数据。
-
-- [ ] **Go API**：按 mock 契约实现
-  - Network：NetworkPolicy / Ingress 列表与统计、连接拓扑分析
-  - Storage：PV / PVC / StorageClass 列表、容量统计摘要
-- [ ] **K8s 数据采集**：`internal/kubernetes` 增加对应资源采集方法
-- [ ] **前端切换**：`web/src/lib/api.ts` 增加 client 函数，页面从 mock 切真实 API（mock 保留给测试）
-- [ ] **端到端验证**：kind 集群实测两页渲染真实数据（深浅双模式）
 
 ### 迭代 4：可观测性补齐（API 已就绪，缺 UI）
 
@@ -91,7 +100,7 @@ Web 端 Network/Storage 页面、mock 契约与单测均已就绪，但 Go 后�
 
 ### 质量债（贯穿）
 
-- [ ] 19 处 `react-hooks/exhaustive-deps` warning 以 useCallback 重构消化，恢复 `--max-warnings 0`
+- [x] 19 处 `react-hooks/exhaustive-deps` warning 以 useCallback 重构消化，恢复 `--max-warnings 0`（2026-09-23 完成，实际消化 16 处 + 测试侧 12 处 `any`）
 
 ---
 
